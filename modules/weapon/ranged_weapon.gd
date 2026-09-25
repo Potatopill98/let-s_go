@@ -212,31 +212,21 @@ func attack() -> void:
 	if camera == null:
 		return
 	# ============================================================
-	# Tracer - fully referenced from Neon Arena
-	# Raycast from camera (guarantees crosshair accuracy)
-	# Tracer drawn from camera to hit point
-	# Muzzle only emits flash, creating visual illusion
+	# Spawn actual bullet entity from muzzle position
+	# Bullet flies independently after spawn, no longer tied to gun
+	# Direction = camera forward (guarantees crosshair accuracy)
 	# ============================================================
-	var from: Vector3 = camera.global_position
-	var to: Vector3 = from + -camera.global_transform.basis.z * fire_range
-	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
-	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(from, to)
-	query.collision_mask = 2
-	var result: Dictionary = space_state.intersect_ray(query)
-	var hit_point: Vector3 = to
-	if result.has("position"):
-		hit_point = result.position
-	# Tracer from camera to hit point (exact same as Neon Arena)
-	spawn_tracer(from, hit_point)
-	if result.has("collider"):
-		var hit_node: Node = result.collider as Node
-		if hit_node is BaseMonster:
-			var monster: BaseMonster = hit_node as BaseMonster
-			var knockback_dir: Vector3 = -camera.global_transform.basis.z
-			knockback_dir.y = 0.0
-			knockback_dir = knockback_dir.normalized()
-			var knockback: Vector3 = knockback_dir * knockback_force
-			monster.take_damage(damage, knockback)
+	var bullet_scene: PackedScene = load("res://modules/weapon/bullet.tscn")
+	if bullet_scene == null:
+		return
+	var bullet: Node = bullet_scene.instantiate()
+	if bullet == null:
+		return
+	var shoot_dir: Vector3 = -camera.global_transform.basis.z
+	shoot_dir = shoot_dir.normalized()
+	bullet.damage = damage
+	get_tree().current_scene.add_child(bullet)
+	bullet.setup(shoot_dir, muzzle_node.global_position)
 
 func reload() -> void:
 	if is_reloading or current_ammo == mag_size:
@@ -250,34 +240,3 @@ func trigger_muzzle_flash() -> void:
 	muzzle_flash.visible = true
 	muzzle_light.light_energy = 6.0
 	muzzle_flash.rotation_degrees.z = randf_range(0, 360)
-
-# ============================================================
-# Tracer - fully referenced from Neon Arena Tracer.gd
-# ============================================================
-func spawn_tracer(from: Vector3, to: Vector3) -> void:
-	var tracer: MeshInstance3D = MeshInstance3D.new()
-	var tracer_mesh: BoxMesh = BoxMesh.new()
-	tracer_mesh.size = Vector3(0.025, 0.025, 1.0)
-	var tracer_mat: StandardMaterial3D = StandardMaterial3D.new()
-	tracer_mat.albedo_color = Color(1.0, 0.95, 0.5, 0.95)
-	tracer_mat.emission_enabled = true
-	tracer_mat.emission = Color(1.0, 0.9, 0.3)
-	tracer_mat.emission_energy_multiplier = 7.0
-	tracer_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	tracer_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	tracer_mesh.surface_set_material(0, tracer_mat)
-	tracer.mesh = tracer_mesh
-	# Setup: set length, position, orientation (exact same as Neon Arena Tracer.setup())
-	var len: float = from.distance_to(to)
-	tracer_mesh.size.z = len
-	tracer.global_position = (from + to) * 0.5
-	tracer.look_at(to, Vector3.UP)
-	get_tree().current_scene.add_child(tracer)
-	# Auto destroy after 0.12s (same as Neon Arena _life)
-	var lifetime: float = 0.12
-	var timer: Timer = Timer.new()
-	timer.wait_time = lifetime
-	timer.one_shot = true
-	timer.timeout.connect(func(): tracer.queue_free())
-	tracer.add_child(timer)
-	timer.start()
