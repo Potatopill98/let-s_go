@@ -1,8 +1,8 @@
 ﻿extends Node3D
 class_name RangedWeapon
 
-# 武器属性
-@export var weapon_name: String = "手枪"
+# Weapon properties
+@export var weapon_name: String = "Pistol"
 @export var damage: float = 25.0
 @export var attack_cooldown: float = 0.3
 @export var knockback_force: float = 5.0
@@ -19,32 +19,48 @@ var recoil_time: float = 0.0
 var recoil_duration: float = 0.1
 var original_rotation: Vector3 = Vector3.ZERO
 var original_position: Vector3 = Vector3.ZERO
+var muzzle_node: Node3D = null
 var muzzle_flash: MeshInstance3D = null
-var tracer_lifetime: float = 0.08
+var muzzle_light: OmniLight3D = null
+var muzzle_flash_timer: float = 0.0
+var tracer_lifetime: float = 0.12
 
 func _ready() -> void:
 	add_to_group("weapon")
 	current_ammo = mag_size
 	original_rotation = rotation
 	original_position = position
-	# 创建枪口闪光
+	# Create dedicated muzzle node at gun barrel tip
+	muzzle_node = Node3D.new()
+	muzzle_node.name = "Muzzle"
+	muzzle_node.position = Vector3(0, 0, -0.35)
+	add_child(muzzle_node)
+	# Muzzle flash mesh (sphere like Neon Arena)
 	muzzle_flash = MeshInstance3D.new()
-	var flash_mesh: BoxMesh = BoxMesh.new()
-	flash_mesh.size = Vector3(0.15, 0.15, 0.15)
+	var flash_mesh: SphereMesh = SphereMesh.new()
+	flash_mesh.radius = 0.06
+	flash_mesh.height = 0.12
 	var flash_mat: StandardMaterial3D = StandardMaterial3D.new()
+	flash_mat.albedo_color = Color(1.0, 0.75, 0.3)
 	flash_mat.emission_enabled = true
-	flash_mat.emission = Color(1.0, 0.8, 0.2, 1)
-	flash_mat.emission_energy_multiplier = 5.0
+	flash_mat.emission = Color(1.0, 0.7, 0.3)
+	flash_mat.emission_energy_multiplier = 6.0
+	flash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	flash_mesh.material = flash_mat
 	muzzle_flash.mesh = flash_mesh
-	muzzle_flash.position = Vector3(0, 0, -0.3)
 	muzzle_flash.visible = false
-	add_child(muzzle_flash)
+	muzzle_node.add_child(muzzle_flash)
+	# Muzzle point light
+	muzzle_light = OmniLight3D.new()
+	muzzle_light.light_color = Color(1.0, 0.85, 0.45)
+	muzzle_light.light_energy = 0.0
+	muzzle_light.omni_range = 8.0
+	muzzle_node.add_child(muzzle_light)
 
 func _process(delta: float) -> void:
 	if attack_timer > 0.0:
 		attack_timer -= delta
-	# 射击后坐力动画
+	# Recoil animation
 	if recoil_time > 0:
 		recoil_time -= delta
 		var t: float = recoil_time / recoil_duration
@@ -53,8 +69,15 @@ func _process(delta: float) -> void:
 		if recoil_time <= 0:
 			position = original_position
 			rotation = original_rotation
+	# Muzzle flash timer
+	if muzzle_flash_timer > 0.0:
+		muzzle_flash_timer -= delta
+		muzzle_light.light_energy = 6.0 * (muzzle_flash_timer / 0.06)
+		muzzle_flash.visible = muzzle_flash_timer > 0.0
+		if muzzle_flash_timer <= 0.0:
+			muzzle_light.light_energy = 0.0
 			muzzle_flash.visible = false
-	# 换弹动画
+	# Reload animation
 	if is_reloading:
 		reload_timer -= delta
 		var reload_t: float = 1.0 - (reload_timer / reload_time)
@@ -81,14 +104,14 @@ func attack() -> void:
 	attack_timer = attack_cooldown
 	current_ammo -= 1
 	recoil_time = recoil_duration
-	muzzle_flash.visible = true
+	trigger_muzzle_flash()
 	if owner_player == null:
 		return
 	var camera: Camera3D = owner_player.get_node("Head/Camera3D") as Camera3D
 	if camera == null:
 		return
 	var from: Vector3 = camera.global_position
-	var to: Vector3 = from + camera.global_transform.basis.z * -fire_range
+	var to: Vector3 = from + -camera.global_transform.basis.z * fire_range
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
 	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(from, to)
 	query.collision_mask = 2
@@ -96,16 +119,16 @@ func attack() -> void:
 	var hit_point: Vector3 = to
 	if result.has("position"):
 		hit_point = result.position
-	# 生成弹道光线：从枪口出发，沿着相机正前方方向，保证对准准心
+	# Spawn tracer from muzzle position, direction aligned with camera forward (crosshair)
 	var cam_forward: Vector3 = -camera.global_transform.basis.z
 	cam_forward = cam_forward.normalized()
-	var tracer_end: Vector3 = muzzle_flash.global_position + cam_forward * muzzle_flash.global_position.distance_to(hit_point)
-	spawn_tracer(muzzle_flash.global_position, tracer_end)
+	var tracer_end: Vector3 = muzzle_node.global_position + cam_forward * muzzle_node.global_position.distance_to(hit_point)
+	spawn_tracer(muzzle_node.global_position, tracer_end)
 	if result.has("collider"):
 		var hit_node: Node = result.collider as Node
 		if hit_node is BaseMonster:
 			var monster: BaseMonster = hit_node as BaseMonster
-			var knockback_dir: Vector3 = camera.global_transform.basis.z * -1
+			var knockback_dir: Vector3 = -camera.global_transform.basis.z
 			knockback_dir.y = 0.0
 			knockback_dir = knockback_dir.normalized()
 			var knockback: Vector3 = knockback_dir * knockback_force
@@ -116,34 +139,37 @@ func reload() -> void:
 		return
 	is_reloading = true
 	reload_timer = reload_time
-	UIManager.show_message("换弹中...")
+	UIManager.show_message("Reloading...")
 
+func trigger_muzzle_flash() -> void:
+	muzzle_flash_timer = 0.06
+	muzzle_flash.visible = true
+	muzzle_light.light_energy = 6.0
+	muzzle_flash.rotation_degrees.z = randf_range(0, 360)
 
-
-# 生成子弹弹道光线
+# Spawn bullet tracer line (reference: Neon Arena Tracer.gd)
 func spawn_tracer(from: Vector3, to: Vector3) -> void:
 	var tracer: MeshInstance3D = MeshInstance3D.new()
 	var tracer_mesh: BoxMesh = BoxMesh.new()
-	tracer_mesh.size = Vector3(0.03, 0.03, from.distance_to(to))
+	tracer_mesh.size = Vector3(0.025, 0.025, from.distance_to(to))
 	var tracer_mat: StandardMaterial3D = StandardMaterial3D.new()
+	tracer_mat.albedo_color = Color(1.0, 0.95, 0.5, 0.95)
 	tracer_mat.emission_enabled = true
-	tracer_mat.emission = Color(1.0, 0.9, 0.3, 1)
-	tracer_mat.emission_energy_multiplier = 3.0
+	tracer_mat.emission = Color(1.0, 0.9, 0.3)
+	tracer_mat.emission_energy_multiplier = 7.0
 	tracer_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	tracer_mat.albedo_color = Color(1, 1, 1, 0.8)
+	tracer_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	tracer_mesh.material = tracer_mat
 	tracer.mesh = tracer_mesh
-	# 放在枪口和命中点中间
-	var mid_point: Vector3 = (from + to) / 2.0
-	tracer.global_position = mid_point
-	# 朝向命中点
+	# Position at midpoint between from and to
+	tracer.global_position = (from + to) * 0.5
+	# Orient along the line
 	tracer.look_at(to, Vector3.UP)
 	get_tree().current_scene.add_child(tracer)
-	# 自动销毁
+	# Auto destroy after lifetime
 	var timer: Timer = Timer.new()
 	timer.wait_time = tracer_lifetime
 	timer.one_shot = true
 	timer.timeout.connect(func(): tracer.queue_free())
 	tracer.add_child(timer)
 	timer.start()
-
