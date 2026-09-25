@@ -1,0 +1,41 @@
+﻿[gd_scene load_steps=10 format=3 uid="uid://test_monster_001"]
+
+[ext_resource type="PackedScene" path="res://scenes/entities/player.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/entities/base_monster.tscn" id="2"]
+
+[sub_resource type="StandardMaterial3D" id="GroundMat"]
+albedo_color = Color(0.3, 0.3, 0.3, 1)
+
+[sub_resource type="CubeMesh" id="GroundMesh"]
+material = SubResource("GroundMat")
+size = Vector3(30, 1, 30)
+
+[sub_resource type="BoxShape3D" id="GroundCol"]
+size = Vector3(30, 1, 30)
+
+[sub_resource type="Environment" id="Env"]
+background_mode = 1
+background_color = Color(0.5, 0.7, 0.9, 1)
+ambient_light_energy = 1.5
+
+[node name="TestMonster" type="Node3D"]
+
+[node name="WorldEnv" type="WorldEnvironment" parent="."]
+environment = SubResource("Env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-45, 0, 0)
+light_energy = 1.5
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("GroundMesh")
+position.y = -0.5
+[node name="GroundBody" type="StaticBody3D" parent="Ground"]
+[node name="GroundShape" type="CollisionShape3D" parent="Ground/GroundBody"]
+shape = SubResource("GroundCol")
+
+[node name="Monster1" parent="." instance=ExtResource("2")]
+position = Vector3(0, 0, -8)
+
+[node name="Player" parent="." instance=ExtResource("1")]
+position = Vector3.ZERO

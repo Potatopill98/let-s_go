@@ -1,0 +1,163 @@
+﻿[gd_scene load_steps=20 format=3 uid="uid://level_2_001"]
+
+[ext_resource type="PackedScene" path="res://scenes/entities/player.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/entities/base_monster.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/entities/weapon_pickup.tscn" id="3"]
+[ext_resource type="Script" path="res://scripts/tasks/elevator_task.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/core/spawn_manager.gd" id="5"]
+[ext_resource type="Script" path="res://scripts/weapons/melee_weapon.gd" id="6"]
+[ext_resource type="Script" path="res://scripts/weapons/ranged_weapon.gd" id="7"]
+
+[sub_resource type="StandardMaterial3D" id="GroundMat"]
+albedo_color = Color(0.22, 0.22, 0.25, 1)
+[sub_resource type="StandardMaterial3D" id="WallMat"]
+albedo_color = Color(0.55, 0.55, 0.58, 1)
+[sub_resource type="StandardMaterial3D" id="PlatformMat"]
+albedo_color = Color(0.4, 0.4, 0.45, 1)
+[sub_resource type="StandardMaterial3D" id="TableMat"]
+albedo_color = Color(0.5, 0.35, 0.2, 1)
+
+[sub_resource type="CubeMesh" id="GroundMesh"]
+material = SubResource("GroundMat")
+size = Vector3(30, 1, 40)
+[sub_resource type="BoxShape3D" id="GroundCol"]
+size = Vector3(30, 1, 40)
+
+[sub_resource type="CubeMesh" id="WallMesh"]
+material = SubResource("WallMat")
+size = Vector3(30, 6, 1)
+[sub_resource type="BoxShape3D" id="WallCol"]
+size = Vector3(30, 6, 1)
+
+[sub_resource type="CubeMesh" id="PlatformMesh"]
+material = SubResource("PlatformMat")
+size = Vector3(8, 0.5, 8)
+[sub_resource type="BoxShape3D" id="PlatformCol"]
+size = Vector3(8, 0.5, 8)
+
+[sub_resource type="CapsuleShape3D" id="RepairZoneCol"]
+radius = 1.5
+height = 2.0
+[sub_resource type="BoxShape3D" id="PlatformZoneCol"]
+size = Vector3(8, 3, 8)
+
+[sub_resource type="CubeMesh" id="TableMesh"]
+material = SubResource("TableMat")
+size = Vector3(6, 1, 1.5)
+
+[sub_resource type="Environment" id="WorldEnv"]
+background_mode = 1
+background_color = Color(0.35, 0.5, 0.7, 1)
+ambient_light_source = 1
+ambient_light_color = Color(0.7, 0.7, 0.7, 1)
+ambient_light_energy = 1.2
+
+[node name="Level2" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("WorldEnv")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707, -0.408, 0.577, 0, 0.816, 0.577, -0.707, -0.408, 0.577, 0, 15, 0)
+light_energy = 1.7
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("GroundMesh")
+position = Vector3(0, -0.5, -5)
+[node name="GroundBody" type="StaticBody3D" parent="Ground"]
+[node name="GroundShape" type="CollisionShape3D" parent="Ground/GroundBody"]
+shape = SubResource("GroundCol")
+
+[node name="NorthWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallMesh")
+position = Vector3(0, 3, -25)
+[node name="NorthWallBody" type="StaticBody3D" parent="NorthWall"]
+[node name="NorthWallShape" type="CollisionShape3D" parent="NorthWall/NorthWallBody"]
+shape = SubResource("WallCol")
+
+[node name="WestWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallMesh")
+rotation.y = 1.5708
+position = Vector3(-15, 3, -5)
+[node name="WestWallBody" type="StaticBody3D" parent="WestWall"]
+[node name="WestWallShape" type="CollisionShape3D" parent="WestWall/WestWallBody"]
+shape = SubResource("WallCol")
+
+[node name="EastWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallMesh")
+rotation.y = 1.5708
+position = Vector3(15, 3, -5)
+[node name="EastWallBody" type="StaticBody3D" parent="EastWall"]
+[node name="EastWallShape" type="CollisionShape3D" parent="EastWall/EastWallBody"]
+shape = SubResource("WallCol")
+
+[node name="SouthWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallMesh")
+position = Vector3(0, 3, 15)
+[node name="SouthWallBody" type="StaticBody3D" parent="SouthWall"]
+[node name="SouthWallShape" type="CollisionShape3D" parent="SouthWall/SouthWallBody"]
+shape = SubResource("WallCol")
+
+[node name="WeaponTable" type="MeshInstance3D" parent="."]
+mesh = SubResource("TableMesh")
+position = Vector3(0, 0.5, 10)
+[node name="TableBody" type="StaticBody3D" parent="WeaponTable"]
+[node name="TableCol" type="CollisionShape3D" parent="WeaponTable/TableBody"]
+shape = SubResource("GroundCol")
+scale = Vector3(0.2, 0.1, 0.05)
+
+[node name="MeleePickup" parent="." instance=ExtResource("3")]
+position = Vector3(-1.5, 0, 10)
+[node name="MeleeWeapon" type="Node" parent="MeleePickup"]
+script = ExtResource("6")
+
+[node name="RangedPickup" parent="." instance=ExtResource("3")]
+position = Vector3(1.5, 0, 10)
+[node name="RangedWeapon" type="Node" parent="RangedPickup"]
+script = ExtResource("7")
+
+[node name="ElevatorPlatform" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlatformMesh")
+position = Vector3(0, 0, -20)
+[node name="PlatformBody" type="StaticBody3D" parent="ElevatorPlatform"]
+[node name="PlatformColShape" type="CollisionShape3D" parent="ElevatorPlatform/PlatformBody"]
+shape = SubResource("PlatformCol")
+
+[node name="PlatformDetectionZone" type="Area3D" parent="."]
+position = Vector3(0, 1, -20)
+[node name="ZoneShape" type="CollisionShape3D" parent="PlatformDetectionZone"]
+shape = SubResource("PlatformZoneCol")
+
+[node name="ElevatorTask" type="Area3D" parent="."]
+position = Vector3(0, 1, -20)
+script = ExtResource("4")
+required_progress = 120.0
+repair_speed_per_player = 10.0
+evacuation_countdown = 15.0
+elevator_platform = NodePath("../ElevatorPlatform")
+platform_detection_zone = NodePath("../PlatformDetectionZone")
+target_rise_height = 20.0
+
+[node name="RepairZone" type="Area3D" parent="ElevatorTask"]
+[node name="RepairZoneShape" type="CollisionShape3D" parent="ElevatorTask/RepairZone"]
+shape = SubResource("RepairZoneCol")
+
+[node name="EntrySpawnPoint" type="Node3D" parent="."]
+position = Vector3(0, 1, 14)
+[node name="EntrySpawner" type="Node3D" parent="."]
+script = ExtResource("5")
+monster_scene = ExtResource("2")
+spawn_point_path = NodePath("../EntrySpawnPoint")
+base_spawn_interval = 8.0
+min_spawn_interval = 4.0
+max_alive_monsters = 12
+
+[node name="Monster1" parent="." instance=ExtResource("2")]
+position = Vector3(-8, 1, -5)
+[node name="Monster2" parent="." instance=ExtResource("2")]
+position = Vector3(8, 1, -10)
+[node name="Monster3" parent="." instance=ExtResource("2")]
+position = Vector3(0, 1, -15)
+
+[node name="Player" parent="." instance=ExtResource("1")]
+transform = Transform3D(0, -1, 0, 0, 1, 0, -1, 0, 0, 0, 2, 8)

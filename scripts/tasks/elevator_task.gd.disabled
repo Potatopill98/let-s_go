@@ -1,0 +1,70 @@
+﻿extends RepairTask
+class_name ElevatorTask
+
+@export var evacuation_countdown: float = 15.0
+@export var elevator_rise_speed: float = 5.0
+@export var target_rise_height: float = 20.0
+@export var elevator_platform: Node3D
+@export var platform_detection_zone: Area3D
+
+enum ElevatorPhase {
+	REPAIR,
+	COUNTDOWN,
+	RISING,
+	FINISHED
+}
+
+var current_phase: ElevatorPhase = ElevatorPhase.REPAIR
+var countdown_timer: float = 0.0
+var current_rise: float = 0.0
+var players_on_platform: Array[Player] = []
+
+func _ready() -> void:
+	super._ready()
+	countdown_timer = evacuation_countdown
+	platform_detection_zone.body_entered.connect(_register_platform_player)
+	platform_detection_zone.body_exited.connect(_unregister_platform_player)
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	match current_phase:
+		ElevatorPhase.COUNTDOWN:
+			countdown_timer -= delta
+			if countdown_timer <= 0.0:
+				start_rising()
+		ElevatorPhase.RISING:
+			process_rising(delta)
+
+func _on_task_complete() -> void:
+	current_phase = ElevatorPhase.COUNTDOWN
+	countdown_timer = evacuation_countdown
+
+func start_rising() -> void:
+	current_phase = ElevatorPhase.RISING
+	current_rise = 0.0
+
+func process_rising(delta: float) -> void:
+	var move_delta: float = elevator_rise_speed * delta
+	elevator_platform.position.y += move_delta
+	current_rise += move_delta
+	for player in players_on_platform:
+		if is_instance_valid(player):
+			player.position.y += move_delta
+	if current_rise >= target_rise_height:
+		current_phase = ElevatorPhase.FINISHED
+		_on_arrive_top()
+
+func _register_platform_player(body: Node3D) -> void:
+	if body is Player:
+		var p: Player = body as Player
+		if not players_on_platform.has(p):
+			players_on_platform.append(p)
+
+func _unregister_platform_player(body: Node3D) -> void:
+	if body is Player:
+		var p: Player = body as Player
+		if players_on_platform.has(p):
+			players_on_platform.erase(p)
+
+func _on_arrive_top() -> void:
+	get_tree().change_scene_to_file("res://scenes/levels/level_3.tscn")

@@ -1,0 +1,36 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.303 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 4060 Laptop GPU
+
+【挥拳执行】当前场景怪物数=3
+【挥拳命中】MonsterFront 当前血量=30.0 造成伤害=5.0
+【挥拳命中】MonsterLeft 当前血量=30.0 造成伤害=5.0
+【挥拳命中】MonsterRight 当前血量=30.0 造成伤害=5.0
+执行第1次挥拳
+【挥拳执行】当前场景怪物数=3
+【挥拳命中】MonsterFront 当前血量=25.0 造成伤害=5.0
+【挥拳命中】MonsterLeft 当前血量=25.0 造成伤害=5.0
+【挥拳命中】MonsterRight 当前血量=25.0 造成伤害=5.0
+执行第2次挥拳
+【挥拳执行】当前场景怪物数=3
+【挥拳命中】MonsterFront 当前血量=20.0 造成伤害=5.0
+【挥拳命中】MonsterLeft 当前血量=20.0 造成伤害=5.0
+【挥拳命中】MonsterRight 当前血量=20.0 造成伤害=5.0
+执行第3次挥拳
+【挥拳执行】当前场景怪物数=3
+【挥拳命中】MonsterFront 当前血量=15.0 造成伤害=5.0
+【挥拳命中】MonsterLeft 当前血量=15.0 造成伤害=5.0
+【挥拳命中】MonsterRight 当前血量=15.0 造成伤害=5.0
+执行第4次挥拳
+【挥拳执行】当前场景怪物数=3
+【挥拳命中】MonsterFront 当前血量=10.0 造成伤害=5.0
+【挥拳命中】MonsterLeft 当前血量=10.0 造成伤害=5.0
+【挥拳命中】MonsterRight 当前血量=10.0 造成伤害=5.0
+执行第5次挥拳
+【挥拳执行】当前场景怪物数=3
+【挥拳命中】MonsterFront 当前血量=5.0 造成伤害=5.0
+【怪物死亡】MonsterFront 剩余怪物数量=3
+【挥拳命中】MonsterLeft 当前血量=5.0 造成伤害=5.0
+【怪物死亡】MonsterLeft 剩余怪物数量=3
+【挥拳命中】MonsterRight 当前血量=5.0 造成伤害=5.0
+【怪物死亡】MonsterRight 剩余怪物数量=3
+执行第6次挥拳

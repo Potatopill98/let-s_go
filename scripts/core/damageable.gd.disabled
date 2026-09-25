@@ -1,0 +1,16 @@
+﻿extends Node3D
+class_name Damageable
+
+@export var max_health: float = 100.0
+var current_health: float = 100.0
+
+func _ready() -> void:
+	current_health = max_health
+
+func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
+	current_health -= amount
+	if current_health <= 0.0:
+		die()
+
+func die() -> void:
+	queue_free()

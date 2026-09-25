@@ -1,0 +1,60 @@
+﻿extends Weapon
+class_name RangedWeapon
+
+@export var magazine_size: int = 12
+@export var reload_time: float = 1.5
+@export var fire_range: float = 100.0
+
+var current_ammo: int = 12
+var reloading: bool = false
+var reload_timer: float = 0.0
+
+func _ready() -> void:
+	super._ready()
+	weapon_name = "手枪"
+	damage = 20.0
+	attack_cooldown = 0.25
+	knockback_force = 3.0
+	attack_range = fire_range
+	current_ammo = magazine_size
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	if owner_player == null:
+		return
+	if reloading:
+		reload_timer -= delta
+		if reload_timer <= 0.0:
+			finish_reload()
+	if Input.is_action_just_pressed("reload") and not reloading and current_ammo < magazine_size:
+		start_reload()
+
+func start_reload() -> void:
+	reloading = true
+	reload_timer = reload_time
+
+func finish_reload() -> void:
+	reloading = false
+	current_ammo = magazine_size
+
+func perform_attack() -> void:
+	if reloading or current_ammo <= 0:
+		start_reload()
+		return
+	current_ammo -= 1
+	if owner_player == null:
+		return
+	var cam: Camera3D = owner_player.camera
+	var space_state: PhysicsDirectSpaceState3D = owner_player.get_world_3d().direct_space_state
+	var ray_query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
+		cam.global_position,
+		cam.global_position + cam.global_transform.basis.z * -fire_range
+	)
+	ray_query.exclude = [owner_player]
+	var result: Dictionary = space_state.intersect_ray(ray_query)
+	if result.has("collider"):
+		var hit_obj: Object = result.collider
+		if hit_obj is Damageable:
+			var target: Damageable = hit_obj as Damageable
+			var knockback: Vector3 = cam.global_transform.basis.z * -1.0 * knockback_force
+			target.take_damage(damage, knockback)

@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://b6h5tj03gyrlv"]
+
+[ext_resource type="PackedScene" path="res://scenes/entities/player.tscn" id="1"]
+
+[sub_resource type="Environment" id="Env"]
+background_mode = 1
+background_color = Color(0.5, 0.7, 0.9, 1)
+ambient_light_energy = 1.5
+
+[sub_resource type="StandardMaterial3D" id="GroundMat"]
+albedo_color = Color(0.3, 0.3, 0.3, 1)
+
+[sub_resource type="BoxMesh" id="GroundMesh"]
+material = SubResource("GroundMat")
+size = Vector3(20, 1, 20)
+
+[sub_resource type="BoxShape3D" id="GroundCol"]
+size = Vector3(20, 1, 20)
+
+[node name="TestBasic" type="Node3D" unique_id=1305879181]
+
+[node name="WorldEnv" type="WorldEnvironment" parent="." unique_id=579999826]
+environment = SubResource("Env")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=2081898277]
+transform = Transform3D(1, 0, 0, 0, 0.52532196, 0.8509035, 0, -0.8509035, 0.52532196, 0, 0, 0)
+light_energy = 1.5
+
+[node name="Ground" type="MeshInstance3D" parent="." unique_id=161095674]
+mesh = SubResource("GroundMesh")
+
+[node name="GroundBody" type="StaticBody3D" parent="Ground" unique_id=970382458]
+
+[node name="GroundShape" type="CollisionShape3D" parent="Ground/GroundBody" unique_id=1705622636]
+shape = SubResource("GroundCol")
+
+[node name="Player" parent="." unique_id=615580989 instance=ExtResource("1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9401479, 0)

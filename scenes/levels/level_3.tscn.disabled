@@ -1,0 +1,142 @@
+﻿[gd_scene load_steps=17 format=3 uid="uid://level_3_001"]
+
+[ext_resource type="PackedScene" path="res://scenes/entities/player.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/entities/fast_monster.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/core/revive_station.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/tasks/final_escape_task.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/core/spawn_manager.gd" id="5"]
+
+[sub_resource type="StandardMaterial3D" id="GroundMat"]
+albedo_color = Color(0.2, 0.25, 0.25, 1)
+[sub_resource type="StandardMaterial3D" id="WallMat"]
+albedo_color = Color(0.6, 0.65, 0.65, 1)
+[sub_resource type="StandardMaterial3D" id="StationMat"]
+albedo_color = Color(0.2, 0.8, 0.4, 1)
+[sub_resource type="StandardMaterial3D" id="SwitchMat"]
+albedo_color = Color(0.9, 0.9, 0.2, 1)
+
+[sub_resource type="CubeMesh" id="GroundMesh"]
+material = SubResource("GroundMat")
+size = Vector3(30, 1, 40)
+[sub_resource type="BoxShape3D" id="GroundCol"]
+size = Vector3(30, 1, 40)
+
+[sub_resource type="CubeMesh" id="WallMesh"]
+material = SubResource("WallMat")
+size = Vector3(30, 6, 1)
+[sub_resource type="BoxShape3D" id="WallCol"]
+size = Vector3(30, 6, 1)
+
+[sub_resource type="CubeMesh" id="StationMesh"]
+material = SubResource("StationMat")
+size = Vector3(2, 2, 2)
+
+[sub_resource type="CapsuleShape3D" id="ZoneCol"]
+radius = 2.0
+height = 2.0
+
+[sub_resource type="CubeMesh" id="SwitchMesh"]
+material = SubResource("SwitchMat")
+size = Vector3(3, 3, 0.5)
+
+[sub_resource type="Environment" id="WorldEnv"]
+background_mode = 1
+background_color = Color(0.5, 0.7, 0.8, 1)
+ambient_light_source = 1
+ambient_light_color = Color(0.8, 0.8, 0.8, 1)
+ambient_light_energy = 1.3
+
+[node name="Level3" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("WorldEnv")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707, -0.408, 0.577, 0, 0.816, 0.577, -0.707, -0.408, 0.577, 0, 15, 0)
+light_energy = 2.0
+
+; 地面
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("GroundMesh")
+position = Vector3(0, -0.5, -5)
+[node name="GroundBody" type="StaticBody3D" parent="Ground"]
+[node name="GroundShape" type="CollisionShape3D" parent="Ground/GroundBody"]
+shape = SubResource("GroundCol")
+
+; 四周墙体
+[node name="NorthWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallMesh")
+position = Vector3(0, 3, -25)
+[node name="NorthWallBody" type="StaticBody3D" parent="NorthWall"]
+[node name="NorthWallShape" type="CollisionShape3D" parent="NorthWall/NorthWallBody"]
+shape = SubResource("WallCol")
+
+[node name="WestWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallMesh")
+rotation.y = 1.5708
+position = Vector3(-15, 3, -5)
+[node name="WestWallBody" type="StaticBody3D" parent="WestWall"]
+[node name="WestWallShape" type="CollisionShape3D" parent="WestWall/WestWallBody"]
+shape = SubResource("WallCol")
+
+[node name="EastWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallMesh")
+rotation.y = 1.5708
+position = Vector3(15, 3, -5)
+[node name="EastWallBody" type="StaticBody3D" parent="EastWall"]
+[node name="EastWallShape" type="CollisionShape3D" parent="EastWall/EastWallBody"]
+shape = SubResource("WallCol")
+
+[node name="SouthWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallMesh")
+position = Vector3(0, 3, 15)
+[node name="SouthWallBody" type="StaticBody3D" parent="SouthWall"]
+[node name="SouthWallShape" type="CollisionShape3D" parent="SouthWall/SouthWallBody"]
+shape = SubResource("WallCol")
+
+; 复活点（绿色方块，平台附近）
+[node name="ReviveStation" type="Area3D" parent="."]
+position = Vector3(-5, 1, 10)
+script = ExtResource("3")
+[node name="StationMesh" type="MeshInstance3D" parent="ReviveStation"]
+mesh = SubResource("StationMesh")
+[node name="StationCol" type="CollisionShape3D" parent="ReviveStation"]
+shape = SubResource("ZoneCol")
+
+; 最终逃生开关任务
+[node name="FinalSwitch" type="Area3D" parent="."]
+position = Vector3(0, 1.5, -24)
+script = ExtResource("4")
+required_progress = 50.0
+repair_speed_per_player = 10.0
+[node name="SwitchMesh" type="MeshInstance3D" parent="FinalSwitch"]
+mesh = SubResource("SwitchMesh")
+[node name="RepairZone" type="Area3D" parent="FinalSwitch"]
+position.z = 2
+[node name="ZoneShape" type="CollisionShape3D" parent="FinalSwitch/RepairZone"]
+shape = SubResource("ZoneCol")
+
+; 刷怪点
+[node name="SpawnPoint" type="Node3D" parent="."]
+position = Vector3(0, 1, -20)
+[node name="Spawner" type="Node3D" parent="."]
+script = ExtResource("5")
+monster_scene = ExtResource("2")
+spawn_point_path = NodePath("../SpawnPoint")
+base_spawn_interval = 7.0
+min_spawn_interval = 3.0
+max_alive_monsters = 8
+
+; 初始4只快速怪物
+[node name="FastMonster1" parent="." instance=ExtResource("2")]
+position = Vector3(-8, 1, 0)
+[node name="FastMonster2" parent="." instance=ExtResource("2")]
+position = Vector3(8, 1, -5)
+[node name="FastMonster3" parent="." instance=ExtResource("2")]
+position = Vector3(-5, 1, -15)
+[node name="FastMonster4" parent="." instance=ExtResource("2")]
+position = Vector3(5, 1, -10)
+
+; 玩家出生在平台位置，面朝最终开关
+[node name="Player" parent="." instance=ExtResource("1")]
+transform = Transform3D(0, -1, 0, 0, 1, 0, -1, 0, 0, 0, 2, 10)

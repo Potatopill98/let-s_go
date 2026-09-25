@@ -1,0 +1,130 @@
+﻿[gd_scene load_steps=16 format=3 uid="uid://level_1_fixed_001"]
+
+[ext_resource type="PackedScene" path="res://scenes/entities/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/entities/base_monster.tscn" id="2_monster"]
+[ext_resource type="Script" path="res://scripts/tasks/door_task.gd" id="3_door"]
+[ext_resource type="Script" path="res://scripts/core/spawn_manager.gd" id="4_spawn"]
+
+[sub_resource type="StandardMaterial3D" id="GroundMat"]
+albedo_color = Color(0.25, 0.25, 0.25, 1)
+
+[sub_resource type="StandardMaterial3D" id="WallMat"]
+albedo_color = Color(0.6, 0.6, 0.6, 1)
+
+[sub_resource type="StandardMaterial3D" id="DoorMat"]
+albedo_color = Color(0.2, 0.4, 0.9, 1)
+
+[sub_resource type="CubeMesh" id="GroundMesh"]
+material = SubResource("GroundMat")
+size = Vector3(30, 1, 30)
+
+[sub_resource type="BoxShape3D" id="GroundCol"]
+size = Vector3(30, 1, 30)
+
+[sub_resource type="CubeMesh" id="WallNSMesh"]
+material = SubResource("WallMat")
+size = Vector3(30, 6, 1)
+
+[sub_resource type="BoxShape3D" id="WallNSCol"]
+size = Vector3(30, 6, 1)
+
+[sub_resource type="CubeMesh" id="WallEWMesh"]
+material = SubResource("WallMat")
+size = Vector3(30, 6, 1)
+
+[sub_resource type="BoxShape3D" id="WallEWCol"]
+size = Vector3(30, 6, 1)
+
+[sub_resource type="CapsuleShape3D" id="ZoneCol"]
+radius = 1.0
+height = 2.0
+
+[sub_resource type="CubeMesh" id="DoorMesh"]
+material = SubResource("DoorMat")
+size = Vector3(4, 4, 0.5)
+
+[sub_resource type="Environment" id="WorldEnv"]
+background_mode = 1
+background_color = Color(0.4, 0.6, 0.8, 1)
+ambient_light_source = 1
+ambient_light_color = Color(0.7, 0.7, 0.7, 1)
+ambient_light_energy = 1.2
+
+[node name="Level1" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("WorldEnv")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707, -0.408, 0.577, 0, 0.816, 0.577, -0.707, -0.408, 0.577, 0, 15, 0)
+light_energy = 1.8
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("GroundMesh")
+position.y = -0.5
+
+[node name="GroundBody" type="StaticBody3D" parent="Ground"]
+[node name="GroundShape" type="CollisionShape3D" parent="Ground/GroundBody"]
+shape = SubResource("GroundCol")
+
+[node name="NorthWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallNSMesh")
+position = Vector3(0, 3, -14)
+[node name="NorthWallBody" type="StaticBody3D" parent="NorthWall"]
+[node name="NorthWallShape" type="CollisionShape3D" parent="NorthWall/NorthWallBody"]
+shape = SubResource("WallNSCol")
+
+[node name="SouthWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallNSMesh")
+position = Vector3(0, 3, 14)
+[node name="SouthWallBody" type="StaticBody3D" parent="SouthWall"]
+[node name="SouthWallShape" type="CollisionShape3D" parent="SouthWall/SouthWallBody"]
+shape = SubResource("WallNSCol")
+
+[node name="WestWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallEWMesh")
+rotation.y = 1.5708
+position = Vector3(-14, 3, 0)
+[node name="WestWallBody" type="StaticBody3D" parent="WestWall"]
+[node name="WestWallShape" type="CollisionShape3D" parent="WestWall/WestWallBody"]
+shape = SubResource("WallEWCol")
+
+[node name="EastWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallEWMesh")
+rotation.y = 1.5708
+position = Vector3(14, 3, 0)
+[node name="EastWallBody" type="StaticBody3D" parent="EastWall"]
+[node name="EastWallShape" type="CollisionShape3D" parent="EastWall/EastWallBody"]
+shape = SubResource("WallEWCol")
+
+[node name="ExitDoor" type="Area3D" parent="."]
+position = Vector3(0, 2, -13)
+script = ExtResource("3_door")
+required_progress = 100.0
+repair_speed_per_player = 10.0
+
+[node name="DoorMesh" type="MeshInstance3D" parent="ExitDoor"]
+mesh = SubResource("DoorMesh")
+
+[node name="RepairZone" type="Area3D" parent="ExitDoor"]
+position.z = 2
+[node name="ZoneShape" type="CollisionShape3D" parent="ExitDoor/RepairZone"]
+shape = SubResource("ZoneCol")
+
+[node name="SpawnPoint" type="Node3D" parent="."]
+position = Vector3(0, 0, 13)
+
+[node name="SpawnManager" type="Node3D" parent="."]
+script = ExtResource("4_spawn")
+monster_scene = ExtResource("2_monster")
+spawn_point_path = NodePath("../SpawnPoint")
+base_spawn_interval = 12.0
+min_spawn_interval = 2.0
+linked_task_path = NodePath("../ExitDoor")
+max_alive_monsters = 10
+
+[node name="InitialMonster" parent="." instance=ExtResource("2_monster")]
+position = Vector3(0, 0, -8)
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector3(0, 0, 0)

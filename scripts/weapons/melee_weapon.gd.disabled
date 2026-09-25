@@ -1,0 +1,31 @@
+﻿extends Weapon
+class_name MeleeWeapon
+
+@export var melee_arc: float = 90.0
+
+func _ready() -> void:
+	super._ready()
+	weapon_name = "木棒"
+	damage = 25.0
+	attack_cooldown = 0.8
+	knockback_force = 6.0
+	attack_range = 2.5
+
+func perform_attack() -> void:
+	if owner_player == null:
+		return
+	var hit_shape: SphereShape3D = SphereShape3D.new()
+	hit_shape.radius = attack_range
+	var space_state: PhysicsDirectSpaceState3D = owner_player.get_world_3d().direct_space_state
+	var query: PhysicsShapeQueryParameters3D = PhysicsShapeQueryParameters3D.new()
+	query.shape = hit_shape
+	var cam: Camera3D = owner_player.camera
+	query.transform = Transform3D(Basis(), cam.global_position + cam.global_transform.basis.z * -1.0)
+	query.exclude = [owner_player]
+	var results: Array = space_state.intersect_shape(query)
+	for hit in results:
+		var obj: Object = hit.collider
+		if obj is Damageable:
+			var target: Damageable = obj as Damageable
+			var knockback: Vector3 = cam.global_transform.basis.z * -1.0 * knockback_force
+			target.take_damage(damage, knockback)

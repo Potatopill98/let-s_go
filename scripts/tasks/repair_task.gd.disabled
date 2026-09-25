@@ -1,0 +1,56 @@
+﻿extends Area3D
+class_name RepairTask
+
+signal task_completed()
+signal progress_updated(progress_percent: float)
+
+@export var required_progress: float = 100.0
+@export var repair_speed_per_player: float = 10.0
+@export var trigger_completion_event: bool = true
+
+var current_progress: float = 0.0
+var players_in_zone: Array[Player] = []
+var task_finished: bool = false
+
+@onready var repair_zone: Area3D = $RepairZone
+
+func _ready() -> void:
+	repair_zone.body_entered.connect(_on_body_entered)
+	repair_zone.body_exited.connect(_on_body_exited)
+
+func _process(delta: float) -> void:
+	if task_finished:
+		return
+	if players_in_zone.size() == 0:
+		return
+	current_progress += repair_speed_per_player * players_in_zone.size() * delta
+	progress_updated.emit(current_progress / required_progress)
+	if current_progress >= required_progress:
+		current_progress = required_progress
+		finish_task()
+
+func _on_body_entered(body: Node3D) -> void:
+	if body is Player:
+		var player: Player = body as Player
+		if not players_in_zone.has(player) and player.current_state != Player.PlayerState.DEAD:
+			players_in_zone.append(player)
+
+func _on_body_exited(body: Node3D) -> void:
+	if body is Player:
+		var player: Player = body as Player
+		if players_in_zone.has(player):
+			players_in_zone.erase(player)
+
+func finish_task() -> void:
+	if task_finished:
+		return
+	task_finished = true
+	task_completed.emit()
+	if trigger_completion_event:
+		_on_task_complete()
+
+func _on_task_complete() -> void:
+	pass
+
+func get_progress_percent() -> float:
+	return current_progress / required_progress

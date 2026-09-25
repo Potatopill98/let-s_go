@@ -1,0 +1,47 @@
+﻿extends Area3D
+class_name ReviveStation
+
+@export var revive_duration: float = 3.0
+
+var player_in_range: Player = null
+var reviving: bool = false
+var revive_timer: float = 0.0
+var dead_players: Array[Player] = []
+
+func _ready() -> void:
+	body_entered.connect(_on_body_entered)
+	body_exited.connect(_on_body_exited)
+
+func _process(delta: float) -> void:
+	# 收集所有死亡玩家
+	dead_players.clear()
+	var all_players: Array = get_tree().get_nodes_in_group("player")
+	for p in all_players:
+		var player: Player = p as Player
+		if player.current_state == Player.PlayerState.DEAD:
+			dead_players.append(player)
+	# 长按交互复活
+	if player_in_range != null and Input.is_action_pressed("interact") and dead_players.size() > 0:
+		reviving = true
+		revive_timer += delta
+		if revive_timer >= revive_duration:
+			revive_one_player()
+			revive_timer = 0.0
+	else:
+		reviving = false
+		revive_timer = 0.0
+
+func revive_one_player() -> void:
+	if dead_players.size() == 0:
+		return
+	var target: Player = dead_players[0]
+	target.revive()
+	target.global_position = global_position + Vector3(2, 0, 0)
+
+func _on_body_entered(body: Node3D) -> void:
+	if body is Player:
+		player_in_range = body as Player
+
+func _on_body_exited(body: Node3D) -> void:
+	if body is Player:
+		player_in_range = null

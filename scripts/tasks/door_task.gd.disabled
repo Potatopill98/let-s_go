@@ -1,0 +1,23 @@
+﻿extends RepairTask
+class_name DoorTask
+
+@export var door_open_offset: Vector3 = Vector3(0, -5, 0)
+@export var door_open_speed: float = 3.0
+
+@onready var door_mesh: MeshInstance3D = $DoorMesh
+var door_opening: bool = false
+var original_position: Vector3 = Vector3.ZERO
+var target_position: Vector3 = Vector3.ZERO
+
+func _ready() -> void:
+	super._ready()
+	original_position = door_mesh.position
+	target_position = original_position + door_open_offset
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	if door_opening:
+		door_mesh.position = door_mesh.position.move_toward(target_position, door_open_speed * delta)
+
+func _on_task_complete() -> void:
+	door_opening = true
