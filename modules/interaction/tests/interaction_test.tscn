@@ -1,4 +1,4 @@
-﻿[gd_scene load_steps=18 format=3 uid="uid://interaction_test_004"]
+﻿[gd_scene load_steps=22 format=3 uid="uid://interaction_test_005"]
 
 [ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://modules/interaction/repair_task.gd" id="2_repair_script"]
@@ -19,32 +19,42 @@ size = Vector3(100, 1, 100)
 
 [sub_resource type="Environment" id="Env"]
 background_mode = 1
-background_color = Color(0.5, 0.7, 0.9, 1)
-ambient_light_energy = 3.0
+background_color = Color(0.6, 0.8, 1.0, 1)
+ambient_light_energy = 4.0
+ambient_light_source = 1
 
 [sub_resource type="StandardMaterial3D" id="RedMat"]
 albedo_color = Color(1.0, 0.0, 0.0, 1)
 emission_enabled = true
 emission = Color(1.0, 0.0, 0.0, 1)
-emission_energy_multiplier = 2.0
+emission_energy_multiplier = 3.0
+
+[sub_resource type="CubeMesh" id="RedCube"]
+material = SubResource("RedMat")
+size = Vector3(2, 4, 2)
 
 [sub_resource type="StandardMaterial3D" id="YellowMat"]
 albedo_color = Color(1.0, 1.0, 0.0, 1)
 emission_enabled = true
 emission = Color(1.0, 1.0, 0.0, 1)
-emission_energy_multiplier = 2.0
+emission_energy_multiplier = 3.0
+
+[sub_resource type="CubeMesh" id="YellowCube"]
+material = SubResource("YellowMat")
+size = Vector3(2, 4, 2)
 
 [sub_resource type="StandardMaterial3D" id="GreenMat"]
 albedo_color = Color(0.0, 1.0, 0.0, 1)
 emission_enabled = true
 emission = Color(0.0, 1.0, 0.0, 1)
-emission_energy_multiplier = 2.0
+emission_energy_multiplier = 3.0
+
+[sub_resource type="CubeMesh" id="GreenCube"]
+material = SubResource("GreenMat")
+size = Vector3(3, 4, 3)
 
 [sub_resource type="StandardMaterial3D" id="BlueMat"]
-albedo_color = Color(0.0, 0.0, 1.0, 1)
-
-[sub_resource type="CubeMesh" id="BigCube"]
-size = Vector3(2, 4, 2)
+albedo_color = Color(0.0, 0.3, 1.0, 1)
 
 [sub_resource type="CubeMesh" id="DoorMesh"]
 material = SubResource("BlueMat")
@@ -68,7 +78,7 @@ environment = SubResource("Env")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation = Vector3(-60, 0, 0)
-light_energy = 3.0
+light_energy = 4.0
 
 [node name="Ground" type="MeshInstance3D" parent="."]
 mesh = SubResource("GroundMesh")
@@ -81,13 +91,12 @@ shape = SubResource("GroundCol")
 [node name="Player" parent="." instance=ExtResource("1_player")]
 position = Vector3(0, 0, 10)
 
-; 红色测试柱子 - 玩家正前方2米，巨大，从地面到4米高
+; 红色测试柱子 - 玩家正前方2米
 [node name="TestPillar" type="MeshInstance3D" parent="."]
-mesh = SubResource("BigCube")
-material = SubResource("RedMat")
+mesh = SubResource("RedCube")
 position = Vector3(0, 2, 7)
 
-; 木棒拾取物 - 左边黄色巨大柱子
+; 木棒拾取物 - 左边黄色柱子
 [node name="MeleePickup" type="Area3D" parent="."]
 position = Vector3(-4, 0, 7)
 script = ExtResource("4_pickup_script")
@@ -96,11 +105,10 @@ weapon_name = "木棒"
 [node name="CollisionShape3D" type="CollisionShape3D" parent="MeleePickup"]
 shape = SubResource("PickupCol")
 [node name="Mesh" type="MeshInstance3D" parent="MeleePickup"]
-mesh = SubResource("BigCube")
-material = SubResource("YellowMat")
+mesh = SubResource("YellowCube")
 position.y = 2.0
 
-; 手枪拾取物 - 右边黄色巨大柱子
+; 手枪拾取物 - 右边黄色柱子
 [node name="RangedPickup" type="Area3D" parent="."]
 position = Vector3(4, 0, 7)
 script = ExtResource("4_pickup_script")
@@ -109,11 +117,10 @@ weapon_name = "手枪"
 [node name="CollisionShape3D" type="CollisionShape3D" parent="RangedPickup"]
 shape = SubResource("PickupCol")
 [node name="Mesh" type="MeshInstance3D" parent="RangedPickup"]
-mesh = SubResource("BigCube")
-material = SubResource("YellowMat")
+mesh = SubResource("YellowCube")
 position.y = 2.0
 
-; 修理区域 - 绿色巨大柱子
+; 修理区域 - 绿色柱子
 [node name="DoorRepair" type="Area3D" parent="."]
 position = Vector3(0, 0, 2)
 script = ExtResource("2_repair_script")
@@ -122,8 +129,7 @@ repair_speed_per_player = 10.0
 [node name="CollisionShape3D" type="CollisionShape3D" parent="DoorRepair"]
 shape = SubResource("RepairCol")
 [node name="ZoneMesh" type="MeshInstance3D" parent="DoorRepair"]
-mesh = SubResource("BigCube")
-material = SubResource("GreenMat")
+mesh = SubResource("GreenCube")
 position.y = 2.0
 
 ; 蓝色大门
