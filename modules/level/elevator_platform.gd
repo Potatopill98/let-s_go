@@ -7,6 +7,7 @@ class_name ElevatorPlatform
 
 var is_activated: bool = false
 var is_rising: bool = false
+var has_arrived: bool = false
 var countdown_timer: float = 0.0
 var original_y: float = 0.0
 var target_y: float = 0.0
@@ -50,9 +51,23 @@ func _physics_process(delta: float) -> void:
 				var platform_horizontal: Vector2 = Vector2(global_position.x, global_position.z)
 				if player_horizontal.distance_to(platform_horizontal) < 4.0:
 					player.global_position += move_delta
-		if position.y >= target_y - 0.01:
+		if position.y >= target_y - 0.01 and not has_arrived:
 			position.y = target_y
 			is_rising = false
+			has_arrived = true
+			# 把站在平台上的玩家传送到第三层地面，避免被碰撞挤下来
+			var all_players: Array = get_tree().get_nodes_in_group("player")
+			for p in all_players:
+				var player: Player = p as Player
+				if player == null:
+					continue
+				var player_bottom: float = player.global_position.y
+				var platform_top: float = global_position.y + 0.3
+				if abs(player_bottom - platform_top) < 1.0:
+					var player_horizontal: Vector2 = Vector2(player.global_position.x, player.global_position.z)
+					var platform_horizontal: Vector2 = Vector2(global_position.x, global_position.z)
+					if player_horizontal.distance_to(platform_horizontal) < 4.0:
+						player.global_position = Vector3(player.global_position.x, target_y + 0.5, player.global_position.z)
 			platform_risen.emit()
 			UIManager.show_message("已到达第三层安全区！")
 
@@ -68,3 +83,6 @@ func reset() -> void:
 	is_rising = false
 	countdown_timer = 0.0
 	position.y = original_y
+
+
+

@@ -229,24 +229,25 @@ repair_progress_ref = NodePath("../ElevatorRepair")
 ; ==================== 第三层安全区（y=12高度） ====================
 [node name="Level3Floor" type="MeshInstance3D" parent="."]
 mesh = SubResource("Level3FloorMesh")
-position = Vector3(0, 12.5, -10)
+position = Vector3(0, 12.0, -10)
 [node name="Level3FloorBody" type="StaticBody3D" parent="Level3Floor"]
 [node name="Level3FloorShape" type="CollisionShape3D" parent="Level3Floor/Level3FloorBody"]
 shape = SubResource("Level3FloorCol")
 
 ; 复活点（第三层入口处）
 [node name="RespawnPoint" type="Area3D" parent="."]
-position = Vector3(0, 13, -10)
+position = Vector3(0, 12.5, -10)
 script = ExtResource("10_respawn")
 [node name="RespawnCol" type="CollisionShape3D" parent="RespawnPoint"]
 shape = SubResource("WinZoneCol")
 
 ; 通关区域（第三层尽头）
 [node name="WinZone" type="Area3D" parent="."]
-position = Vector3(0, 13, -25)
+position = Vector3(0, 12.5, -25)
 script = ExtResource("9_win")
 [node name="WinCol" type="CollisionShape3D" parent="WinZone"]
 shape = SubResource("WinZoneCol")
 [node name="WinMesh" type="MeshInstance3D" parent="WinZone"]
 mesh = SubResource("WinZoneMesh")
 position.y = 0.15
+
