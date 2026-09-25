@@ -40,15 +40,17 @@ func _ready() -> void:
 	current_move_speed = walk_speed
 	add_to_group("player")
 
-func _unhandled_input(event: InputEvent) -> void:
-	# Skip input during hit stun
-	if hit_stun_timer > 0.0:
-		return
-	# Mouse look
+func _input(event: InputEvent) -> void:
+	# Mouse look - highest priority, always works even when repairing
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		head.rotate_x(-event.relative.y * mouse_sensitivity)
 		head.rotation.x = clamp(head.rotation.x, -PI / 2.0 + 0.01, PI / 2.0 - 0.01)
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Skip input during hit stun
+	if hit_stun_timer > 0.0:
+		return
 	# ESC toggle mouse
 	if event.is_action_pressed("ui_cancel"):
 		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
@@ -198,3 +200,4 @@ func reload_current_weapon() -> void:
 	var weapon: Node = weapons[current_weapon_index]
 	if weapon != null and weapon.has_method("reload"):
 		weapon.reload()
+
