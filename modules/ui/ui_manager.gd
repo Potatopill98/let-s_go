@@ -11,6 +11,8 @@ var weapon_panel: Panel = null
 var weapon_name_label: Label = null
 var ammo_label: Label = null
 var weapon_anim_timer: float = 0.0
+var crosshair: Control = null
+var crosshair_visible: bool = false
 
 @export var message_duration: float = 3.0
 
@@ -108,6 +110,35 @@ func _ready() -> void:
 	ammo_label.add_theme_font_size_override("font_size", 24)
 	ammo_label.add_theme_color_override("font_color", Color(1, 0.9, 0.2, 1))
 	weapon_panel.add_child(ammo_label)
+	# 十字准心
+	crosshair = Control.new()
+	crosshair.anchor_left = 0.5
+	crosshair.anchor_top = 0.5
+	crosshair.anchor_right = 0.5
+	crosshair.anchor_bottom = 0.5
+	crosshair.offset_left = -10.0
+	crosshair.offset_top = -10.0
+	crosshair.offset_right = 10.0
+	crosshair.offset_bottom = 10.0
+	crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(crosshair)
+	# 准心横线
+	var h_line: ColorRect = ColorRect.new()
+	h_line.color = Color(1, 1, 1, 0.8)
+	h_line.offset_left = -8.0
+	h_line.offset_top = -1.0
+	h_line.offset_right = 8.0
+	h_line.offset_bottom = 1.0
+	crosshair.add_child(h_line)
+	# 准心竖线
+	var v_line: ColorRect = ColorRect.new()
+	v_line.color = Color(1, 1, 1, 0.8)
+	v_line.offset_left = -1.0
+	v_line.offset_top = -8.0
+	v_line.offset_right = 1.0
+	v_line.offset_bottom = 8.0
+	crosshair.add_child(v_line)
+	crosshair.visible = false
 
 # 显示交互提示
 func show_interaction_prompt(text: String) -> void:
@@ -181,3 +212,8 @@ func _process(delta: float) -> void:
 		weapon_panel.scale = Vector2(scale_val, scale_val)
 	else:
 		weapon_panel.scale = Vector2(1, 1)
+
+# 显示/隐藏准心
+func set_crosshair_visible(visible: bool) -> void:
+	crosshair_visible = visible
+	crosshair.visible = visible

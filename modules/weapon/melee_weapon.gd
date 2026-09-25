@@ -34,12 +34,16 @@ func _process(delta: float) -> void:
 			rotation = original_rotation
 			position = original_position
 		else:
-			# 挥砍轨迹：从右上挥到左下
-			var swing_angle: float = sin(t * PI) * 1.5
-			rotation.z = original_rotation.z - swing_angle
-			rotation.x = original_rotation.x + sin(t * PI) * 0.5
-			position.y = original_position.y - sin(t * PI) * 0.1
-			position.z = original_position.z + sin(t * PI) * 0.2
+			# 挥砍轨迹：从左往右横着挥过屏幕中间
+			var swing_progress: float = t
+			# 从左边(-1.2)挥到右边(1.2)，中间经过屏幕正前方
+			rotation.z = original_rotation.z - 1.2 + swing_progress * 2.4
+			# 挥到中间时往前伸，两边收回
+			position.z = original_position.z + sin(t * PI) * 0.3
+			# 挥到中间时稍微往下压
+			position.y = original_position.y - sin(t * PI) * 0.08
+			# 挥砍时带一点x轴旋转模拟手腕动作
+			rotation.x = original_rotation.x + sin(t * PI) * 0.2
 
 func set_owner_player(player: Player) -> void:
 	owner_player = player
@@ -74,4 +78,5 @@ func attack() -> void:
 		var knockback_dir: Vector3 = to_monster.normalized()
 		var knockback: Vector3 = knockback_dir * knockback_force
 		m.take_damage(damage, knockback)
+
 

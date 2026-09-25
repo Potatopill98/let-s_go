@@ -20,6 +20,7 @@ var recoil_duration: float = 0.1
 var original_rotation: Vector3 = Vector3.ZERO
 var original_position: Vector3 = Vector3.ZERO
 var muzzle_flash: MeshInstance3D = null
+var tracer_lifetime: float = 0.08
 
 func _ready() -> void:
 	add_to_group("weapon")
@@ -92,6 +93,11 @@ func attack() -> void:
 	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(from, to)
 	query.collision_mask = 2
 	var result: Dictionary = space_state.intersect_ray(query)
+	var hit_point: Vector3 = to
+	if result.has("position"):
+		hit_point = result.position
+	# 生成弹道光线
+	spawn_tracer(muzzle_flash.global_position, hit_point)
 	if result.has("collider"):
 		var hit_node: Node = result.collider as Node
 		if hit_node is BaseMonster:
@@ -110,3 +116,30 @@ func reload() -> void:
 	UIManager.show_message("换弹中...")
 
 
+
+# 生成子弹弹道光线
+func spawn_tracer(from: Vector3, to: Vector3) -> void:
+	var tracer: MeshInstance3D = MeshInstance3D.new()
+	var tracer_mesh: BoxMesh = BoxMesh.new()
+	tracer_mesh.size = Vector3(0.03, 0.03, from.distance_to(to))
+	var tracer_mat: StandardMaterial3D = StandardMaterial3D.new()
+	tracer_mat.emission_enabled = true
+	tracer_mat.emission = Color(1.0, 0.9, 0.3, 1)
+	tracer_mat.emission_energy_multiplier = 3.0
+	tracer_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	tracer_mat.albedo_color = Color(1, 1, 1, 0.8)
+	tracer_mesh.material = tracer_mat
+	tracer.mesh = tracer_mesh
+	# 放在枪口和命中点中间
+	var mid_point: Vector3 = (from + to) / 2.0
+	tracer.global_position = mid_point
+	# 朝向命中点
+	tracer.look_at(to, Vector3.UP)
+	get_tree().current_scene.add_child(tracer)
+	# 自动销毁
+	var timer: Timer = Timer.new()
+	timer.wait_time = tracer_lifetime
+	timer.one_shot = true
+	timer.timeout.connect(func(): tracer.queue_free())
+	tracer.add_child(timer)
+	timer.start()

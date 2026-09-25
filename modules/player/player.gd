@@ -1,4 +1,4 @@
-extends CharacterBody3D
+﻿extends CharacterBody3D
 class_name Player
 
 # Movement params
@@ -173,7 +173,7 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 func equip_weapon(weapon: Node) -> void:
 	if weapon == null:
 		return
-	# 如果已经有武器，把当前武器掉地上
+	# If already has weapon, drop current weapon
 	if current_weapon_index >= 0 and current_weapon_index < weapons.size():
 		drop_current_weapon()
 	weapons.append(weapon)
@@ -211,14 +211,14 @@ func reload_current_weapon() -> void:
 	if weapon != null and weapon.has_method("reload"):
 		weapon.reload()
 
-# 丢弃当前武器
+# Drop current weapon
 func drop_current_weapon() -> void:
 	if current_weapon_index < 0 or current_weapon_index >= weapons.size():
 		return
 	var weapon: Node = weapons[current_weapon_index]
 	if weapon == null:
 		return
-	# 在玩家面前生成武器拾取物
+	# Spawn weapon pickup in front of player
 	var drop_pos: Vector3 = global_position + -global_transform.basis.z * 1.5
 	drop_pos.y = 0.5
 	var weapon_scene_path: String = weapon_scenes[current_weapon_index]
@@ -231,33 +231,37 @@ func drop_current_weapon() -> void:
 		pickup.weapon_name = weapon_name
 		pickup.position = drop_pos
 		get_tree().current_scene.add_child(pickup)
-	# 移除武器
+	# Remove weapon
 	weapon.queue_free()
 	weapons.remove_at(current_weapon_index)
 	weapon_scenes.remove_at(current_weapon_index)
 	weapon_names.remove_at(current_weapon_index)
 	current_weapon_index = -1
-	# 如果还有其他武器，切换到上一个
+	# If has other weapons, switch to last one
 	if weapons.size() > 0:
 		current_weapon_index = weapons.size() - 1
 		weapons[current_weapon_index].visible = true
 
-# 更新武器UI显示
+# Update weapon UI display
 func update_weapon_ui() -> void:
 	if current_weapon_index < 0 or current_weapon_index >= weapons.size():
-		UIManager.update_weapon_ui("无")
+		UIManager.update_weapon_ui("None")
+		UIManager.set_crosshair_visible(false)
 		return
 	var weapon: Node = weapons[current_weapon_index]
 	if weapon == null:
-		UIManager.update_weapon_ui("无")
+		UIManager.update_weapon_ui("None")
+		UIManager.set_crosshair_visible(false)
 		return
-	var w_name: String = "武器"
+	var w_name: String = "Weapon"
 	if weapon_names.size() > current_weapon_index:
 		w_name = weapon_names[current_weapon_index]
 	if weapon.has_method("reload"):
-		# 远程武器显示弹药
+		# Ranged weapon: show ammo and crosshair
 		var ammo: int = weapon.current_ammo
 		var max_a: int = weapon.mag_size
 		UIManager.update_weapon_ui(w_name, ammo, max_a)
+		UIManager.set_crosshair_visible(true)
 	else:
 		UIManager.update_weapon_ui(w_name)
+		UIManager.set_crosshair_visible(false)
