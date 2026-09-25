@@ -96,8 +96,11 @@ func attack() -> void:
 	var hit_point: Vector3 = to
 	if result.has("position"):
 		hit_point = result.position
-	# 生成弹道光线
-	spawn_tracer(muzzle_flash.global_position, hit_point)
+	# 生成弹道光线：从枪口出发，沿着相机正前方方向，保证对准准心
+	var cam_forward: Vector3 = -camera.global_transform.basis.z
+	cam_forward = cam_forward.normalized()
+	var tracer_end: Vector3 = muzzle_flash.global_position + cam_forward * muzzle_flash.global_position.distance_to(hit_point)
+	spawn_tracer(muzzle_flash.global_position, tracer_end)
 	if result.has("collider"):
 		var hit_node: Node = result.collider as Node
 		if hit_node is BaseMonster:
@@ -143,3 +146,4 @@ func spawn_tracer(from: Vector3, to: Vector3) -> void:
 	timer.timeout.connect(func(): tracer.queue_free())
 	tracer.add_child(timer)
 	timer.start()
+
