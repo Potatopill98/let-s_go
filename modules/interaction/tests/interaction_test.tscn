@@ -1,4 +1,4 @@
-﻿[gd_scene load_steps=22 format=3 uid="uid://interaction_test_005"]
+﻿[gd_scene load_steps=22 format=3 uid="uid://interaction_test_006"]
 
 [ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://modules/interaction/repair_task.gd" id="2_repair_script"]
@@ -9,6 +9,9 @@
 
 [sub_resource type="StandardMaterial3D" id="GroundMat"]
 albedo_color = Color(0.5, 0.5, 0.5, 1)
+emission_enabled = true
+emission = Color(0.3, 0.3, 0.3, 1)
+emission_energy_multiplier = 1.0
 
 [sub_resource type="CubeMesh" id="GroundMesh"]
 material = SubResource("GroundMat")
@@ -21,13 +24,14 @@ size = Vector3(100, 1, 100)
 background_mode = 1
 background_color = Color(0.6, 0.8, 1.0, 1)
 ambient_light_energy = 4.0
-ambient_light_source = 1
+ambient_light_source = 0
+ambient_light_color = Color(1, 1, 1, 1)
 
 [sub_resource type="StandardMaterial3D" id="RedMat"]
 albedo_color = Color(1.0, 0.0, 0.0, 1)
 emission_enabled = true
 emission = Color(1.0, 0.0, 0.0, 1)
-emission_energy_multiplier = 3.0
+emission_energy_multiplier = 2.0
 
 [sub_resource type="CubeMesh" id="RedCube"]
 material = SubResource("RedMat")
@@ -37,7 +41,7 @@ size = Vector3(2, 4, 2)
 albedo_color = Color(1.0, 1.0, 0.0, 1)
 emission_enabled = true
 emission = Color(1.0, 1.0, 0.0, 1)
-emission_energy_multiplier = 3.0
+emission_energy_multiplier = 2.0
 
 [sub_resource type="CubeMesh" id="YellowCube"]
 material = SubResource("YellowMat")
@@ -47,7 +51,7 @@ size = Vector3(2, 4, 2)
 albedo_color = Color(0.0, 1.0, 0.0, 1)
 emission_enabled = true
 emission = Color(0.0, 1.0, 0.0, 1)
-emission_energy_multiplier = 3.0
+emission_energy_multiplier = 2.0
 
 [sub_resource type="CubeMesh" id="GreenCube"]
 material = SubResource("GreenMat")
@@ -55,6 +59,9 @@ size = Vector3(3, 4, 3)
 
 [sub_resource type="StandardMaterial3D" id="BlueMat"]
 albedo_color = Color(0.0, 0.3, 1.0, 1)
+emission_enabled = true
+emission = Color(0.0, 0.3, 1.0, 1)
+emission_energy_multiplier = 1.5
 
 [sub_resource type="CubeMesh" id="DoorMesh"]
 material = SubResource("BlueMat")
