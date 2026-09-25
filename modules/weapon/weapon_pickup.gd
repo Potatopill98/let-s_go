@@ -14,6 +14,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if player_in_range and Input.is_action_just_pressed("interact"):
 		pickup()
+	# 上下浮动
+	position.y = 1.0 + sin(Time.get_ticks_msec() / 500.0) * 0.2
+	# 旋转
+	rotation.y += delta * 2.0
 
 func _on_body_entered(body: Node3D) -> void:
 	if body is Player:
@@ -35,5 +39,3 @@ func pickup() -> void:
 	UIManager.hide_interaction_prompt()
 	UIManager.show_message("获得" + weapon_name)
 	queue_free()
-
-
