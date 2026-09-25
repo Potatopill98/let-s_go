@@ -1,9 +1,9 @@
-﻿[gd_scene load_steps=10 format=3 uid="uid://interaction_test_002"]
+﻿[gd_scene load_steps=16 format=3 uid="uid://interaction_test_003"]
 
 [ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
-[ext_resource type="PackedScene" path="res://modules/interaction/repair_task.tscn" id="2_repair"]
-[ext_resource type="PackedScene" path="res://modules/interaction/door.tscn" id="3_door"]
-[ext_resource type="PackedScene" path="res://modules/weapon/weapon_pickup.tscn" id="4_pickup"]
+[ext_resource type="Script" path="res://modules/interaction/repair_task.gd" id="2_repair_script"]
+[ext_resource type="Script" path="res://modules/interaction/door.gd" id="3_door_script"]
+[ext_resource type="Script" path="res://modules/weapon/weapon_pickup.gd" id="4_pickup_script"]
 [ext_resource type="PackedScene" path="res://modules/weapon/melee_weapon.tscn" id="5_melee"]
 [ext_resource type="PackedScene" path="res://modules/weapon/ranged_weapon.tscn" id="6_ranged"]
 
@@ -21,6 +21,44 @@ size = Vector3(60, 1, 60)
 background_mode = 1
 background_color = Color(0.5, 0.7, 0.9, 1)
 ambient_light_energy = 2.0
+
+[sub_resource type="StandardMaterial3D" id="YellowMat"]
+albedo_color = Color(1.0, 0.8, 0.2, 1)
+emission_enabled = true
+emission = Color(1.0, 0.8, 0.2, 1)
+emission_energy_multiplier = 1.0
+
+[sub_resource type="CubeMesh" id="PickupMesh"]
+material = SubResource("YellowMat")
+size = Vector3(0.8, 0.8, 0.8)
+
+[sub_resource type="CapsuleShape3D" id="PickupCol"]
+radius = 1.5
+height = 3.0
+
+[sub_resource type="StandardMaterial3D" id="GreenMat"]
+albedo_color = Color(0.2, 0.9, 0.3, 0.5)
+transparency = 1
+
+[sub_resource type="CylinderMesh" id="RepairMesh"]
+material = SubResource("GreenMat")
+top_radius = 2.5
+bottom_radius = 2.5
+height = 0.2
+
+[sub_resource type="CapsuleShape3D" id="RepairCol"]
+radius = 2.5
+height = 3.0
+
+[sub_resource type="StandardMaterial3D" id="BlueMat"]
+albedo_color = Color(0.2, 0.4, 0.9, 1)
+
+[sub_resource type="CubeMesh" id="DoorMesh"]
+material = SubResource("BlueMat")
+size = Vector3(5, 5, 0.5)
+
+[sub_resource type="BoxShape3D" id="DoorCol"]
+size = Vector3(5, 5, 0.5)
 
 [node name="InteractionTest" type="Node3D"]
 
@@ -42,22 +80,51 @@ shape = SubResource("GroundCol")
 [node name="Player" parent="." instance=ExtResource("1_player")]
 position = Vector3(0, 0, 8)
 
-; 武器拾取：左边木棒，右边手枪，就在玩家正前方3米
-[node name="MeleePickup" parent="." instance=ExtResource("4_pickup")]
+; 木棒拾取物 - 直接写在场景里
+[node name="MeleePickup" type="Area3D" parent="."]
 position = Vector3(-3, 0, 3)
+script = ExtResource("4_pickup_script")
 weapon_scene = ExtResource("5_melee")
 weapon_name = "木棒"
-[node name="RangedPickup" parent="." instance=ExtResource("4_pickup")]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeleePickup"]
+shape = SubResource("PickupCol")
+[node name="Mesh" type="MeshInstance3D" parent="MeleePickup"]
+mesh = SubResource("PickupMesh")
+position.y = 1.0
+
+; 手枪拾取物 - 直接写在场景里
+[node name="RangedPickup" type="Area3D" parent="."]
 position = Vector3(3, 0, 3)
+script = ExtResource("4_pickup_script")
 weapon_scene = ExtResource("6_ranged")
 weapon_name = "手枪"
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RangedPickup"]
+shape = SubResource("PickupCol")
+[node name="Mesh" type="MeshInstance3D" parent="RangedPickup"]
+mesh = SubResource("PickupMesh")
+position.y = 1.0
 
-; 修理区域在玩家正前方8米
-[node name="DoorRepair" parent="." instance=ExtResource("2_repair")]
+; 修理区域 - 直接写在场景里
+[node name="DoorRepair" type="Area3D" parent="."]
 position = Vector3(0, 0, -2)
+script = ExtResource("2_repair_script")
+required_progress = 100.0
+repair_speed_per_player = 10.0
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DoorRepair"]
+shape = SubResource("RepairCol")
+[node name="ZoneMesh" type="MeshInstance3D" parent="DoorRepair"]
+mesh = SubResource("RepairMesh")
+position.y = 0.1
 
-; 大门在修理区域前面3米
-[node name="ExitDoor" parent="." instance=ExtResource("3_door")]
-position = Vector3(0, 2, -5)
+; 大门 - 直接写在场景里
+[node name="ExitDoor" type="StaticBody3D" parent="."]
+position = Vector3(0, 2.5, -5)
+script = ExtResource("3_door_script")
+open_direction = Vector3(0, 1, 0)
+open_distance = 5.5
+[node name="Mesh" type="MeshInstance3D" parent="ExitDoor"]
+mesh = SubResource("DoorMesh")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ExitDoor"]
+shape = SubResource("DoorCol")
 
 [connection signal="repair_completed" from="DoorRepair" to="ExitDoor" method="open_door"]
