@@ -8,17 +8,10 @@
 
 config_version=5
 
-"茂禄驴config_version"=5
-"鑼傜椹碿onfig_version"=5
-"閼煎倻顩╂す纰縪nfig_version"=5
-"闁肩厧鍊婚々鈺傘仚绾扮釜nfig_version"=5
-"闂佽偐鍘ч崐濠氥€呴埡鍌樹粴缁炬壆閲渘fig_version"=5
-"闂備浇鍋愰崢褔宕愭繝姘モ偓鍛村煛閸屾ü绮寸紒鐐闁叉笜fig_version"=5
-
 [application]
 
 config/name="Lab Escape 3D Co-op Demo"
-run/main_scene="res://modules/level/tests/level2_test.tscn"
+run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
 [display]

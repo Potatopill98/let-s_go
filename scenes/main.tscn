@@ -1,0 +1,572 @@
+[gd_scene load_steps=60 format=3 uid="uid://main_full_001"]
+
+[ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://modules/monster/base_monster.tscn" id="2_monster"]
+[ext_resource type="Script" path="res://modules/interaction/repair_task.gd" id="3_repair"]
+[ext_resource type="Script" path="res://modules/interaction/door.gd" id="4_door"]
+[ext_resource type="Script" path="res://modules/weapon/weapon_pickup.gd" id="5_pickup"]
+[ext_resource type="PackedScene" path="res://modules/weapon/melee_weapon.tscn" id="6_melee"]
+[ext_resource type="PackedScene" path="res://modules/weapon/ranged_weapon.tscn" id="7_ranged"]
+[ext_resource type="PackedScene" path="res://modules/level/elevator_platform.tscn" id="8_elevator"]
+[ext_resource type="Script" path="res://modules/level/spawn_manager.gd" id="9_spawn"]
+[ext_resource type="Script" path="res://modules/level/win_zone.gd" id="10_win"]
+[ext_resource type="Script" path="res://modules/level/respawn_point.gd" id="11_respawn"]
+
+; ==================== 材质定义 ====================
+[sub_resource type="StandardMaterial3D" id="GroundMat"]
+albedo_color = Color(0.3, 0.3, 0.32, 1)
+roughness = 0.85
+
+[sub_resource type="CubeMesh" id="GroundMesh"]
+material = SubResource("GroundMat")
+size = Vector3(60, 1, 100)
+
+[sub_resource type="BoxShape3D" id="GroundCol"]
+size = Vector3(60, 1, 100)
+
+[sub_resource type="StandardMaterial3D" id="WallMat"]
+albedo_color = Color(0.25, 0.25, 0.3, 1)
+roughness = 0.9
+
+[sub_resource type="CubeMesh" id="WallMesh"]
+material = SubResource("WallMat")
+size = Vector3(2, 6, 100)
+
+[sub_resource type="BoxShape3D" id="WallCol"]
+size = Vector3(2, 6, 100)
+
+[sub_resource type="StandardMaterial3D" id="LabMat"]
+albedo_color = Color(0.15, 0.15, 0.2, 1)
+emission_enabled = true
+emission = Color(0.05, 0.05, 0.1, 1)
+emission_energy_multiplier = 1.0
+
+[sub_resource type="CubeMesh" id="LabMesh"]
+material = SubResource("LabMat")
+size = Vector3(20, 7, 8)
+
+[sub_resource type="StandardMaterial3D" id="GreenMat"]
+albedo_color = Color(0.0, 1.0, 0.0, 1)
+emission_enabled = true
+emission = Color(0.0, 1.0, 0.0, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="CylinderMesh" id="RepairMesh"]
+material = SubResource("GreenMat")
+top_radius = 3.0
+bottom_radius = 3.0
+height = 0.3
+
+[sub_resource type="CapsuleShape3D" id="RepairCol"]
+radius = 3.0
+height = 4.0
+
+[sub_resource type="StandardMaterial3D" id="BlueMat"]
+albedo_color = Color(0.0, 0.3, 1.0, 1)
+emission_enabled = true
+emission = Color(0.0, 0.3, 1.0, 1)
+emission_energy_multiplier = 1.5
+
+[sub_resource type="CubeMesh" id="DoorMesh"]
+material = SubResource("BlueMat")
+size = Vector3(10, 6, 0.5)
+
+[sub_resource type="BoxShape3D" id="DoorCol"]
+size = Vector3(10, 6, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="YellowMat"]
+albedo_color = Color(1.0, 1.0, 0.0, 1)
+emission_enabled = true
+emission = Color(1.0, 1.0, 0.0, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="CubeMesh" id="PickupMesh"]
+material = SubResource("YellowMat")
+size = Vector3(1, 1, 1)
+
+[sub_resource type="CapsuleShape3D" id="PickupCol"]
+radius = 1.5
+height = 3.0
+
+[sub_resource type="StandardMaterial3D" id="Level3FloorMat"]
+albedo_color = Color(0.35, 0.5, 0.35, 1)
+roughness = 0.7
+
+[sub_resource type="CubeMesh" id="Level3FloorMesh"]
+material = SubResource("Level3FloorMat")
+size = Vector3(30, 1, 25)
+
+[sub_resource type="BoxShape3D" id="Level3FloorCol"]
+size = Vector3(30, 1, 25)
+
+[sub_resource type="StandardMaterial3D" id="WinZoneMat"]
+albedo_color = Color(0.0, 1.0, 0.5, 1)
+emission_enabled = true
+emission = Color(0.0, 1.0, 0.5, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="CylinderMesh" id="WinZoneMesh"]
+material = SubResource("WinZoneMat")
+top_radius = 3.0
+bottom_radius = 3.0
+height = 0.3
+
+[sub_resource type="CapsuleShape3D" id="WinZoneCol"]
+radius = 3.0
+height = 4.0
+
+[sub_resource type="StandardMaterial3D" id="PillarMat"]
+albedo_color = Color(0.45, 0.45, 0.5, 1)
+roughness = 0.6
+metallic = 0.3
+
+[sub_resource type="CylinderMesh" id="PillarMesh"]
+material = SubResource("PillarMat")
+top_radius = 0.6
+bottom_radius = 0.7
+height = 5.0
+
+[sub_resource type="CylinderShape3D" id="PillarCol"]
+radius = 0.7
+height = 5.0
+
+[sub_resource type="StandardMaterial3D" id="CrateMat"]
+albedo_color = Color(0.55, 0.4, 0.25, 1)
+roughness = 0.8
+
+[sub_resource type="CubeMesh" id="CrateMesh"]
+material = SubResource("CrateMat")
+size = Vector3(1.2, 1.2, 1.2)
+
+[sub_resource type="BoxShape3D" id="CrateCol"]
+size = Vector3(1.2, 1.2, 1.2)
+
+[sub_resource type="StandardMaterial3D" id="BarrelMat"]
+albedo_color = Color(0.7, 0.3, 0.15, 1)
+roughness = 0.5
+metallic = 0.6
+
+[sub_resource type="CylinderMesh" id="BarrelMesh"]
+material = SubResource("BarrelMat")
+top_radius = 0.4
+bottom_radius = 0.4
+height = 1.2
+
+[sub_resource type="CylinderShape3D" id="BarrelCol"]
+radius = 0.4
+height = 1.2
+
+[sub_resource type="StandardMaterial3D" id="CeilingLightMat"]
+albedo_color = Color(0.8, 0.8, 0.9, 1)
+emission_enabled = true
+emission = Color(0.8, 0.9, 1.0, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="CubeMesh" id="CeilingLightMesh"]
+material = SubResource("CeilingLightMat")
+size = Vector3(2.0, 0.15, 0.4)
+
+[sub_resource type="StandardMaterial3D" id="LabLightMat"]
+albedo_color = Color(0.5, 0.8, 1.0, 1)
+emission_enabled = true
+emission = Color(0.3, 0.6, 1.0, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="CubeMesh" id="LabLightMesh"]
+material = SubResource("LabLightMat")
+size = Vector3(1.5, 0.1, 0.3)
+
+[sub_resource type="Environment" id="Env"]
+background_mode = 1
+background_color = Color(0.5, 0.6, 0.8, 1)
+ambient_light_energy = 3.0
+ambient_light_source = 0
+ambient_light_color = Color(1, 1, 1, 1)
+
+; ==================== 根节点 ====================
+[node name="Main" type="Node3D"]
+
+[node name="WorldEnv" type="WorldEnvironment" parent="."]
+environment = SubResource("Env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-60, 30, 0)
+light_energy = 3.0
+
+; ==================== 整体地面 ====================
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("GroundMesh")
+position = Vector3(0, -0.5, -15)
+[node name="GroundBody" type="StaticBody3D" parent="Ground"]
+[node name="GroundShape" type="CollisionShape3D" parent="Ground/GroundBody"]
+shape = SubResource("GroundCol")
+
+; ==================== 左右围墙 ====================
+[node name="LeftWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallMesh")
+position = Vector3(-31, 3, -15)
+[node name="LeftWallBody" type="StaticBody3D" parent="LeftWall"]
+[node name="LeftWallShape" type="CollisionShape3D" parent="LeftWall/LeftWallBody"]
+shape = SubResource("WallCol")
+
+[node name="RightWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallMesh")
+position = Vector3(31, 3, -15)
+[node name="RightWallBody" type="StaticBody3D" parent="RightWall"]
+[node name="RightWallShape" type="CollisionShape3D" parent="RightWall/RightWallBody"]
+shape = SubResource("WallCol")
+
+; ==================== 第一层：实验室区域 ====================
+; 实验室建筑（玩家出生点后面）
+[node name="LabBuilding" type="MeshInstance3D" parent="."]
+mesh = SubResource("LabMesh")
+position = Vector3(0, 3.5, 35)
+[node name="LabBody" type="StaticBody3D" parent="LabBuilding"]
+[node name="LabShape" type="CollisionShape3D" parent="LabBuilding/LabBody"]
+shape = SubResource("WallCol")
+
+; 实验室灯光
+[node name="LabLight1" type="MeshInstance3D" parent="."]
+mesh = SubResource("LabLightMesh")
+position = Vector3(-5, 5.5, 30)
+[node name="LabLightObj1" type="OmniLight3D" parent="LabLight1"]
+light_color = Color(0.5, 0.7, 1.0, 1)
+light_energy = 2.0
+omni_range = 8.0
+position.y = -0.3
+
+[node name="LabLight2" type="MeshInstance3D" parent="."]
+mesh = SubResource("LabLightMesh")
+position = Vector3(5, 5.5, 30)
+[node name="LabLightObj2" type="OmniLight3D" parent="LabLight2"]
+light_color = Color(0.5, 0.7, 1.0, 1)
+light_energy = 2.0
+omni_range = 8.0
+position.y = -0.3
+
+; 玩家出生点（实验室门口）
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector3(0, 0, 28)
+max_health = 100.0
+current_health = 100.0
+
+; 第一层刷怪点（实验室方向，玩家身后）
+[node name="SpawnPoint1" type="Node3D" parent="."]
+position = Vector3(-6, 0, 25)
+[node name="SpawnPoint2" type="Node3D" parent="."]
+position = Vector3(0, 0, 25)
+[node name="SpawnPoint3" type="Node3D" parent="."]
+position = Vector3(6, 0, 25)
+
+; 第一层刷怪管理器
+[node name="SpawnManager" type="Node3D" parent="."]
+script = ExtResource("9_spawn")
+monster_scene = ExtResource("2_monster")
+base_spawn_interval = 6.0
+min_spawn_interval = 1.5
+max_monsters = 20
+spawn_point_paths = [NodePath("../SpawnPoint1"), NodePath("../SpawnPoint2"), NodePath("../SpawnPoint3")]
+repair_progress_ref = NodePath("../DoorRepair")
+
+; 第一层修理区域（大门前）
+[node name="DoorRepair" type="Area3D" parent="."]
+position = Vector3(0, 0, 10)
+script = ExtResource("3_repair")
+required_progress = 150.0
+repair_speed_per_player = 10.0
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DoorRepair"]
+shape = SubResource("RepairCol")
+[node name="ZoneMesh" type="MeshInstance3D" parent="DoorRepair"]
+mesh = SubResource("RepairMesh")
+position.y = 0.15
+
+; 第一层出口大门（修好后打开，通往第二层）
+[node name="ExitDoor" type="StaticBody3D" parent="."]
+position = Vector3(0, 3, 2)
+script = ExtResource("4_door")
+open_direction = Vector3(0, 1, 0)
+open_distance = 6.5
+[node name="Mesh" type="MeshInstance3D" parent="ExitDoor"]
+mesh = SubResource("DoorMesh")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ExitDoor"]
+shape = SubResource("DoorCol")
+
+; 第一层障碍物
+[node name="L1Pillar1" type="MeshInstance3D" parent="."]
+mesh = SubResource("PillarMesh")
+position = Vector3(-12, 2.5, 18)
+[node name="L1P1Body" type="StaticBody3D" parent="L1Pillar1"]
+[node name="L1P1Shape" type="CollisionShape3D" parent="L1Pillar1/L1P1Body"]
+shape = SubResource("PillarCol")
+
+[node name="L1Pillar2" type="MeshInstance3D" parent="."]
+mesh = SubResource("PillarMesh")
+position = Vector3(12, 2.5, 18)
+[node name="L1P2Body" type="StaticBody3D" parent="L1Pillar2"]
+[node name="L1P2Shape" type="CollisionShape3D" parent="L1Pillar2/L1P2Body"]
+shape = SubResource("PillarCol")
+
+[node name="L1Crate1" type="MeshInstance3D" parent="."]
+mesh = SubResource("CrateMesh")
+position = Vector3(-15, 0.6, 12)
+[node name="L1C1Body" type="StaticBody3D" parent="L1Crate1"]
+[node name="L1C1Shape" type="CollisionShape3D" parent="L1Crate1/L1C1Body"]
+shape = SubResource("CrateCol")
+
+[node name="L1Crate2" type="MeshInstance3D" parent="."]
+mesh = SubResource("CrateMesh")
+position = Vector3(15, 0.6, 12)
+[node name="L1C2Body" type="StaticBody3D" parent="L1Crate2"]
+[node name="L1C2Shape" type="CollisionShape3D" parent="L1Crate2/L1C2Body"]
+shape = SubResource("CrateCol")
+
+[node name="L1Barrel1" type="MeshInstance3D" parent="."]
+mesh = SubResource("BarrelMesh")
+position = Vector3(-8, 0.6, 5)
+[node name="L1B1Body" type="StaticBody3D" parent="L1Barrel1"]
+[node name="L1B1Shape" type="CollisionShape3D" parent="L1Barrel1/L1B1Body"]
+shape = SubResource("BarrelCol")
+
+[node name="L1Barrel2" type="MeshInstance3D" parent="."]
+mesh = SubResource("BarrelMesh")
+position = Vector3(8, 0.6, 5)
+[node name="L1B2Body" type="StaticBody3D" parent="L1Barrel2"]
+[node name="L1B2Shape" type="CollisionShape3D" parent="L1Barrel2/L1B2Body"]
+shape = SubResource("BarrelCol")
+
+; 第一层吊灯
+[node name="L1Light1" type="MeshInstance3D" parent="."]
+mesh = SubResource("CeilingLightMesh")
+position = Vector3(0, 5.5, 20)
+[node name="L1LightObj1" type="OmniLight3D" parent="L1Light1"]
+light_color = Color(0.9, 0.95, 1.0, 1)
+light_energy = 2.0
+omni_range = 10.0
+position.y = -0.5
+
+[node name="L1Light2" type="MeshInstance3D" parent="."]
+mesh = SubResource("CeilingLightMesh")
+position = Vector3(0, 5.5, 8)
+[node name="L1LightObj2" type="OmniLight3D" parent="L1Light2"]
+light_color = Color(0.9, 0.95, 1.0, 1)
+light_energy = 2.0
+omni_range = 10.0
+position.y = -0.5
+
+; ==================== 第二层：武器+升降平台区域 ====================
+; 武器台（第一层门打开后就能看到）
+[node name="MeleePickup" type="Area3D" parent="."]
+position = Vector3(-6, 0, -8)
+script = ExtResource("5_pickup")
+weapon_scene = ExtResource("6_melee")
+weapon_name = "木棒"
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeleePickup"]
+shape = SubResource("PickupCol")
+[node name="Mesh" type="MeshInstance3D" parent="MeleePickup"]
+mesh = SubResource("PickupMesh")
+position.y = 1.0
+
+[node name="RangedPickup" type="Area3D" parent="."]
+position = Vector3(6, 0, -8)
+script = ExtResource("5_pickup")
+weapon_scene = ExtResource("7_ranged")
+weapon_name = "手枪"
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RangedPickup"]
+shape = SubResource("PickupCol")
+[node name="Mesh" type="MeshInstance3D" parent="RangedPickup"]
+mesh = SubResource("PickupMesh")
+position.y = 1.0
+
+; 升降平台在第二层中央
+[node name="Elevator" parent="." instance=ExtResource("8_elevator")]
+position = Vector3(0, 0.25, -25)
+
+; 升降平台修理区域
+[node name="ElevatorRepair" type="Area3D" parent="."]
+position = Vector3(0, 0, -32)
+script = ExtResource("3_repair")
+required_progress = 200.0
+repair_speed_per_player = 10.0
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ElevatorRepair"]
+shape = SubResource("RepairCol")
+[node name="ZoneMesh" type="MeshInstance3D" parent="ElevatorRepair"]
+mesh = SubResource("RepairMesh")
+position.y = 0.15
+
+; 第二层障碍物
+[node name="L2Pillar1" type="MeshInstance3D" parent="."]
+mesh = SubResource("PillarMesh")
+position = Vector3(-15, 2.5, -15)
+[node name="L2P1Body" type="StaticBody3D" parent="L2Pillar1"]
+[node name="L2P1Shape" type="CollisionShape3D" parent="L2Pillar1/L2P1Body"]
+shape = SubResource("PillarCol")
+
+[node name="L2Pillar2" type="MeshInstance3D" parent="."]
+mesh = SubResource("PillarMesh")
+position = Vector3(15, 2.5, -15)
+[node name="L2P2Body" type="StaticBody3D" parent="L2Pillar2"]
+[node name="L2P2Shape" type="CollisionShape3D" parent="L2Pillar2/L2P2Body"]
+shape = SubResource("PillarCol")
+
+[node name="L2Pillar3" type="MeshInstance3D" parent="."]
+mesh = SubResource("PillarMesh")
+position = Vector3(-18, 2.5, -30)
+[node name="L2P3Body" type="StaticBody3D" parent="L2Pillar3"]
+[node name="L2P3Shape" type="CollisionShape3D" parent="L2Pillar3/L2P3Body"]
+shape = SubResource("PillarCol")
+
+[node name="L2Pillar4" type="MeshInstance3D" parent="."]
+mesh = SubResource("PillarMesh")
+position = Vector3(18, 2.5, -30)
+[node name="L2P4Body" type="StaticBody3D" parent="L2Pillar4"]
+[node name="L2P4Shape" type="CollisionShape3D" parent="L2Pillar4/L2P4Body"]
+shape = SubResource("PillarCol")
+
+[node name="L2Crate1" type="MeshInstance3D" parent="."]
+mesh = SubResource("CrateMesh")
+position = Vector3(-20, 0.6, -5)
+[node name="L2C1Body" type="StaticBody3D" parent="L2Crate1"]
+[node name="L2C1Shape" type="CollisionShape3D" parent="L2Crate1/L2C1Body"]
+shape = SubResource("CrateCol")
+
+[node name="L2Crate2" type="MeshInstance3D" parent="."]
+mesh = SubResource("CrateMesh")
+position = Vector3(20, 0.6, -5)
+[node name="L2C2Body" type="StaticBody3D" parent="L2Crate2"]
+[node name="L2C2Shape" type="CollisionShape3D" parent="L2Crate2/L2C2Body"]
+shape = SubResource("CrateCol")
+
+[node name="L2Crate3" type="MeshInstance3D" parent="."]
+mesh = SubResource("CrateMesh")
+position = Vector3(-22, 0.6, -20)
+[node name="L2C3Body" type="StaticBody3D" parent="L2Crate3"]
+[node name="L2C3Shape" type="CollisionShape3D" parent="L2Crate3/L2C3Body"]
+shape = SubResource("CrateCol")
+
+[node name="L2Crate4" type="MeshInstance3D" parent="."]
+mesh = SubResource("CrateMesh")
+position = Vector3(22, 0.6, -20)
+[node name="L2C4Body" type="StaticBody3D" parent="L2Crate4"]
+[node name="L2C4Shape" type="CollisionShape3D" parent="L2Crate4/L2C4Body"]
+shape = SubResource("CrateCol")
+
+[node name="L2Barrel1" type="MeshInstance3D" parent="."]
+mesh = SubResource("BarrelMesh")
+position = Vector3(-10, 0.6, -20)
+[node name="L2B1Body" type="StaticBody3D" parent="L2Barrel1"]
+[node name="L2B1Shape" type="CollisionShape3D" parent="L2Barrel1/L2B1Body"]
+shape = SubResource("BarrelCol")
+
+[node name="L2Barrel2" type="MeshInstance3D" parent="."]
+mesh = SubResource("BarrelMesh")
+position = Vector3(10, 0.6, -20)
+[node name="L2B2Body" type="StaticBody3D" parent="L2Barrel2"]
+[node name="L2B2Shape" type="CollisionShape3D" parent="L2Barrel2/L2B2Body"]
+shape = SubResource("BarrelCol")
+
+; 第二层吊灯
+[node name="L2Light1" type="MeshInstance3D" parent="."]
+mesh = SubResource("CeilingLightMesh")
+position = Vector3(0, 5.5, -5)
+[node name="L2LightObj1" type="OmniLight3D" parent="L2Light1"]
+light_color = Color(0.9, 0.95, 1.0, 1)
+light_energy = 2.5
+omni_range = 12.0
+position.y = -0.5
+
+[node name="L2Light2" type="MeshInstance3D" parent="."]
+mesh = SubResource("CeilingLightMesh")
+position = Vector3(0, 5.5, -20)
+[node name="L2LightObj2" type="OmniLight3D" parent="L2Light2"]
+light_color = Color(0.9, 0.95, 1.0, 1)
+light_energy = 2.5
+omni_range = 12.0
+position.y = -0.5
+
+[node name="L2Light3" type="MeshInstance3D" parent="."]
+mesh = SubResource("CeilingLightMesh")
+position = Vector3(0, 5.5, -35)
+[node name="L2LightObj3" type="OmniLight3D" parent="L2Light3"]
+light_color = Color(0.9, 0.95, 1.0, 1)
+light_energy = 2.5
+omni_range = 12.0
+position.y = -0.5
+
+; ==================== 第三层：安全区（y=12高度） ====================
+; 第三层地面
+[node name="Level3Floor" type="MeshInstance3D" parent="."]
+mesh = SubResource("Level3FloorMesh")
+position = Vector3(0, 12.0, -25)
+[node name="L3Body" type="StaticBody3D" parent="Level3Floor"]
+[node name="L3Shape" type="CollisionShape3D" parent="Level3Floor/L3Body"]
+shape = SubResource("Level3FloorCol")
+
+; 第三层围墙
+[node name="L3BackWall" type="MeshInstance3D" parent="."]
+mesh = SubResource("WallMesh")
+position = Vector3(0, 15, -38)
+scale = Vector3(1, 0.8, 0.25)
+[node name="L3BackBody" type="StaticBody3D" parent="L3BackWall"]
+[node name="L3BackShape" type="CollisionShape3D" parent="L3BackWall/L3BackBody"]
+shape = SubResource("WallCol")
+
+; 第三层装饰柱子
+[node name="L3Pillar1" type="MeshInstance3D" parent="."]
+mesh = SubResource("PillarMesh")
+position = Vector3(-10, 14.5, -18)
+[node name="L3P1Body" type="StaticBody3D" parent="L3Pillar1"]
+[node name="L3P1Shape" type="CollisionShape3D" parent="L3Pillar1/L3P1Body"]
+shape = SubResource("PillarCol")
+
+[node name="L3Pillar2" type="MeshInstance3D" parent="."]
+mesh = SubResource("PillarMesh")
+position = Vector3(10, 14.5, -18)
+[node name="L3P2Body" type="StaticBody3D" parent="L3Pillar2"]
+[node name="L3P2Shape" type="CollisionShape3D" parent="L3Pillar2/L3P2Body"]
+shape = SubResource("PillarCol")
+
+[node name="L3Pillar3" type="MeshInstance3D" parent="."]
+mesh = SubResource("PillarMesh")
+position = Vector3(-10, 14.5, -32)
+[node name="L3P3Body" type="StaticBody3D" parent="L3Pillar3"]
+[node name="L3P3Shape" type="CollisionShape3D" parent="L3Pillar3/L3P3Body"]
+shape = SubResource("PillarCol")
+
+[node name="L3Pillar4" type="MeshInstance3D" parent="."]
+mesh = SubResource("PillarMesh")
+position = Vector3(10, 14.5, -32)
+[node name="L3P4Body" type="StaticBody3D" parent="L3Pillar4"]
+[node name="L3P4Shape" type="CollisionShape3D" parent="L3Pillar4/L3P4Body"]
+shape = SubResource("PillarCol")
+
+; 复活点（第三层入口处，升降平台上来的位置）
+[node name="RespawnPoint" type="Area3D" parent="."]
+position = Vector3(0, 12.5, -25)
+script = ExtResource("11_respawn")
+[node name="RespawnCol" type="CollisionShape3D" parent="RespawnPoint"]
+shape = SubResource("WinZoneCol")
+
+; 通关区域（第三层尽头）
+[node name="WinZone" type="Area3D" parent="."]
+position = Vector3(0, 12.5, -35)
+script = ExtResource("10_win")
+[node name="WinCol" type="CollisionShape3D" parent="WinZone"]
+shape = SubResource("WinZoneCol")
+[node name="WinMesh" type="MeshInstance3D" parent="WinZone"]
+mesh = SubResource("WinZoneMesh")
+position.y = 0.15
+
+; 第三层灯光
+[node name="L3Light1" type="MeshInstance3D" parent="."]
+mesh = SubResource("CeilingLightMesh")
+position = Vector3(0, 17.5, -25)
+[node name="L3LightObj1" type="OmniLight3D" parent="L3Light1"]
+light_color = Color(0.8, 1.0, 0.8, 1)
+light_energy = 3.0
+omni_range = 15.0
+position.y = -0.5
+
+; ==================== 信号连接 ====================
+[connection signal="repair_completed" from="DoorRepair" to="ExitDoor" method="open_door"]
+[connection signal="repair_completed" from="DoorRepair" to="SpawnManager" method="_on_repair_completed"]
+[connection signal="repair_completed" from="ElevatorRepair" to="Elevator" method="activate"]
