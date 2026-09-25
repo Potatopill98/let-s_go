@@ -8,6 +8,8 @@
 [ext_resource type="PackedScene" path="res://modules/weapon/ranged_weapon.tscn" id="6_ranged"]
 [ext_resource type="PackedScene" path="res://modules/level/elevator_platform.tscn" id="7_elevator"]
 [ext_resource type="Script" path="res://modules/level/spawn_manager.gd" id="8_spawn"]
+[ext_resource type="Script" path="res://modules/level/win_zone.gd" id="9_win"]
+[ext_resource type="Script" path="res://modules/level/respawn_point.gd" id="10_respawn"]
 
 [sub_resource type="StandardMaterial3D" id="GroundMat"]
 albedo_color = Color(0.35, 0.35, 0.35, 1)
@@ -80,6 +82,35 @@ height = 0.3
 
 [sub_resource type="CapsuleShape3D" id="RepairCol"]
 radius = 3.5
+height = 4.0
+
+[sub_resource type="StandardMaterial3D" id="Level3FloorMat"]
+albedo_color = Color(0.4, 0.6, 0.4, 1)
+emission_enabled = true
+emission = Color(0.2, 0.3, 0.2, 1)
+emission_energy_multiplier = 1.0
+
+[sub_resource type="CubeMesh" id="Level3FloorMesh"]
+material = SubResource("Level3FloorMat")
+size = Vector3(30, 1, 30)
+
+[sub_resource type="BoxShape3D" id="Level3FloorCol"]
+size = Vector3(30, 1, 30)
+
+[sub_resource type="StandardMaterial3D" id="WinZoneMat"]
+albedo_color = Color(0.0, 1.0, 0.5, 1)
+emission_enabled = true
+emission = Color(0.0, 1.0, 0.5, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="CylinderMesh" id="WinZoneMesh"]
+material = SubResource("WinZoneMat")
+top_radius = 3.0
+bottom_radius = 3.0
+height = 0.3
+
+[sub_resource type="CapsuleShape3D" id="WinZoneCol"]
+radius = 3.0
 height = 4.0
 
 [sub_resource type="Environment" id="Env"]
@@ -194,3 +225,28 @@ repair_progress_ref = NodePath("../ElevatorRepair")
 
 
 
+
+; ==================== 第三层安全区（y=12高度） ====================
+[node name="Level3Floor" type="MeshInstance3D" parent="."]
+mesh = SubResource("Level3FloorMesh")
+position = Vector3(0, 12.5, -10)
+[node name="Level3FloorBody" type="StaticBody3D" parent="Level3Floor"]
+[node name="Level3FloorShape" type="CollisionShape3D" parent="Level3Floor/Level3FloorBody"]
+shape = SubResource("Level3FloorCol")
+
+; 复活点（第三层入口处）
+[node name="RespawnPoint" type="Area3D" parent="."]
+position = Vector3(0, 13, -10)
+script = ExtResource("10_respawn")
+[node name="RespawnCol" type="CollisionShape3D" parent="RespawnPoint"]
+shape = SubResource("WinZoneCol")
+
+; 通关区域（第三层尽头）
+[node name="WinZone" type="Area3D" parent="."]
+position = Vector3(0, 13, -25)
+script = ExtResource("9_win")
+[node name="WinCol" type="CollisionShape3D" parent="WinZone"]
+shape = SubResource("WinZoneCol")
+[node name="WinMesh" type="MeshInstance3D" parent="WinZone"]
+mesh = SubResource("WinZoneMesh")
+position.y = 0.15
