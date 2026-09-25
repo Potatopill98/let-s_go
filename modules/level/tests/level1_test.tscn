@@ -129,13 +129,13 @@ shape = SubResource("BackWallCol")
 [node name="Player" parent="." instance=ExtResource("1_player")]
 position = Vector3(0, 0, 22)
 
-; 刷怪点（实验室方向，玩家身后）
+; 刷怪点（实验室方向，玩家身后，场地内）
 [node name="SpawnPoint1" type="Node3D" parent="."]
-position = Vector3(-5, 0, 25)
+position = Vector3(-5, 0, 20)
 [node name="SpawnPoint2" type="Node3D" parent="."]
-position = Vector3(0, 0, 25)
+position = Vector3(0, 0, 20)
 [node name="SpawnPoint3" type="Node3D" parent="."]
-position = Vector3(5, 0, 25)
+position = Vector3(5, 0, 20)
 
 ; 刷怪管理器
 [node name="SpawnManager" type="Node3D" parent="."]
@@ -172,6 +172,7 @@ shape = SubResource("DoorCol")
 
 [connection signal="repair_completed" from="DoorRepair" to="ExitDoor" method="open_door"]
 [connection signal="repair_completed" from="DoorRepair" to="SpawnManager" method="_on_repair_completed"]
+
 
 
 
