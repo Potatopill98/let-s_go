@@ -1,26 +1,26 @@
-﻿[gd_scene load_steps=10 format=3 uid="uid://interaction_test_001"]
+﻿[gd_scene load_steps=10 format=3 uid="uid://interaction_test_002"]
 
 [ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://modules/interaction/repair_task.tscn" id="2_repair"]
 [ext_resource type="PackedScene" path="res://modules/interaction/door.tscn" id="3_door"]
-[ext_resource type="PackedScene" path="res://modules/weapon/weapon_pickup.tscn" id="4_melee"]
-[ext_resource type="PackedScene" path="res://modules/weapon/melee_weapon.tscn" id="5_melee_weapon"]
-[ext_resource type="PackedScene" path="res://modules/weapon/ranged_weapon.tscn" id="6_ranged_weapon"]
+[ext_resource type="PackedScene" path="res://modules/weapon/weapon_pickup.tscn" id="4_pickup"]
+[ext_resource type="PackedScene" path="res://modules/weapon/melee_weapon.tscn" id="5_melee"]
+[ext_resource type="PackedScene" path="res://modules/weapon/ranged_weapon.tscn" id="6_ranged"]
 
 [sub_resource type="StandardMaterial3D" id="GroundMat"]
 albedo_color = Color(0.3, 0.3, 0.3, 1)
 
 [sub_resource type="CubeMesh" id="GroundMesh"]
 material = SubResource("GroundMat")
-size = Vector3(40, 1, 40)
+size = Vector3(60, 1, 60)
 
 [sub_resource type="BoxShape3D" id="GroundCol"]
-size = Vector3(40, 1, 40)
+size = Vector3(60, 1, 60)
 
 [sub_resource type="Environment" id="Env"]
 background_mode = 1
 background_color = Color(0.5, 0.7, 0.9, 1)
-ambient_light_energy = 1.5
+ambient_light_energy = 2.0
 
 [node name="InteractionTest" type="Node3D"]
 
@@ -28,8 +28,8 @@ ambient_light_energy = 1.5
 environment = SubResource("Env")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
-rotation = Vector3(-45, 0, 0)
-light_energy = 1.5
+rotation = Vector3(-50, 0, 0)
+light_energy = 2.0
 
 [node name="Ground" type="MeshInstance3D" parent="."]
 mesh = SubResource("GroundMesh")
@@ -38,26 +38,26 @@ position.y = -0.5
 [node name="GroundShape" type="CollisionShape3D" parent="Ground/GroundBody"]
 shape = SubResource("GroundCol")
 
-; 蓝色大门在正前方15米
-[node name="ExitDoor" parent="." instance=ExtResource("3_door")]
-position = Vector3(0, 2, -15)
+; 玩家出生点
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector3(0, 0, 8)
 
-; 武器拾取台：左边木棒，右边手枪
-[node name="MeleePickup" parent="." instance=ExtResource("4_melee")]
-position = Vector3(-4, 0, -5)
-weapon_scene = ExtResource("5_melee_weapon")
+; 武器拾取：左边木棒，右边手枪，就在玩家正前方3米
+[node name="MeleePickup" parent="." instance=ExtResource("4_pickup")]
+position = Vector3(-3, 0, 3)
+weapon_scene = ExtResource("5_melee")
 weapon_name = "木棒"
-[node name="RangedPickup" parent="." instance=ExtResource("4_melee")]
-position = Vector3(4, 0, -5)
-weapon_scene = ExtResource("6_ranged_weapon")
+[node name="RangedPickup" parent="." instance=ExtResource("4_pickup")]
+position = Vector3(3, 0, 3)
+weapon_scene = ExtResource("6_ranged")
 weapon_name = "手枪"
 
-; 绿色修理区域在大门前3米
+; 修理区域在玩家正前方8米
 [node name="DoorRepair" parent="." instance=ExtResource("2_repair")]
-position = Vector3(0, 0, -12)
+position = Vector3(0, 0, -2)
 
-[node name="Player" parent="." instance=ExtResource("1_player")]
-position = Vector3(0, 0, 5)
+; 大门在修理区域前面3米
+[node name="ExitDoor" parent="." instance=ExtResource("3_door")]
+position = Vector3(0, 2, -5)
 
 [connection signal="repair_completed" from="DoorRepair" to="ExitDoor" method="open_door"]
-
