@@ -29,7 +29,8 @@ func _process(delta: float) -> void:
 				active_players += 1
 	if active_players > 0:
 		current_progress += repair_speed_per_player * active_players * delta
-		UIManager.show_progress(current_progress, required_progress, "修理进度")
+		UIManager.show_progress(current_progress, required_progress, "修理中")
+		UIManager.show_interaction_prompt("修理中：%d%%" % int(current_progress / required_progress * 100))
 		repair_progress_changed.emit(current_progress, required_progress)
 		if current_progress >= required_progress:
 			current_progress = required_progress
@@ -40,7 +41,7 @@ func _on_body_entered(body: Node3D) -> void:
 		var player: Player = body as Player
 		interacting_players.append(player)
 		if interacting_players.size() == 1:
-			UIManager.show_interaction_prompt("按住E修理")
+			UIManager.show_interaction_prompt("按住E修理（%d%%）" % int(current_progress / required_progress * 100))
 
 func _on_body_exited(body: Node3D) -> void:
 	if body is Player:
@@ -63,4 +64,5 @@ func get_progress_percent() -> float:
 	if required_progress <= 0:
 		return 1.0
 	return current_progress / required_progress
+
 

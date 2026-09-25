@@ -5,6 +5,8 @@ var progress_bar: ProgressBar = null
 var message_container: VBoxContainer = null
 var controls_hint: Label = null
 var countdown_label: Label = null
+var health_bar: ProgressBar = null
+var health_label: Label = null
 
 @export var message_duration: float = 3.0
 
@@ -60,6 +62,22 @@ func _ready() -> void:
 	countdown_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1))
 	countdown_label.visible = false
 	add_child(countdown_label)
+	# 玩家血量条（左下角）
+	health_bar = ProgressBar.new()
+	health_bar.offset_left = 20.0
+	health_bar.offset_top = 60.0
+	health_bar.offset_right = 220.0
+	health_bar.offset_bottom = 90.0
+	health_bar.max_value = 100.0
+	health_bar.value = 100.0
+	add_child(health_bar)
+	health_label = Label.new()
+	health_label.text = "血量: 100/100"
+	health_label.offset_left = 20.0
+	health_label.offset_top = 95.0
+	health_label.add_theme_font_size_override("font_size", 16)
+	health_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	add_child(health_label)
 
 # 显示交互提示
 func show_interaction_prompt(text: String) -> void:
@@ -109,3 +127,9 @@ func show_countdown(time_left: float) -> void:
 # 隐藏倒计时
 func hide_countdown() -> void:
 	countdown_label.visible = false
+
+# 更新玩家血量显示
+func update_health(current: float, max: float) -> void:
+	health_bar.max_value = max
+	health_bar.value = current
+	health_label.text = "血量: %d/%d" % [ceil(current), ceil(max)]
