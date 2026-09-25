@@ -111,18 +111,35 @@ func start_dodge() -> void:
 
 func start_punch() -> void:
 	punch_cd_timer = punch_cooldown
-	# 所有存活怪物直接掉血+击退
+	# 正常前方范围判定：3米内，正面120度角，命中最近怪物
 	var monsters: Array = get_tree().get_nodes_in_group("monster")
+	var hit_monster: BaseMonster = null
+	var min_dist: float = 3.0
+	var face_dir: Vector3 = -global_transform.basis.z
+	face_dir.y = 0.0
+	face_dir = face_dir.normalized()
 	for node in monsters:
 		var m: BaseMonster = node as BaseMonster
 		if m == null or m.is_dead:
 			continue
-		var knockback_dir: Vector3 = m.global_position - global_position
+		var to_monster: Vector3 = m.global_position - global_position
+		to_monster.y = 0.0
+		var dist: float = to_monster.length()
+		if dist >= min_dist:
+			continue
+		# 120度角判定
+		var dot: float = to_monster.normalized().dot(face_dir)
+		if dot < 0.5:
+			continue
+		min_dist = dist
+		hit_monster = m
+	if hit_monster != null:
+		var knockback_dir: Vector3 = hit_monster.global_position - global_position
 		knockback_dir.y = 0.0
 		if knockback_dir.length_squared() > 0.001:
 			knockback_dir = knockback_dir.normalized()
 		var knockback: Vector3 = knockback_dir * 10.0
-		m.take_damage(punch_damage, knockback)
+		hit_monster.take_damage(punch_damage, knockback)
 
 # 受伤接口
 func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
@@ -134,3 +151,4 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	hit_stun_timer = hit_stun_duration
 	if current_health <= 0.0:
 		current_health = 0.0
+
