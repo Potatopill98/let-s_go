@@ -119,12 +119,10 @@ func attack() -> void:
 	var hit_point: Vector3 = to
 	if result.has("position"):
 		hit_point = result.position
-	# Tracer: from MUZZLE position, pointing AT the screen center point (camera forward at fire_range)
-	# This makes the tracer converge toward crosshair, not parallel to it
-	var cam_forward: Vector3 = -camera.global_transform.basis.z
-	cam_forward = cam_forward.normalized()
-	var screen_center_world: Vector3 = camera.global_position + cam_forward * fire_range
-	spawn_tracer(muzzle_node.global_position, screen_center_world)
+	# Tracer: from CAMERA position (eye) to hit point - standard FPS approach (Neon Arena, CS, COD)
+	# This guarantees the tracer is EXACTLY aligned with crosshair, never offset
+	# Muzzle flash is still at muzzle for visual illusion
+	spawn_tracer(camera.global_position, hit_point)
 	if result.has("collider"):
 		var hit_node: Node = result.collider as Node
 		if hit_node is BaseMonster:
@@ -181,5 +179,6 @@ func spawn_tracer(from: Vector3, to: Vector3) -> void:
 	var tween: Tween = create_tween()
 	tween.tween_property(tracer_mat, "albedo_color:a", 0.0, lifetime)
 	tween.tween_property(tracer_mat, "emission_energy_multiplier", 0.0, lifetime)
+
 
 
