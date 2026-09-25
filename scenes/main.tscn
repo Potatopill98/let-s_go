@@ -1,4 +1,4 @@
-[gd_scene load_steps=66 format=3 uid="uid://main_full_001"]
+[gd_scene load_steps=67 format=3 uid="uid://main_full_001"]
 
 [ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://modules/monster/base_monster.tscn" id="2_monster"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://modules/level/spawn_manager.gd" id="9_spawn"]
 [ext_resource type="Script" path="res://modules/level/win_zone.gd" id="10_win"]
 [ext_resource type="Script" path="res://modules/level/respawn_point.gd" id="11_respawn"]
+[ext_resource type="Script" path="res://modules/level/scene_decorator.gd" id="12_decorator"]
 
 ; ==================== 材质定义 ====================
 [sub_resource type="StandardMaterial3D" id="GroundMat"]
@@ -213,6 +214,10 @@ environment = SubResource("Env")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation = Vector3(-60, 30, 0)
 light_energy = 3.0
+
+; 场景美化器（程序化生成灯光、装饰、细节）
+[node name="SceneDecorator" type="Node3D" parent="."]
+script = ExtResource("12_decorator")
 
 ; ==================== 整体地面 ====================
 [node name="Ground" type="MeshInstance3D" parent="."]
