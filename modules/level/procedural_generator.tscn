@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3 uid="uid://proc_gen_001"]
+
+[ext_resource type="Script" path="res://modules/level/procedural_generator.gd" id="1"]
+
+[node name="ProceduralGenerator" type="Node3D"]
+script = ExtResource("1")
+area_size = Vector2(50, 50)
+obstacle_count = 20
+prop_count = 30
+light_count = 8
+seed = 0
