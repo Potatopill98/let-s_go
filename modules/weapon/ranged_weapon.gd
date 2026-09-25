@@ -15,19 +15,55 @@ var owner_player: Player = null
 var current_ammo: int = 12
 var is_reloading: bool = false
 var reload_timer: float = 0.0
+var recoil_time: float = 0.0
+var recoil_duration: float = 0.1
+var original_rotation: Vector3 = Vector3.ZERO
+var original_position: Vector3 = Vector3.ZERO
+var muzzle_flash: MeshInstance3D = null
 
 func _ready() -> void:
 	add_to_group("weapon")
 	current_ammo = mag_size
+	original_rotation = rotation
+	original_position = position
+	# 创建枪口闪光
+	muzzle_flash = MeshInstance3D.new()
+	var flash_mesh: BoxMesh = BoxMesh.new()
+	flash_mesh.size = Vector3(0.15, 0.15, 0.15)
+	var flash_mat: StandardMaterial3D = StandardMaterial3D.new()
+	flash_mat.emission_enabled = true
+	flash_mat.emission = Color(1.0, 0.8, 0.2, 1)
+	flash_mat.emission_energy_multiplier = 5.0
+	flash_mesh.material = flash_mat
+	muzzle_flash.mesh = flash_mesh
+	muzzle_flash.position = Vector3(0, 0, -0.3)
+	muzzle_flash.visible = false
+	add_child(muzzle_flash)
 
 func _process(delta: float) -> void:
 	if attack_timer > 0.0:
 		attack_timer -= delta
+	# 射击后坐力动画
+	if recoil_time > 0:
+		recoil_time -= delta
+		var t: float = recoil_time / recoil_duration
+		position.z = original_position.z + (1 - t) * 0.1
+		rotation.x = original_rotation.x + (1 - t) * 0.2
+		if recoil_time <= 0:
+			position = original_position
+			rotation = original_rotation
+			muzzle_flash.visible = false
+	# 换弹动画
 	if is_reloading:
 		reload_timer -= delta
+		var reload_t: float = 1.0 - (reload_timer / reload_time)
+		rotation.z = original_rotation.z + sin(reload_t * PI * 2) * 0.3
+		position.y = original_position.y - sin(reload_t * PI) * 0.15
 		if reload_timer <= 0.0:
 			is_reloading = false
 			current_ammo = mag_size
+			rotation = original_rotation
+			position = original_position
 
 func set_owner_player(player: Player) -> void:
 	owner_player = player
@@ -43,6 +79,8 @@ func attack() -> void:
 		return
 	attack_timer = attack_cooldown
 	current_ammo -= 1
+	recoil_time = recoil_duration
+	muzzle_flash.visible = true
 	if owner_player == null:
 		return
 	var camera: Camera3D = owner_player.get_node("Head/Camera3D") as Camera3D
@@ -69,3 +107,6 @@ func reload() -> void:
 		return
 	is_reloading = true
 	reload_timer = reload_time
+	UIManager.show_message("换弹中...")
+
+

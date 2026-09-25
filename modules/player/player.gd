@@ -1,4 +1,4 @@
-﻿extends CharacterBody3D
+extends CharacterBody3D
 class_name Player
 
 # Movement params
@@ -261,4 +261,3 @@ func update_weapon_ui() -> void:
 		UIManager.update_weapon_ui(w_name, ammo, max_a)
 	else:
 		UIManager.update_weapon_ui(w_name)
-
