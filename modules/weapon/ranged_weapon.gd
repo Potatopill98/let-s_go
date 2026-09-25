@@ -214,7 +214,7 @@ func attack() -> void:
 	# ============================================================
 	# Spawn actual bullet entity from muzzle position
 	# Bullet flies independently after spawn, no longer tied to gun
-	# Direction = camera forward (guarantees crosshair accuracy)
+	# Direction: from muzzle toward crosshair point at 15m (converges to crosshair)
 	# ============================================================
 	var bullet_scene: PackedScene = load("res://modules/weapon/bullet.tscn")
 	if bullet_scene == null:
@@ -222,7 +222,12 @@ func attack() -> void:
 	var bullet: Node = bullet_scene.instantiate()
 	if bullet == null:
 		return
-	var shoot_dir: Vector3 = -camera.global_transform.basis.z
+	# Calculate direction: from muzzle to crosshair point at 15 meters
+	# This makes bullet converge toward crosshair, not parallel offset
+	var cam_forward: Vector3 = -camera.global_transform.basis.z
+	cam_forward = cam_forward.normalized()
+	var crosshair_world: Vector3 = camera.global_position + cam_forward * 15.0
+	var shoot_dir: Vector3 = crosshair_world - muzzle_node.global_position
 	shoot_dir = shoot_dir.normalized()
 	bullet.damage = damage
 	get_tree().current_scene.add_child(bullet)
