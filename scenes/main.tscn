@@ -1,4 +1,4 @@
-[gd_scene load_steps=62 format=3 uid="uid://main_full_001"]
+[gd_scene load_steps=66 format=3 uid="uid://main_full_001"]
 
 [ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://modules/monster/base_monster.tscn" id="2_monster"]
@@ -45,6 +45,9 @@ emission_energy_multiplier = 1.0
 material = SubResource("LabMat")
 size = Vector3(20, 7, 8)
 
+[sub_resource type="BoxShape3D" id="LabCol"]
+size = Vector3(20, 7, 8)
+
 [sub_resource type="StandardMaterial3D" id="GreenMat"]
 albedo_color = Color(0.0, 1.0, 0.0, 1)
 emission_enabled = true
@@ -73,6 +76,17 @@ size = Vector3(10, 6, 0.5)
 
 [sub_resource type="BoxShape3D" id="DoorCol"]
 size = Vector3(10, 6, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="SeparatorWallMat"]
+albedo_color = Color(0.25, 0.25, 0.3, 1)
+roughness = 0.9
+
+[sub_resource type="CubeMesh" id="SeparatorWallMesh"]
+material = SubResource("SeparatorWallMat")
+size = Vector3(25, 6, 0.5)
+
+[sub_resource type="BoxShape3D" id="SeparatorWallCol"]
+size = Vector3(25, 6, 0.5)
 
 [sub_resource type="StandardMaterial3D" id="YellowMat"]
 albedo_color = Color(1.0, 1.0, 0.0, 1)
@@ -230,7 +244,7 @@ mesh = SubResource("LabMesh")
 position = Vector3(0, 3.5, 35)
 [node name="LabBody" type="StaticBody3D" parent="LabBuilding"]
 [node name="LabShape" type="CollisionShape3D" parent="LabBuilding/LabBody"]
-shape = SubResource("WallCol")
+shape = SubResource("LabCol")
 
 ; 实验室灯光
 [node name="LabLight1" type="MeshInstance3D" parent="."]
@@ -298,6 +312,22 @@ open_distance = 6.5
 mesh = SubResource("DoorMesh")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ExitDoor"]
 shape = SubResource("DoorCol")
+
+; 第一层和第二层之间的分隔墙（大门左边，玩家必须修门才能过）
+[node name="SeparatorLeft" type="MeshInstance3D" parent="."]
+mesh = SubResource("SeparatorWallMesh")
+position = Vector3(-17.5, 3, 2)
+[node name="SepLeftBody" type="StaticBody3D" parent="SeparatorLeft"]
+[node name="SepLeftShape" type="CollisionShape3D" parent="SeparatorLeft/SepLeftBody"]
+shape = SubResource("SeparatorWallCol")
+
+; 第一层和第二层之间的分隔墙（大门右边）
+[node name="SeparatorRight" type="MeshInstance3D" parent="."]
+mesh = SubResource("SeparatorWallMesh")
+position = Vector3(17.5, 3, 2)
+[node name="SepRightBody" type="StaticBody3D" parent="SeparatorRight"]
+[node name="SepRightShape" type="CollisionShape3D" parent="SeparatorRight/SepRightBody"]
+shape = SubResource("SeparatorWallCol")
 
 ; 第一层障碍物
 [node name="L1Pillar1" type="MeshInstance3D" parent="."]
