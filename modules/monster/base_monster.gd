@@ -27,6 +27,7 @@ var target_player: Player = null
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var current_state: MonsterState = MonsterState.IDLE
 var hit_stun_timer: float = 0.0
+var is_dead: bool = false
 
 @onready var mesh_instance: MeshInstance3D = $MeshInstance3D
 
@@ -142,6 +143,7 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 		die()
 
 func die() -> void:
+	is_dead = true
 	change_state(MonsterState.DEAD)
 	mesh_instance.scale = Vector3(1.2, 0.1, 1.2)
 	var remove_timer: Timer = Timer.new()
@@ -150,3 +152,4 @@ func die() -> void:
 	remove_timer.timeout.connect(queue_free)
 	add_child(remove_timer)
 	remove_timer.start()
+
