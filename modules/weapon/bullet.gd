@@ -10,20 +10,35 @@ class_name Bullet
 var velocity: Vector3 = Vector3.ZERO
 var traveled_distance: float = 0.0
 var start_position: Vector3 = Vector3.ZERO
+var last_position: Vector3 = Vector3.ZERO
 
 func _ready() -> void:
 	add_to_group("bullet")
 	start_position = global_position
+	last_position = global_position
 	body_entered.connect(_on_body_entered)
 
 func setup(direction: Vector3, pos: Vector3) -> void:
 	global_position = pos
 	velocity = direction.normalized() * speed
 	start_position = pos
+	last_position = pos
 
 func _physics_process(delta: float) -> void:
 	var move_amount: Vector3 = velocity * delta
-	global_position += move_amount
+	var new_position: Vector3 = global_position + move_amount
+	# Continuous collision detection - raycast from last position to new position
+	# Prevents fast bullets from passing through enemies
+	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(last_position, new_position)
+	query.collision_mask = 2
+	var result: Dictionary = space_state.intersect_ray(query)
+	if result.has("collider"):
+		var hit_body: Node = result.collider as Node
+		_on_body_entered(hit_body)
+		return
+	global_position = new_position
+	last_position = new_position
 	traveled_distance += move_amount.length()
 	lifetime -= delta
 	# Auto destroy after lifetime or max distance
