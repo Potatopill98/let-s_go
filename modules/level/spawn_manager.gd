@@ -8,6 +8,7 @@ var spawn_points: Array[Node3D] = []
 @export var min_spawn_interval: float = 1.0
 @export var max_monsters: int = 30
 @export var repair_progress_ref: Node = null # 引用修理任务，用来获取进度
+@export var stop_on_repair_complete: bool = true # 修理完成后是否停止刷怪
 
 var spawn_timer: float = 0.0
 var current_spawn_interval: float = 5.0
@@ -54,6 +55,7 @@ func set_repair_ref(repair_node: Node) -> void:
 	repair_progress_ref = repair_node
 
 func _on_repair_completed() -> void:
-	# 修理完成后停止刷怪
-	set_process(false)
+	# 修理完成后根据配置决定是否停止刷怪
+	if stop_on_repair_complete:
+		set_process(false)
 
