@@ -1,42 +1,36 @@
 ﻿extends CharacterBody3D
 class_name BaseMonster
 
-# 怪物基础参数
-@export var move_speed: float = 3.5
-@export var chase_speed: float = 5.0
-@export var detect_range: float = 30.0
-@export var attack_range: float = 2.2
-@export var attack_damage: float = 8.0
-@export var attack_cooldown: float = 1.2
-@export var max_health: float = 30.0
-@export var knockback_resistance: float = 0.2
-@export var hit_stun_duration: float = 0.4
+# ==================== 基础参数（参考常见游戏稳定数值） ====================
+@export var move_speed: float = 4.0          # 追击速度
+@export var detect_range: float = 35.0       # 检测玩家范围
+@export var attack_range: float = 2.0        # 攻击距离
+@export var attack_damage: float = 8.0       # 攻击伤害
+@export var attack_cooldown: float = 1.0     # 攻击间隔
+@export var max_health: float = 30.0         # 最大血量
+@export var hit_stun_time: float = 0.35      # 受击硬直时间
+@export var knockback_reduce: float = 0.25   # 击退抗性（0=全额击退，1=完全免疫）
 
-# 内部状态
+# ==================== 内部状态 ====================
 var current_health: float = 30.0
 var attack_timer: float = 0.0
-var target_player: Player = null
-var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
-var is_dead: bool = false
 var hit_stun_timer: float = 0.0
-var stuck_timer: float = 0.0 # 防卡住计时器
-var last_position: Vector3 = Vector3.ZERO
+var is_dead: bool = false
+var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+# 防卡住用
+var stuck_check_timer: float = 0.0
+var last_pos: Vector3 = Vector3.ZERO
 
-@onready var mesh_instance: MeshInstance3D = $MeshInstance3D
+@onready var mesh: MeshInstance3D = $MeshInstance3D
 
 func _ready() -> void:
 	current_health = max_health
-	attack_timer = attack_cooldown
 	add_to_group("monster")
-	last_position = global_position
+	last_pos = global_position
 
-# 只算水平距离
-func get_horizontal_distance(pos_a: Vector3, pos_b: Vector3) -> float:
-	var dx: float = pos_a.x - pos_b.x
-	var dz: float = pos_a.z - pos_b.z
-	return sqrt(dx*dx + dz*dz)
-
+# ==================== 主逻辑：每帧重新计算，不缓存状态，最稳定 ====================
 func _physics_process(delta: float) -> void:
+	# 死亡处理
 	if is_dead:
 		velocity = Vector3.ZERO
 		move_and_slide()
@@ -46,54 +40,55 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= gravity * delta
 	else:
 		velocity.y = 0.0
-	# 攻击CD递减
+	# 计时器
 	if attack_timer > 0.0:
 		attack_timer -= delta
-	# 受击硬直
 	if hit_stun_timer > 0.0:
 		hit_stun_timer -= delta
+		# 硬直期间只应用击退，不做AI，然后直接移动
 		move_and_slide()
 		return
-	# 每帧重新查找最近玩家，不会因为引用失效卡住
-	target_player = find_nearest_player()
-	if target_player == null:
-		# 找不到玩家时缓慢向前巡逻，不会永久站住
+	# 每帧重新找最近玩家，不会因为引用失效卡住
+	var target: Player = find_nearest_player()
+	if target == null:
+		# 没目标就站住
 		velocity.x = 0.0
 		velocity.z = 0.0
 		move_and_slide()
 		return
-	var distance: float = get_horizontal_distance(global_position, target_player.global_position)
-	# 防卡住检测：如果速度不为0但位置没变化，强制重置
-	if velocity.length() > 0.5:
-		var moved_dist: float = get_horizontal_distance(global_position, last_position)
-		if moved_dist < 0.01:
-			stuck_timer += delta
-			if stuck_timer > 0.5:
-				# 卡住超过0.5秒，随机跳一下并重新计算方向
-				velocity.y = 3.0
-				stuck_timer = 0.0
-		else:
-			stuck_timer = 0.0
-	last_position = global_position
-	# 状态判断：攻击范围内停下攻击，范围外追击
-	if distance <= attack_range:
-		# 攻击范围内
+	# 计算水平距离
+	var to_target: Vector3 = target.global_position - global_position
+	to_target.y = 0.0
+	var dist: float = to_target.length()
+	# 朝向玩家
+	if dist > 0.1:
+		rotation.y = atan2(-to_target.x, -to_target.z)
+	# 状态判断：距离够近就攻击，否则追击
+	if dist <= attack_range:
+		# 攻击范围内：停下，CD好了就打
 		velocity.x = 0.0
 		velocity.z = 0.0
-		face_target(target_player.global_position)
 		if attack_timer <= 0.0:
-			perform_attack()
+			attack_timer = attack_cooldown
+			target.take_damage(attack_damage, to_target.normalized() * 3.0)
 	else:
-		# 追击玩家，直接设置速度，不会被其他逻辑覆盖
-		var move_dir: Vector3 = target_player.global_position - global_position
-		move_dir.y = 0.0
-		if move_dir.length_squared() > 0.001:
-			move_dir = move_dir.normalized()
-			velocity.x = move_dir.x * chase_speed
-			velocity.z = move_dir.z * chase_speed
-		face_target(target_player.global_position)
+		# 追击：直接设置速度朝向玩家，最简单稳定
+		var dir: Vector3 = to_target.normalized()
+		velocity.x = dir.x * move_speed
+		velocity.z = dir.z * move_speed
+	# 防卡住：如果速度不为0但0.5秒没移动，跳一下
+	if velocity.length() > 1.0:
+		stuck_check_timer += delta
+		if global_position.distance_to(last_pos) < 0.05 and stuck_check_timer > 0.5:
+			velocity.y = 4.0
+			stuck_check_timer = 0.0
+		if global_position.distance_to(last_pos) > 0.05:
+			stuck_check_timer = 0.0
+	last_pos = global_position
+	# 移动
 	move_and_slide()
 
+# ==================== 工具方法 ====================
 func find_nearest_player() -> Player:
 	var players: Array = get_tree().get_nodes_in_group("player")
 	var nearest: Player = null
@@ -102,48 +97,32 @@ func find_nearest_player() -> Player:
 		var p: Player = node as Player
 		if p == null or p.current_health <= 0.0:
 			continue
-		var dist: float = get_horizontal_distance(global_position, p.global_position)
-		if dist < min_dist:
-			min_dist = dist
+		var d: float = global_position.distance_to(p.global_position)
+		if d < min_dist:
+			min_dist = d
 			nearest = p
 	return nearest
 
-func face_target(target_pos: Vector3) -> void:
-	var dir: Vector3 = target_pos - global_position
-	dir.y = 0.0
-	if dir.length_squared() < 0.001:
-		return
-	rotation.y = atan2(-dir.x, -dir.z)
-
-func perform_attack() -> void:
-	attack_timer = attack_cooldown
-	if target_player == null or not is_instance_valid(target_player):
-		return
-	var knockback_dir: Vector3 = target_player.global_position - global_position
-	knockback_dir.y = 0.0
-	knockback_dir = knockback_dir.normalized()
-	var knockback: Vector3 = knockback_dir * 4.0
-	target_player.take_damage(attack_damage, knockback)
-
+# ==================== 受击接口 ====================
 func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	if is_dead:
 		return
 	current_health -= amount
-	# 直接设置击退速度，不叠加
-	var knockback_force: float = knockback.length() * (1.0 - knockback_resistance)
-	var knockback_dir: Vector3 = knockback.normalized()
-	velocity.x = knockback_dir.x * knockback_force
-	velocity.z = knockback_dir.z * knockback_force
-	hit_stun_timer = hit_stun_duration
+	# 直接设置击退速度，不叠加，避免速度抵消
+	var kb_force: float = knockback.length() * (1.0 - knockback_reduce)
+	var kb_dir: Vector3 = knockback.normalized()
+	velocity.x = kb_dir.x * kb_force
+	velocity.z = kb_dir.z * kb_force
+	hit_stun_timer = hit_stun_time
 	if current_health <= 0.0:
 		die()
 
 func die() -> void:
 	is_dead = true
-	mesh_instance.scale = Vector3(1.2, 0.1, 1.2)
-	var remove_timer: Timer = Timer.new()
-	remove_timer.wait_time = 2.0
-	remove_timer.one_shot = true
-	remove_timer.timeout.connect(queue_free)
-	add_child(remove_timer)
-	remove_timer.start()
+	mesh.scale = Vector3(1.3, 0.1, 1.3)
+	var t: Timer = Timer.new()
+	t.wait_time = 2.0
+	t.one_shot = true
+	t.timeout.connect(queue_free)
+	add_child(t)
+	t.start()
