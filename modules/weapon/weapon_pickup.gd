@@ -18,10 +18,12 @@ func _process(delta: float) -> void:
 func _on_body_entered(body: Node3D) -> void:
 	if body is Player:
 		player_in_range = true
+		UIManager.show_interaction_prompt("按E拾取" + weapon_name)
 
 func _on_body_exited(body: Node3D) -> void:
 	if body is Player:
 		player_in_range = false
+		UIManager.hide_interaction_prompt()
 
 func pickup() -> void:
 	var player: Player = get_tree().get_first_node_in_group("player") as Player
@@ -30,5 +32,8 @@ func pickup() -> void:
 	# 实例化武器并挂载到玩家武器点
 	var weapon: Node = weapon_scene.instantiate()
 	player.equip_weapon(weapon)
+	UIManager.hide_interaction_prompt()
+	UIManager.show_message("获得" + weapon_name)
 	queue_free()
+
 
