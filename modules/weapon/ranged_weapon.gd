@@ -1,6 +1,11 @@
 ﻿extends Node3D
 class_name RangedWeapon
 
+# ============================================================
+# Pistol - Fully referenced from Neon Arena implementation
+# Structure: procedural weapon model + muzzle node + tracer from camera
+# ============================================================
+
 # Weapon properties
 @export var weapon_name: String = "Pistol"
 @export var damage: float = 25.0
@@ -10,6 +15,7 @@ class_name RangedWeapon
 @export var mag_size: int = 12
 @export var reload_time: float = 1.5
 
+# Internal state
 var attack_timer: float = 0.0
 var owner_player: Player = null
 var current_ammo: int = 12
@@ -19,6 +25,8 @@ var recoil_time: float = 0.0
 var recoil_duration: float = 0.1
 var original_rotation: Vector3 = Vector3.ZERO
 var original_position: Vector3 = Vector3.ZERO
+
+# Muzzle system (reference: Neon Arena _muzzle_node)
 var muzzle_node: Node3D = null
 var muzzle_flash: MeshInstance3D = null
 var muzzle_light: OmniLight3D = null
@@ -29,12 +37,88 @@ func _ready() -> void:
 	current_ammo = mag_size
 	original_rotation = rotation
 	original_position = position
-	# Create dedicated muzzle node at gun barrel tip
+	_build_pistol_model()
+	_setup_muzzle()
+
+# ============================================================
+# Build pistol model - referenced from Neon Arena _build_pistol
+# ============================================================
+func _build_pistol_model() -> void:
+	var d: float = 1.0
+	# Materials
+	var body_mat: StandardMaterial3D = StandardMaterial3D.new()
+	body_mat.albedo_color = Color(0.35, 0.25, 0.55)
+	body_mat.roughness = 0.45
+	body_mat.metallic = 0.55
+	var dark_mat: StandardMaterial3D = StandardMaterial3D.new()
+	dark_mat.albedo_color = Color(0.1, 0.11, 0.14)
+	dark_mat.roughness = 0.35
+	dark_mat.metallic = 0.65
+	var metal_mat: StandardMaterial3D = StandardMaterial3D.new()
+	metal_mat.albedo_color = Color(0.65, 0.67, 0.72)
+	metal_mat.roughness = 0.2
+	metal_mat.metallic = 0.9
+	var accent_mat: StandardMaterial3D = StandardMaterial3D.new()
+	accent_mat.albedo_color = Color(0.5, 0.8, 1.0)
+	accent_mat.emission_enabled = true
+	accent_mat.emission = Color(0.5, 0.8, 1.0)
+	accent_mat.emission_energy_multiplier = 2.5
+
+	# Slide
+	var slide: MeshInstance3D = _make_box(Vector3(0.07 * d, 0.08 * d, 0.28 * d), body_mat)
+	slide.position = Vector3(0, 0.015 * d, -0.09)
+	add_child(slide)
+	# Slide front bevel
+	var slide_front: MeshInstance3D = _make_box(Vector3(0.065 * d, 0.06 * d, 0.06 * d), body_mat)
+	slide_front.position = Vector3(0, 0.01 * d, -0.22)
+	slide_front.rotation_degrees.x = -8
+	add_child(slide_front)
+	# Rear grooves (3 anti-slip grooves)
+	for i in range(3):
+		var groove: MeshInstance3D = _make_box(Vector3(0.072 * d, 0.012 * d, 0.01), dark_mat)
+		groove.position = Vector3(0, 0.015 * d, 0.01 + i * 0.015)
+		add_child(groove)
+	# Front sight
+	var front_sight: MeshInstance3D = _make_box(Vector3(0.018, 0.03, 0.01), accent_mat)
+	front_sight.position = Vector3(0, 0.06 * d, -0.21)
+	add_child(front_sight)
+	# Rear sight
+	var rear_sight: MeshInstance3D = _make_box(Vector3(0.045, 0.025, 0.012), dark_mat)
+	rear_sight.position = Vector3(0, 0.055 * d, 0.03)
+	add_child(rear_sight)
+	# Barrel
+	var barrel: MeshInstance3D = _make_cylinder(0.02 * d, 0.06 * d, dark_mat)
+	barrel.position = Vector3(0, -0.005 * d, -0.25)
+	barrel.rotation.x = deg_to_rad(90)
+	add_child(barrel)
+	# Muzzle ring
+	var muzzle_ring: MeshInstance3D = _make_cylinder(0.025 * d, 0.025, metal_mat)
+	muzzle_ring.position = Vector3(0, -0.005 * d, -0.29)
+	muzzle_ring.rotation.x = deg_to_rad(90)
+	add_child(muzzle_ring)
+	# Grip
+	var grip: MeshInstance3D = _make_box(Vector3(0.055 * d, 0.15 * d, 0.07 * d), dark_mat)
+	grip.position = Vector3(0, -0.08 * d, 0.02)
+	grip.rotation_degrees.x = 15
+	add_child(grip)
+	# Trigger guard
+	var trigger_guard: MeshInstance3D = _make_box(Vector3(0.05 * d, 0.04 * d, 0.05 * d), dark_mat)
+	trigger_guard.position = Vector3(0, -0.04 * d, -0.05)
+	add_child(trigger_guard)
+	# Trigger
+	var trigger: MeshInstance3D = _make_box(Vector3(0.015 * d, 0.03 * d, 0.01 * d), metal_mat)
+	trigger.position = Vector3(0, -0.035 * d, -0.05)
+	add_child(trigger)
+
+# ============================================================
+# Setup muzzle node - referenced from Neon Arena _muzzle_node
+# ============================================================
+func _setup_muzzle() -> void:
 	muzzle_node = Node3D.new()
 	muzzle_node.name = "Muzzle"
-	muzzle_node.position = Vector3(0, 0, -0.35)
+	muzzle_node.position = Vector3(0.0, 0.0, -0.32)
 	add_child(muzzle_node)
-	# Muzzle flash mesh
+	# Muzzle flash mesh (sphere - reference Neon Arena)
 	muzzle_flash = MeshInstance3D.new()
 	var flash_mesh: SphereMesh = SphereMesh.new()
 	flash_mesh.radius = 0.06
@@ -55,6 +139,24 @@ func _ready() -> void:
 	muzzle_light.light_energy = 0.0
 	muzzle_light.omni_range = 8.0
 	muzzle_node.add_child(muzzle_light)
+
+func _make_box(size: Vector3, mat: Material) -> MeshInstance3D:
+	var mi: MeshInstance3D = MeshInstance3D.new()
+	var bm: BoxMesh = BoxMesh.new()
+	bm.size = size
+	bm.surface_set_material(0, mat)
+	mi.mesh = bm
+	return mi
+
+func _make_cylinder(radius: float, height: float, mat: Material) -> MeshInstance3D:
+	var mi: MeshInstance3D = MeshInstance3D.new()
+	var cm: CylinderMesh = CylinderMesh.new()
+	cm.top_radius = radius
+	cm.bottom_radius = radius
+	cm.height = height
+	cm.surface_set_material(0, mat)
+	mi.mesh = cm
+	return mi
 
 func _process(delta: float) -> void:
 	if attack_timer > 0.0:
@@ -109,7 +211,12 @@ func attack() -> void:
 	var camera: Camera3D = owner_player.get_node("Head/Camera3D") as Camera3D
 	if camera == null:
 		return
-	# Raycast from camera (crosshair center) - this guarantees accurate hit
+	# ============================================================
+	# Tracer - fully referenced from Neon Arena
+	# Raycast from camera (guarantees crosshair accuracy)
+	# Tracer drawn from camera to hit point
+	# Muzzle only emits flash, creating visual illusion
+	# ============================================================
 	var from: Vector3 = camera.global_position
 	var to: Vector3 = from + -camera.global_transform.basis.z * fire_range
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
@@ -119,10 +226,8 @@ func attack() -> void:
 	var hit_point: Vector3 = to
 	if result.has("position"):
 		hit_point = result.position
-	# Tracer: from CAMERA position (eye) to hit point - standard FPS approach (Neon Arena, CS, COD)
-	# This guarantees the tracer is EXACTLY aligned with crosshair, never offset
-	# Muzzle flash is still at muzzle for visual illusion
-	spawn_tracer(camera.global_position, hit_point)
+	# Tracer from camera to hit point (exact same as Neon Arena)
+	spawn_tracer(from, hit_point)
 	if result.has("collider"):
 		var hit_node: Node = result.collider as Node
 		if hit_node is BaseMonster:
@@ -146,39 +251,33 @@ func trigger_muzzle_flash() -> void:
 	muzzle_light.light_energy = 6.0
 	muzzle_flash.rotation_degrees.z = randf_range(0, 360)
 
-# Spawn bullet tracer - standard FPS implementation
-# Draws a bright line from muzzle to hit point that fades out quickly
+# ============================================================
+# Tracer - fully referenced from Neon Arena Tracer.gd
+# ============================================================
 func spawn_tracer(from: Vector3, to: Vector3) -> void:
 	var tracer: MeshInstance3D = MeshInstance3D.new()
 	var tracer_mesh: BoxMesh = BoxMesh.new()
-	var dist: float = from.distance_to(to)
-	tracer_mesh.size = Vector3(0.02, 0.02, dist)
+	tracer_mesh.size = Vector3(0.025, 0.025, 1.0)
 	var tracer_mat: StandardMaterial3D = StandardMaterial3D.new()
-	tracer_mat.albedo_color = Color(1.0, 0.95, 0.5, 0.9)
+	tracer_mat.albedo_color = Color(1.0, 0.95, 0.5, 0.95)
 	tracer_mat.emission_enabled = true
 	tracer_mat.emission = Color(1.0, 0.9, 0.3)
-	tracer_mat.emission_energy_multiplier = 8.0
+	tracer_mat.emission_energy_multiplier = 7.0
 	tracer_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	tracer_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	tracer_mesh.material = tracer_mat
+	tracer_mesh.surface_set_material(0, tracer_mat)
 	tracer.mesh = tracer_mesh
-	# Position at midpoint
+	# Setup: set length, position, orientation (exact same as Neon Arena Tracer.setup())
+	var len: float = from.distance_to(to)
+	tracer_mesh.size.z = len
 	tracer.global_position = (from + to) * 0.5
-	# Orient along the line from muzzle to hit point
 	tracer.look_at(to, Vector3.UP)
 	get_tree().current_scene.add_child(tracer)
-	# Fade out and auto destroy
-	var lifetime: float = 0.1
+	# Auto destroy after 0.12s (same as Neon Arena _life)
+	var lifetime: float = 0.12
 	var timer: Timer = Timer.new()
 	timer.wait_time = lifetime
 	timer.one_shot = true
 	timer.timeout.connect(func(): tracer.queue_free())
 	tracer.add_child(timer)
 	timer.start()
-	# Fade animation using tween
-	var tween: Tween = create_tween()
-	tween.tween_property(tracer_mat, "albedo_color:a", 0.0, lifetime)
-	tween.tween_property(tracer_mat, "emission_energy_multiplier", 0.0, lifetime)
-
-
-
