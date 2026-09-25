@@ -90,12 +90,19 @@ emission_enabled = true
 emission = Color(0.2, 0.3, 0.2, 1)
 emission_energy_multiplier = 1.0
 
-[sub_resource type="CubeMesh" id="Level3FloorMesh"]
+[sub_resource type="CubeMesh" id="Level3FloorLeftMesh"]
 material = SubResource("Level3FloorMat")
-size = Vector3(30, 1, 30)
+size = Vector3(11, 1, 30)
 
-[sub_resource type="BoxShape3D" id="Level3FloorCol"]
-size = Vector3(30, 1, 30)
+[sub_resource type="BoxShape3D" id="Level3FloorLeftCol"]
+size = Vector3(11, 1, 30)
+
+[sub_resource type="CubeMesh" id="Level3FloorRightMesh"]
+material = SubResource("Level3FloorMat")
+size = Vector3(11, 1, 30)
+
+[sub_resource type="BoxShape3D" id="Level3FloorRightCol"]
+size = Vector3(11, 1, 30)
 
 [sub_resource type="StandardMaterial3D" id="WinZoneMat"]
 albedo_color = Color(0.0, 1.0, 0.5, 1)
@@ -227,12 +234,20 @@ repair_progress_ref = NodePath("../ElevatorRepair")
 
 
 ; ==================== 第三层安全区（y=12高度） ====================
-[node name="Level3Floor" type="MeshInstance3D" parent="."]
-mesh = SubResource("Level3FloorMesh")
-position = Vector3(0, 12.0, -10)
-[node name="Level3FloorBody" type="StaticBody3D" parent="Level3Floor"]
-[node name="Level3FloorShape" type="CollisionShape3D" parent="Level3Floor/Level3FloorBody"]
-shape = SubResource("Level3FloorCol")
+; 左边地面
+[node name="Level3FloorLeft" type="MeshInstance3D" parent="."]
+mesh = SubResource("Level3FloorLeftMesh")
+position = Vector3(-9.5, 12.0, -10)
+[node name="LeftBody" type="StaticBody3D" parent="Level3FloorLeft"]
+[node name="LeftShape" type="CollisionShape3D" parent="Level3FloorLeft/LeftBody"]
+shape = SubResource("Level3FloorLeftCol")
+; 右边地面
+[node name="Level3FloorRight" type="MeshInstance3D" parent="."]
+mesh = SubResource("Level3FloorRightMesh")
+position = Vector3(9.5, 12.0, -10)
+[node name="RightBody" type="StaticBody3D" parent="Level3FloorRight"]
+[node name="RightShape" type="CollisionShape3D" parent="Level3FloorRight/RightBody"]
+shape = SubResource("Level3FloorRightCol")
 
 ; 复活点（第三层入口处）
 [node name="RespawnPoint" type="Area3D" parent="."]
@@ -250,4 +265,5 @@ shape = SubResource("WinZoneCol")
 [node name="WinMesh" type="MeshInstance3D" parent="WinZone"]
 mesh = SubResource("WinZoneMesh")
 position.y = 0.15
+
 
