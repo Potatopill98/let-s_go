@@ -23,7 +23,6 @@ var muzzle_node: Node3D = null
 var muzzle_flash: MeshInstance3D = null
 var muzzle_light: OmniLight3D = null
 var muzzle_flash_timer: float = 0.0
-var tracer_lifetime: float = 0.12
 
 func _ready() -> void:
 	add_to_group("weapon")
@@ -35,7 +34,7 @@ func _ready() -> void:
 	muzzle_node.name = "Muzzle"
 	muzzle_node.position = Vector3(0, 0, -0.35)
 	add_child(muzzle_node)
-	# Muzzle flash mesh (sphere like Neon Arena)
+	# Muzzle flash mesh
 	muzzle_flash = MeshInstance3D.new()
 	var flash_mesh: SphereMesh = SphereMesh.new()
 	flash_mesh.radius = 0.06
@@ -110,6 +109,7 @@ func attack() -> void:
 	var camera: Camera3D = owner_player.get_node("Head/Camera3D") as Camera3D
 	if camera == null:
 		return
+	# Raycast from camera (crosshair center) - this guarantees accurate hit
 	var from: Vector3 = camera.global_position
 	var to: Vector3 = from + -camera.global_transform.basis.z * fire_range
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
@@ -119,11 +119,9 @@ func attack() -> void:
 	var hit_point: Vector3 = to
 	if result.has("position"):
 		hit_point = result.position
-	# Spawn tracer from muzzle position, direction aligned with camera forward (crosshair)
-	var cam_forward: Vector3 = -camera.global_transform.basis.z
-	cam_forward = cam_forward.normalized()
-	var tracer_end: Vector3 = muzzle_node.global_position + cam_forward * muzzle_node.global_position.distance_to(hit_point)
-	spawn_tracer(muzzle_node.global_position, tracer_end)
+	# Tracer: draw line from MUZZLE to HIT POINT (diagonal line, looks natural)
+	# This is the standard FPS approach: ray from camera for accuracy, tracer from muzzle for visuals
+	spawn_tracer(muzzle_node.global_position, hit_point)
 	if result.has("collider"):
 		var hit_node: Node = result.collider as Node
 		if hit_node is BaseMonster:
@@ -147,29 +145,36 @@ func trigger_muzzle_flash() -> void:
 	muzzle_light.light_energy = 6.0
 	muzzle_flash.rotation_degrees.z = randf_range(0, 360)
 
-# Spawn bullet tracer line (reference: Neon Arena Tracer.gd)
+# Spawn bullet tracer - standard FPS implementation
+# Draws a bright line from muzzle to hit point that fades out quickly
 func spawn_tracer(from: Vector3, to: Vector3) -> void:
 	var tracer: MeshInstance3D = MeshInstance3D.new()
 	var tracer_mesh: BoxMesh = BoxMesh.new()
-	tracer_mesh.size = Vector3(0.025, 0.025, from.distance_to(to))
+	var dist: float = from.distance_to(to)
+	tracer_mesh.size = Vector3(0.02, 0.02, dist)
 	var tracer_mat: StandardMaterial3D = StandardMaterial3D.new()
-	tracer_mat.albedo_color = Color(1.0, 0.95, 0.5, 0.95)
+	tracer_mat.albedo_color = Color(1.0, 0.95, 0.5, 0.9)
 	tracer_mat.emission_enabled = true
 	tracer_mat.emission = Color(1.0, 0.9, 0.3)
-	tracer_mat.emission_energy_multiplier = 7.0
+	tracer_mat.emission_energy_multiplier = 8.0
 	tracer_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	tracer_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	tracer_mesh.material = tracer_mat
 	tracer.mesh = tracer_mesh
-	# Position at midpoint between from and to
+	# Position at midpoint
 	tracer.global_position = (from + to) * 0.5
-	# Orient along the line
+	# Orient along the line from muzzle to hit point
 	tracer.look_at(to, Vector3.UP)
 	get_tree().current_scene.add_child(tracer)
-	# Auto destroy after lifetime
+	# Fade out and auto destroy
+	var lifetime: float = 0.1
 	var timer: Timer = Timer.new()
-	timer.wait_time = tracer_lifetime
+	timer.wait_time = lifetime
 	timer.one_shot = true
 	timer.timeout.connect(func(): tracer.queue_free())
 	tracer.add_child(timer)
 	timer.start()
+	# Fade animation using tween
+	var tween: Tween = create_tween()
+	tween.tween_property(tracer_mat, "albedo_color:a", 0.0, lifetime)
+	tween.tween_property(tracer_mat, "emission_energy_multiplier", 0.0, lifetime)
