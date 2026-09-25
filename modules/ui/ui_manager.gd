@@ -7,6 +7,10 @@ var controls_hint: Label = null
 var countdown_label: Label = null
 var health_bar: ProgressBar = null
 var health_label: Label = null
+var weapon_panel: Panel = null
+var weapon_name_label: Label = null
+var ammo_label: Label = null
+var weapon_anim_timer: float = 0.0
 
 @export var message_duration: float = 3.0
 
@@ -78,6 +82,32 @@ func _ready() -> void:
 	health_label.add_theme_font_size_override("font_size", 16)
 	health_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
 	add_child(health_label)
+	# 武器显示面板（右下角）
+	weapon_panel = Panel.new()
+	weapon_panel.offset_left = 20.0
+	weapon_panel.offset_top = -90.0
+	weapon_panel.offset_right = 220.0
+	weapon_panel.offset_bottom = -20.0
+	weapon_panel.anchor_left = 1.0
+	weapon_panel.anchor_top = 1.0
+	weapon_panel.anchor_right = 1.0
+	weapon_panel.anchor_bottom = 1.0
+	weapon_panel.modulate = Color(0, 0, 0, 0.6)
+	add_child(weapon_panel)
+	weapon_name_label = Label.new()
+	weapon_name_label.text = "武器: 无"
+	weapon_name_label.offset_left = 10.0
+	weapon_name_label.offset_top = 10.0
+	weapon_name_label.add_theme_font_size_override("font_size", 18)
+	weapon_name_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	weapon_panel.add_child(weapon_name_label)
+	ammo_label = Label.new()
+	ammo_label.text = ""
+	ammo_label.offset_left = 10.0
+	ammo_label.offset_top = 40.0
+	ammo_label.add_theme_font_size_override("font_size", 24)
+	ammo_label.add_theme_color_override("font_color", Color(1, 0.9, 0.2, 1))
+	weapon_panel.add_child(ammo_label)
 
 # 显示交互提示
 func show_interaction_prompt(text: String) -> void:
@@ -133,3 +163,21 @@ func update_health(current: float, max: float) -> void:
 	health_bar.max_value = max
 	health_bar.value = current
 	health_label.text = "血量: %d/%d" % [ceil(current), ceil(max)]
+
+# 更新武器显示
+func update_weapon_ui(weapon_name: String, ammo: int = -1, max_ammo: int = -1) -> void:
+	weapon_name_label.text = "武器: " + weapon_name
+	if ammo >= 0 and max_ammo >= 0:
+		ammo_label.text = "%d / %d" % [ammo, max_ammo]
+	else:
+		ammo_label.text = "近战"
+	# 切换动画：面板闪一下
+	weapon_anim_timer = 0.2
+
+func _process(delta: float) -> void:
+	if weapon_anim_timer > 0:
+		weapon_anim_timer -= delta
+		var scale_val: float = 1.0 + weapon_anim_timer * 2.0
+		weapon_panel.scale = Vector2(scale_val, scale_val)
+	else:
+		weapon_panel.scale = Vector2(1, 1)

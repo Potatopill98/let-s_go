@@ -39,3 +39,5 @@ func pickup() -> void:
 	UIManager.hide_interaction_prompt()
 	UIManager.show_message("获得" + weapon_name)
 	queue_free()
+
+

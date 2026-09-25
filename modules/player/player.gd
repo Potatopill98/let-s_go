@@ -29,6 +29,8 @@ var dodge_direction: Vector3 = Vector3.ZERO
 var hit_stun_timer: float = 0.0
 # Weapon system
 var weapons: Array = []
+var weapon_scenes: Array = []
+var weapon_names: Array = []
 var current_weapon_index: int = -1
 
 @onready var head: Node3D = $Head
@@ -68,6 +70,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Reload R
 	if event is InputEventKey and event.pressed and event.keycode == KEY_R:
 		reload_current_weapon()
+	# Drop weapon G
+	if event is InputEventKey and event.pressed and event.keycode == KEY_G:
+		drop_current_weapon()
 
 func _physics_process(delta: float) -> void:
 	# Timers
@@ -79,6 +84,8 @@ func _physics_process(delta: float) -> void:
 		hit_stun_timer -= delta
 	# Update UI health
 	UIManager.update_health(current_health, max_health)
+	# Update weapon UI
+	update_weapon_ui()
 	# Attack check
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not is_dodging and hit_stun_timer <= 0.0:
 		if current_weapon_index >= 0 and current_weapon_index < weapons.size():
@@ -166,13 +173,14 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 func equip_weapon(weapon: Node) -> void:
 	if weapon == null:
 		return
+	# 如果已经有武器，把当前武器掉地上
 	if current_weapon_index >= 0 and current_weapon_index < weapons.size():
-		var old_weapon: Node = weapons[current_weapon_index]
-		if old_weapon != null:
-			old_weapon.visible = false
+		drop_current_weapon()
 	weapons.append(weapon)
+	weapon_scenes.append(weapon.scene_file_path)
 	if weapon.has_method("set_owner_player"):
 		weapon.set_owner_player(self)
+		weapon_names.append(weapon.weapon_name)
 	var mount: Node3D = get_node("Head/WeaponMount") as Node3D
 	if mount != null:
 		mount.add_child(weapon)
@@ -202,4 +210,55 @@ func reload_current_weapon() -> void:
 	var weapon: Node = weapons[current_weapon_index]
 	if weapon != null and weapon.has_method("reload"):
 		weapon.reload()
+
+# 丢弃当前武器
+func drop_current_weapon() -> void:
+	if current_weapon_index < 0 or current_weapon_index >= weapons.size():
+		return
+	var weapon: Node = weapons[current_weapon_index]
+	if weapon == null:
+		return
+	# 在玩家面前生成武器拾取物
+	var drop_pos: Vector3 = global_position + -global_transform.basis.z * 1.5
+	drop_pos.y = 0.5
+	var weapon_scene_path: String = weapon_scenes[current_weapon_index]
+	var weapon_name: String = weapon_names[current_weapon_index]
+	var pickup_scene: PackedScene = load("res://modules/weapon/weapon_pickup.tscn")
+	var loaded_scene: PackedScene = load(weapon_scene_path)
+	if pickup_scene != null and loaded_scene != null:
+		var pickup: Node = pickup_scene.instantiate()
+		pickup.weapon_scene = loaded_scene
+		pickup.weapon_name = weapon_name
+		pickup.position = drop_pos
+		get_tree().current_scene.add_child(pickup)
+	# 移除武器
+	weapon.queue_free()
+	weapons.remove_at(current_weapon_index)
+	weapon_scenes.remove_at(current_weapon_index)
+	weapon_names.remove_at(current_weapon_index)
+	current_weapon_index = -1
+	# 如果还有其他武器，切换到上一个
+	if weapons.size() > 0:
+		current_weapon_index = weapons.size() - 1
+		weapons[current_weapon_index].visible = true
+
+# 更新武器UI显示
+func update_weapon_ui() -> void:
+	if current_weapon_index < 0 or current_weapon_index >= weapons.size():
+		UIManager.update_weapon_ui("无")
+		return
+	var weapon: Node = weapons[current_weapon_index]
+	if weapon == null:
+		UIManager.update_weapon_ui("无")
+		return
+	var w_name: String = "武器"
+	if weapon_names.size() > current_weapon_index:
+		w_name = weapon_names[current_weapon_index]
+	if weapon.has_method("reload"):
+		# 远程武器显示弹药
+		var ammo: int = weapon.current_ammo
+		var max_a: int = weapon.mag_size
+		UIManager.update_weapon_ui(w_name, ammo, max_a)
+	else:
+		UIManager.update_weapon_ui(w_name)
 
