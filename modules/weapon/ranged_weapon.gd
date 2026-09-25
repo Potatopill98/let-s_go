@@ -119,9 +119,12 @@ func attack() -> void:
 	var hit_point: Vector3 = to
 	if result.has("position"):
 		hit_point = result.position
-	# Tracer: draw line from MUZZLE to HIT POINT (diagonal line, looks natural)
-	# This is the standard FPS approach: ray from camera for accuracy, tracer from muzzle for visuals
-	spawn_tracer(muzzle_node.global_position, hit_point)
+	# Tracer: from MUZZLE position, direction ALWAYS toward camera forward (crosshair center)
+	# Fixed length, does NOT change based on hit point - always shoots toward screen center
+	var cam_forward: Vector3 = -camera.global_transform.basis.z
+	cam_forward = cam_forward.normalized()
+	var tracer_end: Vector3 = muzzle_node.global_position + cam_forward * fire_range
+	spawn_tracer(muzzle_node.global_position, tracer_end)
 	if result.has("collider"):
 		var hit_node: Node = result.collider as Node
 		if hit_node is BaseMonster:
@@ -178,3 +181,4 @@ func spawn_tracer(from: Vector3, to: Vector3) -> void:
 	var tween: Tween = create_tween()
 	tween.tween_property(tracer_mat, "albedo_color:a", 0.0, lifetime)
 	tween.tween_property(tracer_mat, "emission_energy_multiplier", 0.0, lifetime)
+
