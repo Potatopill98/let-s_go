@@ -144,6 +144,7 @@ monster_scene = ExtResource("2_monster")
 base_spawn_interval = 6.0
 min_spawn_interval = 1.5
 max_monsters = 20
+spawn_point_paths = [NodePath("../SpawnPoint1"), NodePath("../SpawnPoint2"), NodePath("../SpawnPoint3")]
 repair_progress_ref = NodePath("../DoorRepair")
 
 ; 修理区域（大门前）
@@ -171,4 +172,6 @@ shape = SubResource("DoorCol")
 
 [connection signal="repair_completed" from="DoorRepair" to="ExitDoor" method="open_door"]
 [connection signal="repair_completed" from="DoorRepair" to="SpawnManager" method="_on_repair_completed"]
+
+
 

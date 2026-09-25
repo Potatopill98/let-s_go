@@ -2,7 +2,8 @@
 class_name SpawnManager
 
 @export var monster_scene: PackedScene = null
-@export var spawn_points: Array[Node3D] = []
+@export var spawn_point_paths: Array[NodePath] = []
+var spawn_points: Array[Node3D] = []
 @export var base_spawn_interval: float = 5.0
 @export var min_spawn_interval: float = 1.0
 @export var max_monsters: int = 30
@@ -15,6 +16,11 @@ var spawned_monsters: int = 0
 func _ready() -> void:
 	current_spawn_interval = base_spawn_interval
 	spawn_timer = current_spawn_interval
+	# 解析刷怪点路径
+	for path in spawn_point_paths:
+		var point: Node3D = get_node(path) as Node3D
+		if point != null:
+			spawn_points.append(point)
 
 func _process(delta: float) -> void:
 	if monster_scene == null or spawn_points.size() == 0:
@@ -50,3 +56,4 @@ func set_repair_ref(repair_node: Node) -> void:
 func _on_repair_completed() -> void:
 	# 修理完成后停止刷怪
 	set_process(false)
+
