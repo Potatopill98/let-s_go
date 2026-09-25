@@ -1,4 +1,4 @@
-﻿extends CharacterBody3D
+extends CharacterBody3D
 class_name Player
 
 # 基础移动参数
@@ -215,4 +215,3 @@ func reload_current_weapon() -> void:
 	if weapon.has_method("reload"):
 		
 		weapon.reload()
-
