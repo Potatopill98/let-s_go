@@ -1,0 +1,29 @@
+﻿[gd_scene load_steps=5 format=3 uid="uid://weapon_pickup_001"]
+
+[ext_resource type="Script" path="res://modules/weapon/weapon_pickup.gd" id="1"]
+[ext_resource type="PackedScene" path="res://modules/weapon/melee_weapon.tscn" id="2_melee"]
+
+[sub_resource type="CapsuleShape3D" id="PickupCol"]
+radius = 1.0
+height = 2.0
+
+[sub_resource type="StandardMaterial3D" id="PickupMat"]
+albedo_color = Color(1.0, 0.8, 0.2, 1)
+emission_enabled = true
+emission = Color(1.0, 0.8, 0.2, 1)
+emission_energy_multiplier = 0.5
+
+[sub_resource type="CubeMesh" id="PickupMesh"]
+material = SubResource("PickupMat")
+size = Vector3(0.5, 0.5, 0.5)
+
+[node name="WeaponPickup" type="Area3D"]
+script = ExtResource("1")
+weapon_scene = ExtResource("2_melee")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("PickupCol")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("PickupMesh")
+position.y = 1.0

@@ -1,0 +1,59 @@
+﻿[gd_scene load_steps=12 format=3 uid="uid://weapon_test_001"]
+
+[ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://modules/monster/base_monster.tscn" id="2_monster"]
+[ext_resource type="PackedScene" path="res://modules/weapon/weapon_pickup.tscn" id="3_pickup"]
+[ext_resource type="PackedScene" path="res://modules/weapon/melee_weapon.tscn" id="4_melee"]
+[ext_resource type="PackedScene" path="res://modules/weapon/ranged_weapon.tscn" id="5_ranged"]
+
+[sub_resource type="StandardMaterial3D" id="GroundMat"]
+albedo_color = Color(0.3, 0.3, 0.3, 1)
+
+[sub_resource type="CubeMesh" id="GroundMesh"]
+material = SubResource("GroundMat")
+size = Vector3(40, 1, 40)
+
+[sub_resource type="BoxShape3D" id="GroundCol"]
+size = Vector3(40, 1, 40)
+
+[sub_resource type="Environment" id="Env"]
+background_mode = 1
+background_color = Color(0.5, 0.7, 0.9, 1)
+ambient_light_energy = 1.5
+
+[node name="WeaponTest" type="Node3D"]
+
+[node name="WorldEnv" type="WorldEnvironment" parent="."]
+environment = SubResource("Env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-45, 0, 0)
+light_energy = 1.5
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("GroundMesh")
+position.y = -0.5
+[node name="GroundBody" type="StaticBody3D" parent="Ground"]
+[node name="GroundShape" type="CollisionShape3D" parent="Ground/GroundBody"]
+shape = SubResource("GroundCol")
+
+; 两只测试怪物
+[node name="Monster1" parent="." instance=ExtResource("2_monster")]
+position = Vector3(0, 0, -10)
+[node name="Monster2" parent="." instance=ExtResource("2_monster")]
+position = Vector3(5, 0, -12)
+
+; 木棒拾取物（黄色发光方块）
+[node name="MeleePickup" parent="." instance=ExtResource("3_pickup")]
+position = Vector3(-3, 0, -3)
+weapon_scene = ExtResource("4_melee")
+weapon_name = "木棒"
+
+; 手枪拾取物（黄色发光方块）
+[node name="RangedPickup" parent="." instance=ExtResource("3_pickup")]
+position = Vector3(3, 0, -3)
+weapon_scene = ExtResource("5_ranged")
+weapon_name = "手枪"
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector3(0, 0, 0)

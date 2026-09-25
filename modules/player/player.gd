@@ -27,6 +27,9 @@ var is_dodging: bool = false
 var punch_cd_timer: float = 0.0
 var dodge_direction: Vector3 = Vector3.ZERO
 var hit_stun_timer: float = 0.0
+# 武器系统
+var weapons: Array = []
+var current_weapon_index: int = -1
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
@@ -55,6 +58,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	# 闪避触发
 	if event is InputEventKey and event.pressed and event.keycode == KEY_Q and dodge_cd_timer <= 0.0 and not is_dodging and is_on_floor():
 		start_dodge()
+	# 武器切换 1/2
+	if event is InputEventKey and event.pressed and event.keycode == KEY_1:
+		switch_weapon(0)
+	if event is InputEventKey and event.pressed and event.keycode == KEY_2:
+		switch_weapon(1)
+	# 换弹R
+	if event is InputEventKey and event.pressed and event.keycode == KEY_R:
+		reload_current_weapon()
 
 func _physics_process(delta: float) -> void:
 	# 计时器递减
@@ -64,9 +75,14 @@ func _physics_process(delta: float) -> void:
 		punch_cd_timer -= delta
 	if hit_stun_timer > 0.0:
 		hit_stun_timer -= delta
-	# 挥拳检测
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and punch_cd_timer <= 0.0 and not is_dodging and hit_stun_timer <= 0.0:
-		start_punch()
+	# 攻击检测：有武器用武器，没有就挥拳
+	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not is_dodging and hit_stun_timer <= 0.0:
+		if current_weapon_index >= 0 and current_weapon_index < weapons.size():
+			var weapon: Node = weapons[current_weapon_index]
+			if weapon != null and weapon.can_attack():
+				weapon.attack()
+		elif punch_cd_timer <= 0.0:
+			start_punch()
 	# 受击硬直期间只应用重力和击退，不覆盖移动速度
 	if hit_stun_timer > 0.0:
 		if not is_on_floor():
@@ -151,4 +167,52 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	hit_stun_timer = hit_stun_duration
 	if current_health <= 0.0:
 		current_health = 0.0
+
+
+# 装备武器
+func equip_weapon(weapon: Node) -> void:
+	if weapon == null:
+		return
+	# 先隐藏当前武器
+	if current_weapon_index >= 0 and current_weapon_index < weapons.size():
+		var old_weapon: Node = weapons[current_weapon_index]
+		if old_weapon != null:
+			old_weapon.visible = false
+	# 添加新武器
+	weapons.append(weapon)
+	weapon.set_owner_player(self)
+	# 挂载到武器点
+	var mount: Node3D = get_node("Head/WeaponMount") as Node3D
+	if mount != null:
+		mount.add_child(weapon)
+		weapon.position = Vector3.ZERO
+		weapon.rotation = Vector3.ZERO
+	# 切换到新武器
+	current_weapon_index = weapons.size() - 1
+
+# 切换武器
+func switch_weapon(index: int) -> void:
+	if index < 0 or index >= weapons.size():
+		return
+	if index == current_weapon_index:
+		return
+	# 隐藏当前武器
+	if current_weapon_index >= 0 and current_weapon_index < weapons.size():
+		var old_weapon: Node = weapons[current_weapon_index]
+		if old_weapon != null:
+			old_weapon.visible = false
+	# 显示新武器
+	current_weapon_index = index
+	var new_weapon: Node = weapons[current_weapon_index]
+	if new_weapon != null:
+		new_weapon.visible = true
+
+# 换弹
+func reload_current_weapon() -> void:
+	if current_weapon_index < 0 or current_weapon_index >= weapons.size():
+		return
+	var weapon: Node = weapons[current_weapon_index]
+	if weapon.has_method("reload"):
+		
+		weapon.reload()
 
