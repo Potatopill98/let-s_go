@@ -171,6 +171,8 @@ func equip_weapon(weapon: Node) -> void:
 		if old_weapon != null:
 			old_weapon.visible = false
 	weapons.append(weapon)
+	if weapon.has_method("set_owner_player"):
+		weapon.set_owner_player(self)
 	var mount: Node3D = get_node("Head/WeaponMount") as Node3D
 	if mount != null:
 		mount.add_child(weapon)

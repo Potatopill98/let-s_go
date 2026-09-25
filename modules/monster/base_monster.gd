@@ -2,9 +2,9 @@
 class_name BaseMonster
 
 # Params
-@export var move_speed: float = 4.0
+@export var move_speed: float = 3.0
 @export var detect_range: float = 35.0
-@export var attack_range: float = 2.0
+@export var attack_range: float = 1.8
 @export var attack_damage: float = 8.0
 @export var attack_cooldown: float = 1.0
 @export var max_health: float = 30.0
@@ -57,11 +57,13 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 	var to_target: Vector3 = target.global_position - global_position
+	var vertical_dist: float = abs(to_target.y)
 	to_target.y = 0.0
 	var dist: float = to_target.length()
 	if dist > 0.1:
 		rotation.y = atan2(-to_target.x, -to_target.z)
-	if dist <= attack_range:
+	# 攻击判定：水平距离+垂直高度都要在范围内（垂直不超过怪物高度1.8米）
+	if dist <= attack_range and vertical_dist <= 1.8:
 		velocity.x = 0.0
 		velocity.z = 0.0
 		if attack_timer <= 0.0:
@@ -133,4 +135,5 @@ func make_health_bar_texture() -> ImageTexture:
 func update_health_bar() -> void:
 	if health_bar_3d != null:
 		health_bar_3d.texture = make_health_bar_texture()
+
 
