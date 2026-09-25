@@ -15,7 +15,7 @@ size = Vector3(8, 0.5, 8)
 [sub_resource type="BoxShape3D" id="PlatformCol"]
 size = Vector3(8, 0.5, 8)
 
-[node name="ElevatorPlatform" type="CharacterBody3D"]
+[node name="ElevatorPlatform" type="StaticBody3D"]
 script = ExtResource("1")
 target_height = 12.0
 countdown_time = 15.0
@@ -25,3 +25,4 @@ mesh = SubResource("PlatformMesh")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("PlatformCol")
+
