@@ -3,6 +3,9 @@
 [ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://modules/interaction/repair_task.tscn" id="2_repair"]
 [ext_resource type="PackedScene" path="res://modules/interaction/door.tscn" id="3_door"]
+[ext_resource type="PackedScene" path="res://modules/weapon/weapon_pickup.tscn" id="4_melee"]
+[ext_resource type="PackedScene" path="res://modules/weapon/melee_weapon.tscn" id="5_melee_weapon"]
+[ext_resource type="PackedScene" path="res://modules/weapon/ranged_weapon.tscn" id="6_ranged_weapon"]
 
 [sub_resource type="StandardMaterial3D" id="GroundMat"]
 albedo_color = Color(0.3, 0.3, 0.3, 1)
@@ -39,6 +42,16 @@ shape = SubResource("GroundCol")
 [node name="ExitDoor" parent="." instance=ExtResource("3_door")]
 position = Vector3(0, 2, -15)
 
+; 武器拾取台：左边木棒，右边手枪
+[node name="MeleePickup" parent="." instance=ExtResource("4_melee")]
+position = Vector3(-4, 0, -5)
+weapon_scene = ExtResource("5_melee_weapon")
+weapon_name = "木棒"
+[node name="RangedPickup" parent="." instance=ExtResource("4_melee")]
+position = Vector3(4, 0, -5)
+weapon_scene = ExtResource("6_ranged_weapon")
+weapon_name = "手枪"
+
 ; 绿色修理区域在大门前3米
 [node name="DoorRepair" parent="." instance=ExtResource("2_repair")]
 position = Vector3(0, 0, -12)
@@ -47,3 +60,4 @@ position = Vector3(0, 0, -12)
 position = Vector3(0, 0, 5)
 
 [connection signal="repair_completed" from="DoorRepair" to="ExitDoor" method="open_door"]
+
