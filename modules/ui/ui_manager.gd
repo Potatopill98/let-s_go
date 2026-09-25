@@ -4,6 +4,7 @@ var interaction_prompt: Label = null
 var progress_bar: ProgressBar = null
 var message_container: VBoxContainer = null
 var controls_hint: Label = null
+var countdown_label: Label = null
 
 @export var message_duration: float = 3.0
 
@@ -48,6 +49,17 @@ func _ready() -> void:
 	message_container.offset_right = -10.0
 	message_container.alignment = VBoxContainer.ALIGNMENT_END
 	add_child(message_container)
+	# 撤离倒计时标签
+	countdown_label = Label.new()
+	countdown_label.anchor_right = 1.0
+	countdown_label.anchor_bottom = 1.0
+	countdown_label.offset_bottom = -200.0
+	countdown_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	countdown_label.add_theme_font_size_override("font_size", 48)
+	countdown_label.add_theme_color_override("font_color", Color(1, 0.2, 0.2, 1))
+	countdown_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1))
+	countdown_label.visible = false
+	add_child(countdown_label)
 
 # 显示交互提示
 func show_interaction_prompt(text: String) -> void:
@@ -88,3 +100,12 @@ func show_message(text: String) -> void:
 	)
 	msg_label.add_child(timer)
 	timer.start()
+
+# 显示撤离倒计时
+func show_countdown(time_left: float) -> void:
+	countdown_label.visible = true
+	countdown_label.text = "撤离倒计时：%d秒" % ceil(time_left)
+
+# 隐藏倒计时
+func hide_countdown() -> void:
+	countdown_label.visible = false

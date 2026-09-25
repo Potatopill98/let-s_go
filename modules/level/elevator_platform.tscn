@@ -1,0 +1,27 @@
+﻿[gd_scene load_steps=5 format=3 uid="uid://elevator_001"]
+
+[ext_resource type="Script" path="res://modules/level/elevator_platform.gd" id="1"]
+
+[sub_resource type="StandardMaterial3D" id="PlatformMat"]
+albedo_color = Color(0.7, 0.7, 0.7, 1)
+emission_enabled = true
+emission = Color(0.3, 0.3, 0.3, 1)
+emission_energy_multiplier = 1.0
+
+[sub_resource type="CubeMesh" id="PlatformMesh"]
+material = SubResource("PlatformMat")
+size = Vector3(8, 0.5, 8)
+
+[sub_resource type="BoxShape3D" id="PlatformCol"]
+size = Vector3(8, 0.5, 8)
+
+[node name="ElevatorPlatform" type="CharacterBody3D"]
+script = ExtResource("1")
+target_height = 12.0
+countdown_time = 15.0
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlatformMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("PlatformCol")
