@@ -1,5 +1,6 @@
 ﻿extends CharacterBody3D
 class_name Player
+const InventoryScript = preload("res://modules/player/inventory.gd")
 
 # ============================================================
 # Player Controller with Holdable Item System
@@ -40,6 +41,9 @@ var hit_stun_timer: float = 0.0
 var current_held_item: Node = null
 var held_item_scene_path: String = ""
 
+# Inventory system - 6 slots (2 task + 4 consumable)
+var inventory: Node = null
+
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
 
@@ -48,6 +52,11 @@ func _ready() -> void:
 	head.position.y = 1.6
 	current_move_speed = walk_speed
 	add_to_group("player")
+	# Initialize inventory
+	inventory = InventoryScript.new()
+	inventory.name = "Inventory"
+	add_child(inventory)
+	inventory.inventory_changed.connect(_on_inventory_changed)
 
 func _input(event: InputEvent) -> void:
 	# Mouse look - highest priority, always works even when repairing
@@ -75,6 +84,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Drop item G
 	if event is InputEventKey and event.pressed and event.keycode == KEY_G:
 		drop_held_item()
+	# Use consumable 1-4
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_1:
+			use_inventory_consumable(0)
+		elif event.keycode == KEY_2:
+			use_inventory_consumable(1)
+		elif event.keycode == KEY_3:
+			use_inventory_consumable(2)
+		elif event.keycode == KEY_4:
+			use_inventory_consumable(3)
 
 func _physics_process(delta: float) -> void:
 	# Timers
@@ -303,3 +322,73 @@ func equip_weapon(weapon: Node) -> void:
 func switch_weapon(index: int) -> void:
 	# No longer used - one item at a time
 	pass
+
+
+# ============================================================
+# Inventory System
+# ============================================================
+
+func _on_inventory_changed() -> void:
+	update_inventory_ui()
+
+func update_inventory_ui() -> void:
+	if inventory == null:
+		return
+	# Update UI with inventory data
+	var task_items: Array = inventory.get_task_items()
+	var consumable_data: Array = []
+	for i in range(4):
+		var slot: Dictionary = inventory.get_consumable(i)
+		if not slot.is_empty():
+			var item_id: String = slot.get("item_id", "")
+			var count: int = slot.get("count", 0)
+			consumable_data.append({"item_id": item_id, "count": count, "name": ItemManager.get_item_name(item_id)})
+		else:
+			consumable_data.append({})
+	UIManager.update_inventory(task_items, consumable_data)
+
+func use_inventory_consumable(slot_index: int) -> void:
+	if inventory == null:
+		return
+	var data: Dictionary = inventory.use_consumable(slot_index)
+	if data.is_empty():
+		return
+	var item_id: String = data.get("item_id", "")
+	var subtype: String = data.get("item_subtype", "")
+	# Apply effect based on subtype
+	if subtype == "heal":
+		var heal_amount: float = data.get("heal_amount", 0)
+		heal(heal_amount)
+		UIManager.show_toast("使用了 " + ItemManager.get_item_name(item_id) + "，回血" + str(heal_amount))
+	elif subtype == "buff":
+		var speed_mult: float = data.get("speed_mult", 1.0)
+		var buff_duration: float = data.get("buff_duration", 0)
+		if speed_mult > 1.0:
+			current_move_speed = run_speed * speed_mult
+			UIManager.show_toast("使用了 " + ItemManager.get_item_name(item_id) + "，移速提升")
+	elif subtype == "ammo":
+		var ammo_type: String = data.get("ammo_type", "")
+		var ammo_amount: int = data.get("ammo_amount", 0)
+		UIManager.show_toast("使用了 " + ItemManager.get_item_name(item_id))
+
+func pickup_inventory_item(item_id: String) -> bool:
+	if inventory == null:
+		return false
+	if not ItemManager.has_item(item_id):
+		return false
+	var data: Dictionary = ItemManager.get_item_data(item_id)
+	var item_type: String = data.get("item_type", "")
+	if item_type == "inventory_task":
+		return inventory.add_task_item(item_id)
+	elif item_type == "inventory_consumable":
+		return inventory.add_consumable(item_id, 1)
+	return false
+
+func has_task_item(item_id: String) -> bool:
+	if inventory == null:
+		return false
+	return inventory.has_task_item(item_id)
+
+func heal(amount: float) -> void:
+	current_health = min(current_health + amount, max_health)
+	UIManager.update_health(current_health, max_health)

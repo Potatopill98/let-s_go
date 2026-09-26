@@ -30,6 +30,16 @@ var item_anim_timer: float = 0.0
 var crosshair: Control = null
 var crosshair_visible: bool = false
 
+# Inventory UI
+var inventory_panel: Panel = null
+var task_slots: Array = []
+var consumable_slots: Array = []
+var inventory_labels: Array = []
+
+# Toast
+var toast_label: Label = null
+var toast_timer: float = 0.0
+
 @export var message_duration: float = 3.0
 
 func _ready() -> void:
@@ -42,6 +52,8 @@ func _ready() -> void:
 	_create_message_ui()
 	_create_countdown_ui()
 	_create_controls_hint()
+	_create_inventory_ui()
+	_create_toast_ui()
 
 # ============================================================
 # Damage overlay (red vignette when hurt)
@@ -356,3 +368,130 @@ func _process(delta: float) -> void:
 		item_panel.scale = Vector2(scale_val, scale_val)
 	else:
 		item_panel.scale = Vector2(1, 1)
+	# Toast fade
+	if toast_timer > 0:
+		toast_timer -= delta
+		if toast_timer < 0.5:
+			toast_label.modulate.a = toast_timer / 0.5
+	else:
+		toast_label.modulate.a = 0
+
+# ============================================================
+# Inventory UI
+# ============================================================
+func _create_inventory_ui() -> void:
+	inventory_panel = Panel.new()
+	inventory_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	inventory_panel.offset_left = -220
+	inventory_panel.offset_top = 20
+	inventory_panel.offset_right = -20
+	inventory_panel.offset_bottom = 160
+	inventory_panel.modulate.a = 0.85
+	add_child(inventory_panel)
+
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vb.offset_left = 8
+	vb.offset_top = 8
+	vb.offset_right = -8
+	vb.offset_bottom = -8
+	inventory_panel.add_child(vb)
+
+	var title: Label = Label.new()
+	title.text = "背包"
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	vb.add_child(title)
+
+	# Task slots (2)
+	var task_label: Label = Label.new()
+	task_label.text = "任务道具:"
+	task_label.add_theme_font_size_override("font_size", 10)
+	task_label.add_theme_color_override("font_color", Color(0.7, 0.8, 1.0))
+	vb.add_child(task_label)
+
+	var task_hb: HBoxContainer = HBoxContainer.new()
+	vb.add_child(task_hb)
+	for i in range(2):
+		var slot: Panel = Panel.new()
+		slot.custom_minimum_size = Vector2(40, 40)
+		slot.modulate.a = 0.6
+		task_hb.add_child(slot)
+		var slot_label: Label = Label.new()
+		slot_label.text = ""
+		slot_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+		slot_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		slot_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		slot_label.add_theme_font_size_override("font_size", 8)
+		slot.add_child(slot_label)
+		task_slots.append(slot)
+		inventory_labels.append(slot_label)
+
+	# Consumable slots (4)
+	var con_label: Label = Label.new()
+	con_label.text = "消耗品 (1-4):"
+	con_label.add_theme_font_size_override("font_size", 10)
+	con_label.add_theme_color_override("font_color", Color(0.7, 1.0, 0.7))
+	vb.add_child(con_label)
+
+	var con_hb: HBoxContainer = HBoxContainer.new()
+	vb.add_child(con_hb)
+	for i in range(4):
+		var slot: Panel = Panel.new()
+		slot.custom_minimum_size = Vector2(40, 40)
+		slot.modulate.a = 0.6
+		con_hb.add_child(slot)
+		var slot_label: Label = Label.new()
+		slot_label.text = str(i + 1)
+		slot_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+		slot_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		slot_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		slot_label.add_theme_font_size_override("font_size", 8)
+		slot.add_child(slot_label)
+		consumable_slots.append(slot)
+		inventory_labels.append(slot_label)
+
+func update_inventory(task_items: Array, consumable_data: Array) -> void:
+	# Update task slots
+	for i in range(2):
+		if i < task_items.size() and not task_items[i].is_empty():
+			var item_id: String = task_items[i].get("item_id", "")
+			var color: Color = ItemManager.get_item_color(item_id)
+			task_slots[i].modulate = Color(color.r, color.g, color.b, 0.9)
+			inventory_labels[i].text = ItemManager.get_item_name(item_id).substr(0, 2)
+		else:
+			task_slots[i].modulate.a = 0.3
+			inventory_labels[i].text = ""
+	# Update consumable slots
+	for i in range(4):
+		if i < consumable_data.size() and not consumable_data[i].is_empty():
+			var item_id: String = consumable_data[i].get("item_id", "")
+			var count: int = consumable_data[i].get("count", 0)
+			var color: Color = ItemManager.get_item_color(item_id)
+			consumable_slots[i].modulate = Color(color.r, color.g, color.b, 0.9)
+			inventory_labels[i + 2].text = str(count)
+		else:
+			consumable_slots[i].modulate.a = 0.3
+			inventory_labels[i + 2].text = str(i + 1)
+
+# ============================================================
+# Toast notification
+# ============================================================
+func _create_toast_ui() -> void:
+	toast_label = Label.new()
+	toast_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	toast_label.offset_top = 80
+	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast_label.add_theme_font_size_override("font_size", 16)
+	toast_label.add_theme_color_override("font_color", Color(1, 1, 1))
+	toast_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	toast_label.add_theme_constant_override("outline_size", 4)
+	toast_label.modulate.a = 0
+	add_child(toast_label)
+
+func show_toast(message: String) -> void:
+	toast_label.text = message
+	toast_timer = 2.5
+	toast_label.modulate.a = 1.0
+
+# Update _process to handle toast
