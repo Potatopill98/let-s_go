@@ -2,8 +2,8 @@
 class_name BaseMonster
 
 # ============================================================
-# Base Monster - State machine with mesh-based health bar
-# No dynamic texture creation = no memory leak
+# Base Monster - State machine with Sprite3D health bar
+# Sprite3D has built-in billboard, no orientation issues
 # ============================================================
 
 # Params
@@ -25,10 +25,11 @@ var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var stuck_check_timer: float = 0.0
 var last_pos: Vector3 = Vector3.ZERO
 
-# Health bar (mesh-based, no dynamic textures)
-var health_bar_container: Node3D = null
-var health_bar_fg: MeshInstance3D = null
-var health_bar_fg_mat: StandardMaterial3D = null
+# Health bar - Sprite3D (built-in billboard, reliable)
+var health_bar_bg: Sprite3D = null
+var health_bar_fg: Sprite3D = null
+# Shared white texture for all monsters (created once)
+static var shared_white_texture: ImageTexture = null
 
 @onready var mesh: MeshInstance3D = $MeshInstance3D
 
@@ -38,59 +39,56 @@ func _ready() -> void:
 	last_pos = global_position
 	_create_health_bar()
 
+func _get_white_texture() -> ImageTexture:
+	# Create shared 4x4 white texture once
+	if shared_white_texture == null:
+		var img: Image = Image.create(4, 4, false, Image.FORMAT_RGBA8)
+		img.fill(Color(1, 1, 1, 1))
+		shared_white_texture = ImageTexture.create_from_image(img)
+	return shared_white_texture
+
 func _create_health_bar() -> void:
-	# Container high above head, 5x bigger for visibility
-	health_bar_container = Node3D.new()
-	health_bar_container.position = Vector3(0, 3.8, 0)
-	add_child(health_bar_container)
-	# Background (dark) - double sided, rotated to face camera
-	var bg_mat: StandardMaterial3D = StandardMaterial3D.new()
-	bg_mat.albedo_color = Color(0.05, 0.05, 0.05, 1)
-	bg_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	bg_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var health_bar_bg: MeshInstance3D = MeshInstance3D.new()
-	var bg_mesh: PlaneMesh = PlaneMesh.new()
-	bg_mesh.size = Vector2(6.0, 0.8)
-	health_bar_bg.mesh = bg_mesh
-	health_bar_bg.material_override = bg_mat
-	health_bar_bg.rotation.y = PI
-	health_bar_container.add_child(health_bar_bg)
-	# Foreground (health fill) - pivot at left side, double sided
-	health_bar_fg_mat = StandardMaterial3D.new()
-	health_bar_fg_mat.albedo_color = Color(0.2, 1.0, 0.3, 1)
-	health_bar_fg_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	health_bar_fg_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	health_bar_fg = MeshInstance3D.new()
-	var fg_mesh: PlaneMesh = PlaneMesh.new()
-	fg_mesh.size = Vector2(5.6, 0.55)
-	health_bar_fg.mesh = fg_mesh
-	health_bar_fg.material_override = health_bar_fg_mat
-	# Offset to left so scaling shrinks from right side
-	health_bar_fg.position.x = -2.8
-	health_bar_fg.rotation.y = PI
-	health_bar_container.add_child(health_bar_fg)
+	var tex: ImageTexture = _get_white_texture()
+	# Background bar (dark)
+	health_bar_bg = Sprite3D.new()
+	health_bar_bg.texture = tex
+	health_bar_bg.modulate = Color(0.1, 0.1, 0.1, 1)
+	health_bar_bg.scale = Vector3(6.0, 0.8, 1)
+	health_bar_bg.position = Vector3(0, 3.8, 0)
+	health_bar_bg.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	health_bar_bg.no_depth_test = true
+	add_child(health_bar_bg)
+	# Foreground bar (health color) - same position, use region_rect to clip from right
+	health_bar_fg = Sprite3D.new()
+	health_bar_fg.texture = tex
+	health_bar_fg.modulate = Color(0.2, 1.0, 0.3, 1)
+	health_bar_fg.scale = Vector3(5.6, 0.55, 1)
+	health_bar_fg.position = Vector3(0, 3.8, 0)
+	health_bar_fg.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	health_bar_fg.no_depth_test = true
+	health_bar_fg.region_enabled = true
+	health_bar_fg.region_rect = Rect2(0, 0, 4, 4)
+	add_child(health_bar_fg)
 	_update_health_bar_visual()
 
 func _process(delta: float) -> void:
-	# Make health bar always face the camera
-	if health_bar_container != null:
-		var camera: Camera3D = get_viewport().get_camera_3d()
-		if camera != null:
-			health_bar_container.look_at(camera.global_position, Vector3.UP)
+	# Stop processing when dead (prevents accessing freed nodes)
+	if is_dead:
+		return
 
 func _update_health_bar_visual() -> void:
-	if health_bar_fg == null or health_bar_fg_mat == null:
+	if health_bar_fg == null or is_dead:
 		return
 	var ratio: float = clamp(current_health / max_health, 0.0, 1.0)
-	# Scale foreground from left pivot
-	health_bar_fg.scale.x = ratio
+	# Use region_rect to clip from right (texture is 4x4)
+	health_bar_fg.region_rect = Rect2(0, 0, 4.0 * ratio, 4)
 	# Change color based on health
 	if ratio <= 0.25:
-		health_bar_fg_mat.albedo_color = Color(1.0, 0.2, 0.2, 1)
+		health_bar_fg.modulate = Color(1.0, 0.2, 0.2, 1)
 	elif ratio <= 0.5:
-		health_bar_fg_mat.albedo_color = Color(1.0, 0.8, 0.2, 1)
+		health_bar_fg.modulate = Color(1.0, 0.8, 0.2, 1)
 	else:
-		health_bar_fg_mat.albedo_color = Color(0.2, 1.0, 0.3, 1)
+		health_bar_fg.modulate = Color(0.2, 1.0, 0.3, 1)
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
@@ -171,8 +169,13 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 func die() -> void:
 	is_dead = true
 	mesh.scale = Vector3(1.3, 0.1, 1.3)
-	if health_bar_container != null:
-		health_bar_container.queue_free()
+	# Free health bars safely
+	if health_bar_bg != null:
+		health_bar_bg.queue_free()
+		health_bar_bg = null
+	if health_bar_fg != null:
+		health_bar_fg.queue_free()
+		health_bar_fg = null
 	var t: Timer = Timer.new()
 	t.wait_time = 2.0
 	t.one_shot = true

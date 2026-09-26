@@ -150,7 +150,7 @@ func start_punch() -> void:
 	face_dir = face_dir.normalized()
 	for node in monsters:
 		var m: Node = node
-		if m == null or m.is_dead:
+		if not is_instance_valid(m) or m.is_dead:
 			continue
 		var to_monster: Vector3 = m.global_position - global_position
 		to_monster.y = 0.0
