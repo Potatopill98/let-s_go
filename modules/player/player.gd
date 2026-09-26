@@ -215,31 +215,27 @@ func drop_held_item() -> void:
 	# Get drop position in front of player
 	var drop_pos: Vector3 = global_position + -global_transform.basis.z * 1.5
 	drop_pos.y = 0.5
-	# If it's a weapon, spawn a weapon pickup
-	if item.has_method("set_owner_player") and item_path != "":
-		var pickup_scene: PackedScene = load("res://modules/weapon/weapon_pickup.tscn")
+	# Get item name
+	var drop_item_name: String = "物品"
+	if item.has_method("weapon_name"):
+		drop_item_name = item.weapon_name
+	elif "item_name" in item:
+		drop_item_name = item.item_name
+	# Spawn unified item pickup (works for both weapons and tools)
+	if item_path != "":
+		var pickup_scene: PackedScene = load("res://modules/item/item_pickup.tscn")
 		var loaded_scene: PackedScene = load(item_path)
 		if pickup_scene != null and loaded_scene != null:
 			var pickup: Node = pickup_scene.instantiate()
-			pickup.weapon_scene = loaded_scene
-			if item.has_method("weapon_name"):
-				pickup.weapon_name = item.weapon_name
+			pickup.item_scene = loaded_scene
+			pickup.item_name = drop_item_name
 			pickup.position = drop_pos
 			get_tree().current_scene.add_child(pickup)
-	# If it's a tool (wrench), spawn it directly
-	elif "interact_tag" in item:
-		if item.get_parent() != null:
-			item.get_parent().remove_child(item)
-		get_tree().current_scene.add_child(item)
-		item.global_position = drop_pos
-		if item.has_method("drop"):
-			item.drop(drop_pos)
 	# Clear reference
 	current_held_item = null
 	held_item_scene_path = ""
-	# Free weapon if it was attached
-	if item.has_method("set_owner_player"):
-		item.queue_free()
+	# Free the held item instance
+	item.queue_free()
 
 func reload_current_item() -> void:
 	if current_held_item == null:
