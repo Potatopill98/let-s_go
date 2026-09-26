@@ -2,6 +2,7 @@
 class_name Player
 const InventoryScript = preload("res://modules/player/inventory.gd")
 const EquipmentScript = preload("res://modules/player/equipment_manager.gd")
+const ThrowableScript = preload("res://modules/weapon/throwable.gd")
 
 # ============================================================
 # Player Controller with Holdable Item System
@@ -102,6 +103,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			use_inventory_consumable(2)
 		elif event.keycode == KEY_4:
 			use_inventory_consumable(3)
+		elif event.keycode == KEY_F:
+			throw_held_item()
 
 func _physics_process(delta: float) -> void:
 	# Timers
@@ -439,3 +442,51 @@ func get_equipment_speed_modifier() -> float:
 	if equipment == null:
 		return 1.0
 	return equipment.get_speed_modifier()
+
+# ============================================================
+# Throwable System
+# ============================================================
+
+func throw_held_item() -> void:
+	# 检查背包中是否有投掷物
+	if inventory == null:
+		return
+	var throwable_id: String = ""
+	for i in range(4):
+		var slot: Dictionary = inventory.get_consumable(i)
+		if not slot.is_empty():
+			var item_id: String = slot.get("item_id", "")
+			var data: Dictionary = ItemManager.get_item_data(item_id)
+			if data.get("item_subtype", "") == "throwable":
+				throwable_id = item_id
+				inventory.use_consumable(i)
+				break
+	if throwable_id == "":
+		return
+	# 生成投掷物
+	var throwable_scene: PackedScene = load("res://modules/weapon/throwable.tscn")
+	if throwable_scene == null:
+		return
+	var throwable: Node = throwable_scene.instantiate()
+	var data: Dictionary = ItemManager.get_item_data(throwable_id)
+	throwable.throw_item_id = throwable_id
+	throwable.damage = data.get("damage", 5.0)
+	throwable.explosion_radius = data.get("explosion_radius", 0.0)
+	throwable.explosion_damage = data.get("explosion_damage", 0.0)
+	throwable.attract_monsters = data.get("attract_monsters", false)
+	throwable.attract_duration = data.get("attract_duration", 0.0)
+	throwable.thrower = self
+	# 设置颜色
+	var mesh_inst: MeshInstance3D = throwable.get_node("Mesh")
+	if mesh_inst != null:
+		var mat: StandardMaterial3D = StandardMaterial3D.new()
+		mat.albedo_color = data.get("color", Color.WHITE)
+		mesh_inst.material_override = mat
+	# 从相机前方抛出
+	var throw_pos: Vector3 = camera.global_position + camera.global_transform.basis.z * 0.5
+	var throw_dir: Vector3 = -camera.global_transform.basis.z
+	throw_dir.y += 0.2
+	throw_dir = throw_dir.normalized()
+	get_tree().current_scene.add_child(throwable)
+	throwable.throw_from(throw_pos, throw_dir, 15.0)
+	UIManager.show_toast("投掷了 " + ItemManager.get_item_name(throwable_id))

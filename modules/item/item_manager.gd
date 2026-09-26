@@ -1,4 +1,4 @@
-extends Node
+﻿extends Node
 ## 道具管理器 - 全局单例
 ## 负责所有道具的注册、查询、生成、掉落
 
@@ -377,6 +377,52 @@ func _register_all_items() -> void:
 		"description": "+60发步枪弹",
 		"model_scene": "",
 		"color": Color(0.4, 0.6, 0.2),
+	})
+	# 投掷物
+	_register_item({
+		"item_id": "throw_brick",
+		"item_name": "砖块",
+		"item_type": "inventory_consumable",
+		"item_subtype": "throwable",
+		"stackable": true,
+		"max_stack": 5,
+		"droppable": true,
+		"damage": 5.0,
+		"attract_monsters": true,
+		"attract_duration": 5.0,
+		"description": "伤害5+引怪",
+		"model_scene": "",
+		"color": Color(0.6, 0.5, 0.4),
+	})
+	_register_item({
+		"item_id": "throw_molotov",
+		"item_name": "燃烧瓶",
+		"item_type": "inventory_consumable",
+		"item_subtype": "throwable",
+		"stackable": true,
+		"max_stack": 3,
+		"droppable": true,
+		"damage": 10.0,
+		"explosion_radius": 3.0,
+		"explosion_damage": 15.0,
+		"description": "范围燃烧伤害",
+		"model_scene": "",
+		"color": Color(1.0, 0.4, 0.1),
+	})
+	_register_item({
+		"item_id": "throw_grenade",
+		"item_name": "手雷",
+		"item_type": "inventory_consumable",
+		"item_subtype": "throwable",
+		"stackable": true,
+		"max_stack": 3,
+		"droppable": true,
+		"damage": 0.0,
+		"explosion_radius": 5.0,
+		"explosion_damage": 100.0,
+		"description": "范围爆炸伤害100",
+		"model_scene": "",
+		"color": Color(0.3, 0.7, 0.3),
 	})
 
 	# ---- 穿戴装备 - 头部 ----
