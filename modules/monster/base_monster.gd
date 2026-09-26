@@ -27,12 +27,13 @@ func _ready() -> void:
 	current_health = max_health
 	add_to_group("monster")
 	last_pos = global_position
-	# Create health bar
+	# Create health bar (bigger, with border)
 	health_bar_3d = Sprite3D.new()
 	health_bar_3d.texture = make_health_bar_texture()
-	health_bar_3d.scale = Vector3(0.05, 0.05, 1)
-	health_bar_3d.position = Vector3(0, 2.2, 0)
+	health_bar_3d.scale = Vector3(0.08, 0.08, 1)
+	health_bar_3d.position = Vector3(0, 2.5, 0)
 	health_bar_3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	health_bar_3d.no_depth_test = true
 	add_child(health_bar_3d)
 
 func _physics_process(delta: float) -> void:
@@ -123,13 +124,23 @@ func die() -> void:
 	t.start()
 
 func make_health_bar_texture() -> ImageTexture:
-	var img: Image = Image.create(64, 8, false, Image.FORMAT_RGBA8)
-	img.fill(Color(1, 0.2, 0.2, 1))
+	var width: int = 128
+	var height: int = 16
+	var img: Image = Image.create(width, height, false, Image.FORMAT_RGBA8)
+	# Black border background
+	img.fill(Color(0, 0, 0, 1))
+	# Health bar color: green >50%, yellow >25%, red <=25%
 	var health_ratio: float = current_health / max_health
-	var green_width: int = int(64 * health_ratio)
-	for x in range(green_width):
-		for y in range(8):
-			img.set_pixel(x, y, Color(0.2, 1, 0.2, 1))
+	var bar_color: Color = Color(0.2, 1.0, 0.2, 1)
+	if health_ratio <= 0.25:
+		bar_color = Color(1.0, 0.2, 0.2, 1)
+	elif health_ratio <= 0.5:
+		bar_color = Color(1.0, 0.8, 0.2, 1)
+	# Draw health bar with 2px border
+	var bar_width: int = int((width - 4) * health_ratio)
+	for x in range(2, 2 + bar_width):
+		for y in range(2, height - 2):
+			img.set_pixel(x, y, bar_color)
 	return ImageTexture.create_from_image(img)
 
 func update_health_bar() -> void:

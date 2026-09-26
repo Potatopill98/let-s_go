@@ -176,6 +176,7 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	current_health -= amount
 	velocity += knockback
 	hit_stun_timer = hit_stun_duration
+	UIManager.flash_damage()
 	if current_health <= 0.0:
 		current_health = 0.0
 
@@ -267,7 +268,7 @@ func is_holding_weapon() -> bool:
 
 func update_held_item_ui() -> void:
 	if current_held_item == null:
-		UIManager.update_weapon_ui("空手")
+		UIManager.update_item_ui("空手")
 		UIManager.set_crosshair_visible(false)
 		return
 	# Weapon
@@ -278,18 +279,18 @@ func update_held_item_ui() -> void:
 		if current_held_item.has_method("reload"):
 			var ammo: int = current_held_item.current_ammo
 			var max_a: int = current_held_item.mag_size
-			UIManager.update_weapon_ui(w_name, ammo, max_a)
+			UIManager.update_item_ui(w_name, ammo, max_a)
 			UIManager.set_crosshair_visible(true)
 		else:
-			UIManager.update_weapon_ui(w_name)
+			UIManager.update_item_ui(w_name)
 			UIManager.set_crosshair_visible(false)
 		return
 	# Tool
 	if "interact_tag" in current_held_item:
-		UIManager.update_weapon_ui(current_held_item.item_name)
+		UIManager.update_item_ui(current_held_item.item_name)
 		UIManager.set_crosshair_visible(false)
 		return
-	UIManager.update_weapon_ui("物品")
+	UIManager.update_item_ui("物品")
 	UIManager.set_crosshair_visible(false)
 
 # ============================================================
