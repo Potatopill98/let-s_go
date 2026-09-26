@@ -105,6 +105,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			use_inventory_consumable(3)
 		elif event.keycode == KEY_F:
 			throw_held_item()
+		elif event.keycode == KEY_V:
+			place_held_item()
 
 func _physics_process(delta: float) -> void:
 	# Timers
@@ -490,3 +492,48 @@ func throw_held_item() -> void:
 	get_tree().current_scene.add_child(throwable)
 	throwable.throw_from(throw_pos, throw_dir, 15.0)
 	UIManager.show_toast("投掷了 " + ItemManager.get_item_name(throwable_id))
+
+# ============================================================
+# Placeable System
+# ============================================================
+
+func place_held_item() -> void:
+	if inventory == null:
+		return
+	# 找背包中的放置物
+	var placeable_id: String = ""
+	for i in range(4):
+		var slot: Dictionary = inventory.get_consumable(i)
+		if not slot.is_empty():
+			var item_id: String = slot.get("item_id", "")
+			var data: Dictionary = ItemManager.get_item_data(item_id)
+			if data.get("item_type", "") == "placeable":
+				placeable_id = item_id
+				inventory.use_consumable(i)
+				break
+	if placeable_id == "":
+		return
+	# 生成放置物
+	var placeable_scene: PackedScene = load("res://modules/item/placeable.tscn")
+	if placeable_scene == null:
+		return
+	var placeable: Node = placeable_scene.instantiate()
+	var data: Dictionary = ItemManager.get_item_data(placeable_id)
+	placeable.place_item_id = placeable_id
+	placeable.duration = data.get("duration", 60.0)
+	placeable.is_turret = data.get("is_turret", false)
+	placeable.turret_damage = data.get("damage", 10.0)
+	placeable.turret_range = data.get("turret_range", 15.0)
+	placeable.is_trap = data.get("is_trap", false)
+	placeable.trap_damage = data.get("damage", 20.0)
+	placeable.is_light = data.get("is_light", false)
+	placeable.light_range = data.get("light_range", 10.0)
+	placeable.light_color = data.get("color", Color(0.5, 1.0, 0.5))
+	placeable.is_barricade = data.get("is_barricade", false)
+	placeable.barricade_health = data.get("health", 100.0)
+	# 放在玩家前方2米
+	var place_pos: Vector3 = global_position + -global_transform.basis.z * 2.0
+	place_pos.y = global_position.y - 0.5
+	get_tree().current_scene.add_child(placeable)
+	placeable.global_position = place_pos
+	UIManager.show_toast("放置了 " + ItemManager.get_item_name(placeable_id))
