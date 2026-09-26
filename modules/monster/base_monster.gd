@@ -1,6 +1,11 @@
 ﻿extends CharacterBody3D
 class_name BaseMonster
 
+# ============================================================
+# Base Monster - State machine with mesh-based health bar
+# No dynamic texture creation = no memory leak
+# ============================================================
+
 # Params
 @export var move_speed: float = 3.0
 @export var detect_range: float = 35.0
@@ -19,7 +24,11 @@ var is_dead: bool = false
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var stuck_check_timer: float = 0.0
 var last_pos: Vector3 = Vector3.ZERO
-var health_bar_3d: Sprite3D = null
+
+# Health bar (mesh-based, no dynamic textures)
+var health_bar_container: Node3D = null
+var health_bar_fg: MeshInstance3D = null
+var health_bar_fg_mat: StandardMaterial3D = null
 
 @onready var mesh: MeshInstance3D = $MeshInstance3D
 
@@ -27,14 +36,57 @@ func _ready() -> void:
 	current_health = max_health
 	add_to_group("monster")
 	last_pos = global_position
-	# Create health bar (bigger, with border)
-	health_bar_3d = Sprite3D.new()
-	health_bar_3d.texture = make_health_bar_texture()
-	health_bar_3d.scale = Vector3(0.08, 0.08, 1)
-	health_bar_3d.position = Vector3(0, 2.5, 0)
-	health_bar_3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	health_bar_3d.no_depth_test = true
-	add_child(health_bar_3d)
+	_create_health_bar()
+
+func _create_health_bar() -> void:
+	# Container at head height
+	health_bar_container = Node3D.new()
+	health_bar_container.position = Vector3(0, 2.5, 0)
+	add_child(health_bar_container)
+	# Background (dark)
+	var bg_mat: StandardMaterial3D = StandardMaterial3D.new()
+	bg_mat.albedo_color = Color(0.1, 0.1, 0.1, 1)
+	bg_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var health_bar_bg: MeshInstance3D = MeshInstance3D.new()
+	var bg_mesh: PlaneMesh = PlaneMesh.new()
+	bg_mesh.size = Vector2(1.2, 0.15)
+	health_bar_bg.mesh = bg_mesh
+	health_bar_bg.material_override = bg_mat
+	health_bar_container.add_child(health_bar_bg)
+	# Foreground (health fill) - pivot at left side
+	health_bar_fg_mat = StandardMaterial3D.new()
+	health_bar_fg_mat.albedo_color = Color(0.2, 1.0, 0.3, 1)
+	health_bar_fg_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	health_bar_fg = MeshInstance3D.new()
+	var fg_mesh: PlaneMesh = PlaneMesh.new()
+	fg_mesh.size = Vector2(1.1, 0.1)
+	health_bar_fg.mesh = fg_mesh
+	health_bar_fg.material_override = health_bar_fg_mat
+	# Offset to left so scaling shrinks from right side
+	health_bar_fg.position.x = -0.55
+	health_bar_container.add_child(health_bar_fg)
+	_update_health_bar_visual()
+
+func _process(delta: float) -> void:
+	# Make health bar always face the camera
+	if health_bar_container != null:
+		var camera: Camera3D = get_viewport().get_camera_3d()
+		if camera != null:
+			health_bar_container.look_at(camera.global_position, Vector3.UP)
+
+func _update_health_bar_visual() -> void:
+	if health_bar_fg == null or health_bar_fg_mat == null:
+		return
+	var ratio: float = clamp(current_health / max_health, 0.0, 1.0)
+	# Scale foreground from left pivot
+	health_bar_fg.scale.x = ratio
+	# Change color based on health
+	if ratio <= 0.25:
+		health_bar_fg_mat.albedo_color = Color(1.0, 0.2, 0.2, 1)
+	elif ratio <= 0.5:
+		health_bar_fg_mat.albedo_color = Color(1.0, 0.8, 0.2, 1)
+	else:
+		health_bar_fg_mat.albedo_color = Color(0.2, 1.0, 0.3, 1)
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
@@ -63,7 +115,7 @@ func _physics_process(delta: float) -> void:
 	var dist: float = to_target.length()
 	if dist > 0.1:
 		rotation.y = atan2(-to_target.x, -to_target.z)
-	# 攻击判定：水平距离+垂直高度都要在范围内（垂直不超过怪物高度1.8米）
+	# Attack: horizontal + vertical range check
 	if dist <= attack_range and vertical_dist <= 1.8:
 		velocity.x = 0.0
 		velocity.z = 0.0
@@ -74,6 +126,7 @@ func _physics_process(delta: float) -> void:
 		var dir: Vector3 = to_target.normalized()
 		velocity.x = dir.x * move_speed
 		velocity.z = dir.z * move_speed
+	# Stuck detection - jump if stuck
 	if velocity.length() > 1.0:
 		stuck_check_timer += delta
 		if global_position.distance_to(last_pos) < 0.05 and stuck_check_timer > 0.5:
@@ -102,7 +155,7 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	if is_dead:
 		return
 	current_health -= amount
-	update_health_bar()
+	_update_health_bar_visual()
 	var kb_force: float = knockback.length() * (1.0 - knockback_reduce)
 	var kb_dir: Vector3 = knockback.normalized()
 	velocity.x = kb_dir.x * kb_force
@@ -114,37 +167,11 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 func die() -> void:
 	is_dead = true
 	mesh.scale = Vector3(1.3, 0.1, 1.3)
-	if health_bar_3d != null:
-		health_bar_3d.queue_free()
+	if health_bar_container != null:
+		health_bar_container.queue_free()
 	var t: Timer = Timer.new()
 	t.wait_time = 2.0
 	t.one_shot = true
 	t.timeout.connect(queue_free)
 	add_child(t)
 	t.start()
-
-func make_health_bar_texture() -> ImageTexture:
-	var width: int = 128
-	var height: int = 16
-	var img: Image = Image.create(width, height, false, Image.FORMAT_RGBA8)
-	# Black border background
-	img.fill(Color(0, 0, 0, 1))
-	# Health bar color: green >50%, yellow >25%, red <=25%
-	var health_ratio: float = current_health / max_health
-	var bar_color: Color = Color(0.2, 1.0, 0.2, 1)
-	if health_ratio <= 0.25:
-		bar_color = Color(1.0, 0.2, 0.2, 1)
-	elif health_ratio <= 0.5:
-		bar_color = Color(1.0, 0.8, 0.2, 1)
-	# Draw health bar with 2px border
-	var bar_width: int = int((width - 4) * health_ratio)
-	for x in range(2, 2 + bar_width):
-		for y in range(2, height - 2):
-			img.set_pixel(x, y, bar_color)
-	return ImageTexture.create_from_image(img)
-
-func update_health_bar() -> void:
-	if health_bar_3d != null:
-		health_bar_3d.texture = make_health_bar_texture()
-
-
