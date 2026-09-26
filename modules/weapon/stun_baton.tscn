@@ -1,0 +1,28 @@
+[gd_scene load_steps=4 format=3 uid="uid://stun_baton_001"]
+
+[ext_resource type="Script" path="res://modules/weapon/melee_weapon.gd" id="1"]
+
+[sub_resource type="StandardMaterial3D" id="BatonMat"]
+albedo_color = Color(0.3, 0.8, 0.9, 1)
+emission_enabled = true
+emission = Color(0.2, 0.6, 0.8, 1)
+emission_energy_multiplier = 1.5
+
+[sub_resource type="CylinderMesh" id="BatonMesh"]
+material = SubResource("BatonMat")
+top_radius = 0.04
+bottom_radius = 0.05
+height = 0.6
+
+[node name="StunBaton" type="Node3D"]
+script = ExtResource("1")
+weapon_name = "电击棒"
+damage = 8.0
+attack_cooldown = 1.0
+knockback_force = 4.0
+attack_range = 2.0
+attack_angle = 90.0
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BatonMesh")
+position.y = -0.3

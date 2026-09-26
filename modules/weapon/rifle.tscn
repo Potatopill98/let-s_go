@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3 uid="uid://rifle_001"]
+
+[ext_resource type="Script" path="res://modules/weapon/ranged_weapon.gd" id="1"]
+
+[node name="Rifle" type="Node3D"]
+script = ExtResource("1")
+weapon_name = "步枪"
+damage = 30.0
+attack_cooldown = 0.1
+knockback_force = 3.0
+fire_range = 80.0
+mag_size = 30
+reload_time = 2.5

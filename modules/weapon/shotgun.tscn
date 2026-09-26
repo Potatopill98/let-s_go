@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3 uid="uid://shotgun_001"]
+
+[ext_resource type="Script" path="res://modules/weapon/ranged_weapon.gd" id="1"]
+
+[node name="Shotgun" type="Node3D"]
+script = ExtResource("1")
+weapon_name = "霰弹枪"
+damage = 8.0
+attack_cooldown = 0.8
+knockback_force = 15.0
+fire_range = 15.0
+mag_size = 6
+reload_time = 2.0
