@@ -1,6 +1,7 @@
 ﻿extends CharacterBody3D
 class_name Player
 const InventoryScript = preload("res://modules/player/inventory.gd")
+const EquipmentScript = preload("res://modules/player/equipment_manager.gd")
 
 # ============================================================
 # Player Controller with Holdable Item System
@@ -43,6 +44,8 @@ var held_item_scene_path: String = ""
 
 # Inventory system - 6 slots (2 task + 4 consumable)
 var inventory: Node = null
+# Equipment system - head/body/feet
+var equipment: Node = null
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
@@ -57,6 +60,11 @@ func _ready() -> void:
 	inventory.name = "Inventory"
 	add_child(inventory)
 	inventory.inventory_changed.connect(_on_inventory_changed)
+	# Initialize equipment
+	equipment = EquipmentScript.new()
+	equipment.name = "Equipment"
+	add_child(equipment)
+	equipment.equipment_changed.connect(_on_equipment_changed)
 
 func _input(event: InputEvent) -> void:
 	# Mouse look - highest priority, always works even when repairing
@@ -192,7 +200,12 @@ func start_punch() -> void:
 func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	if current_health <= 0.0:
 		return
-	current_health -= amount
+	# Apply equipment damage resistance
+	var actual_damage: float = amount
+	if equipment != null:
+		var resist: float = equipment.get_damage_resistance()
+		actual_damage = amount * (1.0 - resist)
+	current_health -= actual_damage
 	velocity += knockback
 	hit_stun_timer = hit_stun_duration
 	UIManager.flash_damage()
@@ -392,3 +405,37 @@ func has_task_item(item_id: String) -> bool:
 func heal(amount: float) -> void:
 	current_health = min(current_health + amount, max_health)
 	UIManager.update_health(current_health, max_health)
+
+
+# ============================================================
+# Equipment System
+# ============================================================
+
+func _on_equipment_changed(slot: int, item_id: String) -> void:
+	update_equipment_ui()
+
+func update_equipment_ui() -> void:
+	if equipment == null:
+		return
+	var equip_list: Array = equipment.get_equipment_list()
+	UIManager.update_equipment(equip_list)
+
+func equip_item(item_id: String) -> bool:
+	if equipment == null:
+		return false
+	return equipment.equip(item_id)
+
+func unequip_slot(slot: int) -> String:
+	if equipment == null:
+		return ""
+	return equipment.unequip(slot)
+
+func has_equipment_immunity(status_type: String) -> bool:
+	if equipment == null:
+		return false
+	return equipment.has_immunity(status_type)
+
+func get_equipment_speed_modifier() -> float:
+	if equipment == null:
+		return 1.0
+	return equipment.get_speed_modifier()

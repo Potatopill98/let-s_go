@@ -40,6 +40,10 @@ var inventory_labels: Array = []
 var toast_label: Label = null
 var toast_timer: float = 0.0
 
+# Equipment UI
+var equipment_panel: Panel = null
+var equipment_labels: Array = []
+
 @export var message_duration: float = 3.0
 
 func _ready() -> void:
@@ -54,6 +58,7 @@ func _ready() -> void:
 	_create_controls_hint()
 	_create_inventory_ui()
 	_create_toast_ui()
+	_create_equipment_ui()
 
 # ============================================================
 # Damage overlay (red vignette when hurt)
@@ -495,3 +500,61 @@ func show_toast(message: String) -> void:
 	toast_label.modulate.a = 1.0
 
 # Update _process to handle toast
+
+# ============================================================
+# Equipment UI
+# ============================================================
+func _create_equipment_ui() -> void:
+	equipment_panel = Panel.new()
+	equipment_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	equipment_panel.offset_left = 20
+	equipment_panel.offset_top = 20
+	equipment_panel.offset_right = 180
+	equipment_panel.offset_bottom = 100
+	equipment_panel.modulate.a = 0.85
+	add_child(equipment_panel)
+
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vb.offset_left = 8
+	vb.offset_top = 8
+	vb.offset_right = -8
+	vb.offset_bottom = -8
+	equipment_panel.add_child(vb)
+
+	var title: Label = Label.new()
+	title.text = "装备"
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	vb.add_child(title)
+
+	var slot_names: Array = ["头部", "身体", "脚部"]
+	for i in range(3):
+		var hb: HBoxContainer = HBoxContainer.new()
+		vb.add_child(hb)
+		var name_label: Label = Label.new()
+		name_label.text = slot_names[i] + ":"
+		name_label.custom_minimum_size = Vector2(40, 0)
+		name_label.add_theme_font_size_override("font_size", 10)
+		hb.add_child(name_label)
+		var value_label: Label = Label.new()
+		value_label.text = "无"
+		value_label.add_theme_font_size_override("font_size", 10)
+		value_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		hb.add_child(value_label)
+		equipment_labels.append(value_label)
+
+func update_equipment(equip_list: Array) -> void:
+	var slot_names: Array = ["头部", "身体", "脚部"]
+	var equipped: Array = ["", "", ""]
+	for item in equip_list:
+		var slot: int = item.get("slot", 0)
+		var name: String = item.get("name", "")
+		equipped[slot] = name
+	for i in range(3):
+		if equipped[i] != "":
+			equipment_labels[i].text = equipped[i]
+			equipment_labels[i].add_theme_color_override("font_color", Color(0.8, 1.0, 0.8))
+		else:
+			equipment_labels[i].text = "无"
+			equipment_labels[i].add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
