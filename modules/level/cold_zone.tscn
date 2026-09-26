@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3 uid="uid://haz_cold_001"]
+
+[ext_resource type="Script" path="res://modules/level/hazard_zone.gd" id="1"]
+
+[sub_resource type="BoxShape3D" id="ColdCol"]
+size = Vector3(10, 3, 10)
+
+[node name="ColdZone" type="Area3D"]
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("1")
+hazard_id = "haz_cold_zone"
+hazard_type = "cold"
+damage_per_second = 2.0
+speed_modifier = 0.7
+immunity_equipment = "body"
+zone_color = Color(0.4, 0.6, 1.0, 0.2)
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("ColdCol")

@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3 uid="uid://haz_gas_001"]
+
+[ext_resource type="Script" path="res://modules/level/hazard_zone.gd" id="1"]
+
+[sub_resource type="BoxShape3D" id="GasCol"]
+size = Vector3(10, 3, 10)
+
+[node name="GasZone" type="Area3D"]
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("1")
+hazard_id = "haz_gas_zone"
+hazard_type = "poison"
+damage_per_second = 3.0
+speed_modifier = 1.0
+immunity_equipment = "head"
+zone_color = Color(0.3, 0.8, 0.3, 0.2)
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("GasCol")
