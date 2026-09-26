@@ -1,4 +1,4 @@
-[gd_scene load_steps=78 format=3 uid="uid://main_full_001"]
+[gd_scene load_steps=79 format=3 uid="uid://main_full_001"]
 
 [ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://modules/monster/base_monster.tscn" id="2_monster"]
@@ -142,36 +142,44 @@ height = 4.0
 
 ; 黑暗走廊材质
 [sub_resource type="StandardMaterial3D" id="DarkFloorMat"]
-albedo_color = Color(0.08, 0.08, 0.1, 1)
+albedo_color = Color(0.05, 0.05, 0.07, 1)
 roughness = 0.95
 
 [sub_resource type="CubeMesh" id="DarkFloorMesh"]
 material = SubResource("DarkFloorMat")
-size = Vector3(10, 1, 45)
+size = Vector3(10, 1, 80)
 
 [sub_resource type="BoxShape3D" id="DarkFloorCol"]
-size = Vector3(10, 1, 45)
+size = Vector3(10, 1, 80)
 
 [sub_resource type="StandardMaterial3D" id="DarkWallMat"]
-albedo_color = Color(0.1, 0.1, 0.12, 1)
+albedo_color = Color(0.06, 0.06, 0.08, 1)
 roughness = 0.9
 
 [sub_resource type="CubeMesh" id="DarkWallMesh"]
 material = SubResource("DarkWallMat")
-size = Vector3(1, 5, 45)
+size = Vector3(1, 5, 80)
 
 [sub_resource type="BoxShape3D" id="DarkWallCol"]
-size = Vector3(1, 5, 45)
+size = Vector3(1, 5, 80)
+
+[sub_resource type="StandardMaterial3D" id="DarkCeilingMat"]
+albedo_color = Color(0.04, 0.04, 0.06, 1)
+roughness = 0.95
+
+[sub_resource type="CubeMesh" id="DarkCeilingMesh"]
+material = SubResource("DarkCeilingMat")
+size = Vector3(10, 0.5, 80)
 
 [sub_resource type="StandardMaterial3D" id="EmergencyLightMat"]
-albedo_color = Color(1.0, 0.2, 0.1, 1)
+albedo_color = Color(1.0, 0.15, 0.1, 1)
 emission_enabled = true
-emission = Color(1.0, 0.15, 0.1, 1)
-emission_energy_multiplier = 2.0
+emission = Color(1.0, 0.1, 0.05, 1)
+emission_energy_multiplier = 1.5
 
 [sub_resource type="CubeMesh" id="EmergencyLightMesh"]
 material = SubResource("EmergencyLightMat")
-size = Vector3(0.5, 0.1, 0.2)
+size = Vector3(0.4, 0.08, 0.15)
 
 [sub_resource type="StandardMaterial3D" id="PillarMat"]
 albedo_color = Color(0.45, 0.45, 0.5, 1)
@@ -647,10 +655,10 @@ omni_range = 15.0
 position.y = -0.5
 
 ; ==================== 第四层：黑暗走廊 ====================
-; 黑暗走廊地面（和第三层同高度，在第三层后面）
+; 黑暗走廊地面（加长到80米，和第三层同高度）
 [node name="DarkCorridorFloor" type="MeshInstance3D" parent="."]
 mesh = SubResource("DarkFloorMesh")
-position = Vector3(0, 11.5, -60)
+position = Vector3(0, 11.5, -77.5)
 [node name="DarkFloorBody" type="StaticBody3D" parent="DarkCorridorFloor"]
 [node name="DarkFloorShape" type="CollisionShape3D" parent="DarkCorridorFloor/DarkFloorBody"]
 shape = SubResource("DarkFloorCol")
@@ -658,7 +666,7 @@ shape = SubResource("DarkFloorCol")
 ; 黑暗走廊左墙
 [node name="DarkLeftWall" type="MeshInstance3D" parent="."]
 mesh = SubResource("DarkWallMesh")
-position = Vector3(-5.5, 14.5, -60)
+position = Vector3(-5.5, 14.5, -77.5)
 [node name="DarkLeftBody" type="StaticBody3D" parent="DarkLeftWall"]
 [node name="DarkLeftShape" type="CollisionShape3D" parent="DarkLeftWall/DarkLeftBody"]
 shape = SubResource("DarkWallCol")
@@ -666,15 +674,20 @@ shape = SubResource("DarkWallCol")
 ; 黑暗走廊右墙
 [node name="DarkRightWall" type="MeshInstance3D" parent="."]
 mesh = SubResource("DarkWallMesh")
-position = Vector3(5.5, 14.5, -60)
+position = Vector3(5.5, 14.5, -77.5)
 [node name="DarkRightBody" type="StaticBody3D" parent="DarkRightWall"]
 [node name="DarkRightShape" type="CollisionShape3D" parent="DarkRightWall/DarkRightBody"]
 shape = SubResource("DarkWallCol")
 
+; 黑暗走廊天花板（不透明）
+[node name="DarkCeiling" type="MeshInstance3D" parent="."]
+mesh = SubResource("DarkCeilingMesh")
+position = Vector3(0, 17.25, -77.5)
+
 ; 黑暗走廊后墙
 [node name="DarkBackWall" type="MeshInstance3D" parent="."]
 mesh = SubResource("DarkWallMesh")
-position = Vector3(0, 14.5, -82)
+position = Vector3(0, 14.5, -117)
 rotation = Vector3(0, 1.5708, 0)
 scale = Vector3(1, 1, 0.25)
 [node name="DarkBackBody" type="StaticBody3D" parent="DarkBackWall"]
@@ -687,79 +700,139 @@ position = Vector3(0, 12, -42)
 item_scene = ExtResource("15_flashlight")
 item_name = "手电筒"
 
-; 黑暗走廊应急灯1（微弱红光）
+; 黑暗走廊应急灯（非常微弱的红光，间隔15米）
 [node name="EmergencyLight1" type="MeshInstance3D" parent="."]
 mesh = SubResource("EmergencyLightMesh")
-position = Vector3(0, 16.5, -50)
+position = Vector3(0, 16.8, -48)
 [node name="EmergencyLightObj1" type="OmniLight3D" parent="EmergencyLight1"]
-light_color = Color(1.0, 0.2, 0.1, 1)
-light_energy = 0.8
-omni_range = 5.0
-position.y = -0.3
+light_color = Color(1.0, 0.15, 0.1, 1)
+light_energy = 0.3
+omni_range = 4.0
+position.y = -0.2
 
-; 黑暗走廊应急灯2
 [node name="EmergencyLight2" type="MeshInstance3D" parent="."]
 mesh = SubResource("EmergencyLightMesh")
-position = Vector3(0, 16.5, -65)
+position = Vector3(0, 16.8, -63)
 [node name="EmergencyLightObj2" type="OmniLight3D" parent="EmergencyLight2"]
-light_color = Color(1.0, 0.2, 0.1, 1)
-light_energy = 0.8
-omni_range = 5.0
-position.y = -0.3
+light_color = Color(1.0, 0.15, 0.1, 1)
+light_energy = 0.3
+omni_range = 4.0
+position.y = -0.2
 
-; 黑暗走廊应急灯3
 [node name="EmergencyLight3" type="MeshInstance3D" parent="."]
 mesh = SubResource("EmergencyLightMesh")
-position = Vector3(0, 16.5, -78)
+position = Vector3(0, 16.8, -78)
 [node name="EmergencyLightObj3" type="OmniLight3D" parent="EmergencyLight3"]
-light_color = Color(1.0, 0.2, 0.1, 1)
-light_energy = 0.8
-omni_range = 5.0
-position.y = -0.3
+light_color = Color(1.0, 0.15, 0.1, 1)
+light_energy = 0.3
+omni_range = 4.0
+position.y = -0.2
+
+[node name="EmergencyLight4" type="MeshInstance3D" parent="."]
+mesh = SubResource("EmergencyLightMesh")
+position = Vector3(0, 16.8, -93)
+[node name="EmergencyLightObj4" type="OmniLight3D" parent="EmergencyLight4"]
+light_color = Color(1.0, 0.15, 0.1, 1)
+light_energy = 0.3
+omni_range = 4.0
+position.y = -0.2
+
+[node name="EmergencyLight5" type="MeshInstance3D" parent="."]
+mesh = SubResource("EmergencyLightMesh")
+position = Vector3(0, 16.8, -108)
+[node name="EmergencyLightObj5" type="OmniLight3D" parent="EmergencyLight5"]
+light_color = Color(1.0, 0.15, 0.1, 1)
+light_energy = 0.3
+omni_range = 4.0
+position.y = -0.2
 
 ; 黑暗走廊怪物刷新点
 [node name="DarkSpawnPoint1" type="Node3D" parent="."]
-position = Vector3(-3, 13, -55)
+position = Vector3(-3, 13, -60)
 [node name="DarkSpawnPoint2" type="Node3D" parent="."]
-position = Vector3(3, 13, -65)
+position = Vector3(3, 13, -75)
 [node name="DarkSpawnPoint3" type="Node3D" parent="."]
-position = Vector3(0, 13, -75)
+position = Vector3(0, 13, -90)
+[node name="DarkSpawnPoint4" type="Node3D" parent="."]
+position = Vector3(-2, 13, -105)
 
 ; 黑暗走廊刷怪管理器
 [node name="DarkSpawnManager" type="Node3D" parent="."]
 script = ExtResource("9_spawn")
 monster_scene = ExtResource("2_monster")
-base_spawn_interval = 8.0
-min_spawn_interval = 3.0
-max_monsters = 8
+base_spawn_interval = 7.0
+min_spawn_interval = 2.5
+max_monsters = 12
 stop_on_repair_complete = false
-spawn_point_paths = [NodePath("../DarkSpawnPoint1"), NodePath("../DarkSpawnPoint2"), NodePath("../DarkSpawnPoint3")]
+spawn_point_paths = [NodePath("../DarkSpawnPoint1"), NodePath("../DarkSpawnPoint2"), NodePath("../DarkSpawnPoint3"), NodePath("../DarkSpawnPoint4")]
 
-; 黑暗走廊障碍物（箱子）
+; 黑暗走廊障碍物（大量箱子和油桶，增加绕路乐趣）
 [node name="DarkCrate1" type="MeshInstance3D" parent="."]
 mesh = SubResource("CrateMesh")
-position = Vector3(-3, 12.6, -55)
+position = Vector3(-3, 12.6, -52)
 [node name="DarkC1Body" type="StaticBody3D" parent="DarkCrate1"]
 [node name="DarkC1Shape" type="CollisionShape3D" parent="DarkCrate1/DarkC1Body"]
 shape = SubResource("CrateCol")
 
 [node name="DarkCrate2" type="MeshInstance3D" parent="."]
 mesh = SubResource("CrateMesh")
-position = Vector3(3, 12.6, -62)
+position = Vector3(3, 12.6, -58)
 [node name="DarkC2Body" type="StaticBody3D" parent="DarkCrate2"]
 [node name="DarkC2Shape" type="CollisionShape3D" parent="DarkCrate2/DarkC2Body"]
 shape = SubResource("CrateCol")
 
 [node name="DarkBarrel1" type="MeshInstance3D" parent="."]
 mesh = SubResource("BarrelMesh")
-position = Vector3(-2, 12.6, -70)
+position = Vector3(-2, 12.6, -65)
 [node name="DarkB1Body" type="StaticBody3D" parent="DarkBarrel1"]
 [node name="DarkB1Shape" type="CollisionShape3D" parent="DarkBarrel1/DarkB1Body"]
 shape = SubResource("BarrelCol")
 
+[node name="DarkCrate3" type="MeshInstance3D" parent="."]
+mesh = SubResource("CrateMesh")
+position = Vector3(2, 12.6, -72)
+[node name="DarkC3Body" type="StaticBody3D" parent="DarkCrate3"]
+[node name="DarkC3Shape" type="CollisionShape3D" parent="DarkCrate3/DarkC3Body"]
+shape = SubResource("CrateCol")
+
+[node name="DarkCrate4" type="MeshInstance3D" parent="."]
+mesh = SubResource("CrateMesh")
+position = Vector3(-3, 12.6, -80)
+[node name="DarkC4Body" type="StaticBody3D" parent="DarkCrate4"]
+[node name="DarkC4Shape" type="CollisionShape3D" parent="DarkCrate4/DarkC4Body"]
+shape = SubResource("CrateCol")
+
+[node name="DarkBarrel2" type="MeshInstance3D" parent="."]
+mesh = SubResource("BarrelMesh")
+position = Vector3(3, 12.6, -85)
+[node name="DarkB2Body" type="StaticBody3D" parent="DarkBarrel2"]
+[node name="DarkB2Shape" type="CollisionShape3D" parent="DarkBarrel2/DarkB2Body"]
+shape = SubResource("BarrelCol")
+
+[node name="DarkCrate5" type="MeshInstance3D" parent="."]
+mesh = SubResource("CrateMesh")
+position = Vector3(-2, 12.6, -92)
+[node name="DarkC5Body" type="StaticBody3D" parent="DarkCrate5"]
+[node name="DarkC5Shape" type="CollisionShape3D" parent="DarkCrate5/DarkC5Body"]
+shape = SubResource("CrateCol")
+
+[node name="DarkCrate6" type="MeshInstance3D" parent="."]
+mesh = SubResource("CrateMesh")
+position = Vector3(2, 12.6, -98)
+[node name="DarkC6Body" type="StaticBody3D" parent="DarkCrate6"]
+[node name="DarkC6Shape" type="CollisionShape3D" parent="DarkCrate6/DarkC6Body"]
+shape = SubResource("CrateCol")
+
+[node name="DarkBarrel3" type="MeshInstance3D" parent="."]
+mesh = SubResource("BarrelMesh")
+position = Vector3(-3, 12.6, -104)
+[node name="DarkB3Body" type="StaticBody3D" parent="DarkBarrel3"]
+[node name="DarkB3Shape" type="CollisionShape3D" parent="DarkBarrel3/DarkB3Body"]
+shape = SubResource("BarrelCol")
+
 ; 最终通关区域（黑暗走廊尽头）
 [node name="FinalWinZone" type="Area3D" parent="."]
-position = Vector3(0, 12.5, -78)
+position = Vector3(0, 12.5, -112)
 script = ExtResource("10_win")
 [node name="FinalWinCol" type="CollisionShape3D" parent="FinalWinZone"]
 shape = SubResource("WinZoneCol")
