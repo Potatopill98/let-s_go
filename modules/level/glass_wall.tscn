@@ -1,0 +1,29 @@
+[gd_scene load_steps=5 format=3 uid="uid://dest_glass_001"]
+
+[ext_resource type="Script" path="res://modules/level/destructible.gd" id="1"]
+
+[sub_resource type="StandardMaterial3D" id="GlassMat"]
+albedo_color = Color(0.7, 0.8, 1.0, 0.3)
+transparency = 1
+roughness = 0.1
+
+[sub_resource type="BoxMesh" id="GlassMesh"]
+material = SubResource("GlassMat")
+size = Vector3(3.0, 3.0, 0.1)
+
+[sub_resource type="BoxShape3D" id="GlassCol"]
+size = Vector3(3.0, 3.0, 0.1)
+
+[node name="GlassWall" type="StaticBody3D"]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("1")
+destructible_id = "dest_glass_wall"
+max_health = 15.0
+break_color = Color(0.7, 0.8, 1.0)
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("GlassMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("GlassCol")

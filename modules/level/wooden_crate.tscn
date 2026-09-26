@@ -1,0 +1,29 @@
+[gd_scene load_steps=5 format=3 uid="uid://dest_crate_001"]
+
+[ext_resource type="Script" path="res://modules/level/destructible.gd" id="1"]
+
+[sub_resource type="StandardMaterial3D" id="CrateMat"]
+albedo_color = Color(0.6, 0.4, 0.2, 1)
+
+[sub_resource type="BoxMesh" id="CrateMesh"]
+material = SubResource("CrateMat")
+size = Vector3(1.0, 1.0, 1.0)
+
+[sub_resource type="BoxShape3D" id="CrateCol"]
+size = Vector3(1.0, 1.0, 1.0)
+
+[node name="WoodenCrate" type="StaticBody3D"]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("1")
+destructible_id = "dest_wooden_crate"
+max_health = 20.0
+drop_loot = true
+loot_table = PackedStringArray(["con_medkit", "con_pistol_ammo", "con_battery"])
+break_color = Color(0.6, 0.4, 0.2)
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("CrateMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("CrateCol")
