@@ -213,9 +213,9 @@ func drop_held_item() -> void:
 		return
 	var item: Node = current_held_item
 	var item_path: String = held_item_scene_path
-	# Get drop position in front of player
+	# Get drop position in front of player, use player's Y so it lands on current floor
 	var drop_pos: Vector3 = global_position + -global_transform.basis.z * 1.5
-	drop_pos.y = 0.5
+	drop_pos.y = global_position.y - 0.3
 	# Get item name
 	var drop_item_name: String = "物品"
 	if item.has_method("weapon_name"):

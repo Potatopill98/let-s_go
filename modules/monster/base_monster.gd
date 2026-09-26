@@ -39,17 +39,17 @@ func _ready() -> void:
 	_create_health_bar()
 
 func _create_health_bar() -> void:
-	# Container at head height
+	# Container high above head, 5x bigger for visibility
 	health_bar_container = Node3D.new()
-	health_bar_container.position = Vector3(0, 2.5, 0)
+	health_bar_container.position = Vector3(0, 3.8, 0)
 	add_child(health_bar_container)
 	# Background (dark)
 	var bg_mat: StandardMaterial3D = StandardMaterial3D.new()
-	bg_mat.albedo_color = Color(0.1, 0.1, 0.1, 1)
+	bg_mat.albedo_color = Color(0.05, 0.05, 0.05, 1)
 	bg_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	var health_bar_bg: MeshInstance3D = MeshInstance3D.new()
 	var bg_mesh: PlaneMesh = PlaneMesh.new()
-	bg_mesh.size = Vector2(1.2, 0.15)
+	bg_mesh.size = Vector2(6.0, 0.8)
 	health_bar_bg.mesh = bg_mesh
 	health_bar_bg.material_override = bg_mat
 	health_bar_container.add_child(health_bar_bg)
@@ -59,11 +59,11 @@ func _create_health_bar() -> void:
 	health_bar_fg_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	health_bar_fg = MeshInstance3D.new()
 	var fg_mesh: PlaneMesh = PlaneMesh.new()
-	fg_mesh.size = Vector2(1.1, 0.1)
+	fg_mesh.size = Vector2(5.6, 0.55)
 	health_bar_fg.mesh = fg_mesh
 	health_bar_fg.material_override = health_bar_fg_mat
 	# Offset to left so scaling shrinks from right side
-	health_bar_fg.position.x = -0.55
+	health_bar_fg.position.x = -2.8
 	health_bar_container.add_child(health_bar_fg)
 	_update_health_bar_visual()
 
