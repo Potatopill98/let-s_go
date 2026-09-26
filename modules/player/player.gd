@@ -1,6 +1,14 @@
 ﻿extends CharacterBody3D
 class_name Player
 
+# ============================================================
+# Player Controller with Holdable Item System
+# One hand, one item at a time
+# Empty hand: can punch
+# Tool: can interact, cannot attack
+# Weapon: can attack, cannot repair
+# ============================================================
+
 # Movement params
 @export var walk_speed: float = 5.0
 @export var run_speed: float = 8.0
@@ -27,11 +35,10 @@ var is_dodging: bool = false
 var punch_cd_timer: float = 0.0
 var dodge_direction: Vector3 = Vector3.ZERO
 var hit_stun_timer: float = 0.0
-# Weapon system
-var weapons: Array = []
-var weapon_scenes: Array = []
-var weapon_names: Array = []
-var current_weapon_index: int = -1
+
+# Holdable item system - one item at a time
+var current_held_item: Node = null
+var held_item_scene_path: String = ""
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
@@ -62,17 +69,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Dodge
 	if event is InputEventKey and event.pressed and event.keycode == KEY_Q and dodge_cd_timer <= 0.0 and not is_dodging and is_on_floor():
 		start_dodge()
-	# Weapon switch 1/2
-	if event is InputEventKey and event.pressed and event.keycode == KEY_1:
-		switch_weapon(0)
-	if event is InputEventKey and event.pressed and event.keycode == KEY_2:
-		switch_weapon(1)
-	# Reload R
+	# Reload R (only if holding ranged weapon)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_R:
-		reload_current_weapon()
-	# Drop weapon G
+		reload_current_item()
+	# Drop item G
 	if event is InputEventKey and event.pressed and event.keycode == KEY_G:
-		drop_current_weapon()
+		drop_held_item()
 
 func _physics_process(delta: float) -> void:
 	# Timers
@@ -84,16 +86,11 @@ func _physics_process(delta: float) -> void:
 		hit_stun_timer -= delta
 	# Update UI health
 	UIManager.update_health(current_health, max_health)
-	# Update weapon UI
-	update_weapon_ui()
-	# Attack check
+	# Update held item UI
+	update_held_item_ui()
+	# Attack check - left click
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not is_dodging and hit_stun_timer <= 0.0:
-		if current_weapon_index >= 0 and current_weapon_index < weapons.size():
-			var weapon: Node = weapons[current_weapon_index]
-			if weapon != null and weapon.can_attack():
-				weapon.attack()
-		elif punch_cd_timer <= 0.0:
-			start_punch()
+		handle_attack()
 	# Gravity
 	if not is_on_floor():
 		velocity.y -= gravity * delta
@@ -119,6 +116,18 @@ func _physics_process(delta: float) -> void:
 		else:
 			current_move_speed = walk_speed
 	move_and_slide()
+
+func handle_attack() -> void:
+	# If holding weapon, use weapon attack
+	if current_held_item != null and current_held_item.has_method("can_attack") and current_held_item.can_attack():
+		current_held_item.attack()
+		return
+	# If holding tool (wrench), cannot attack
+	if current_held_item != null and current_held_item.has_method("can_attack") and not current_held_item.can_attack():
+		return
+	# Empty hand - punch
+	if current_held_item == null and punch_cd_timer <= 0.0:
+		start_punch()
 
 func start_dodge() -> void:
 	is_dodging = true
@@ -170,98 +179,130 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	if current_health <= 0.0:
 		current_health = 0.0
 
-func equip_weapon(weapon: Node) -> void:
-	if weapon == null:
+# ============================================================
+# Holdable Item System
+# ============================================================
+
+func pick_up_item(item: Node) -> void:
+	if item == null:
 		return
-	# If already has weapon, drop current weapon
-	if current_weapon_index >= 0 and current_weapon_index < weapons.size():
-		drop_current_weapon()
-	weapons.append(weapon)
-	weapon_scenes.append(weapon.scene_file_path)
-	if weapon.has_method("set_owner_player"):
-		weapon.set_owner_player(self)
-		weapon_names.append(weapon.weapon_name)
+	# If already holding something, drop it first
+	if current_held_item != null:
+		drop_held_item()
+	# Pick up new item
+	current_held_item = item
+	if item.has_method("get_path"):
+		held_item_scene_path = item.scene_file_path
+	if item.has_method("pick_up"):
+		item.pick_up(self)
+	# Attach to weapon mount
 	var mount: Node3D = get_node("Head/WeaponMount") as Node3D
 	if mount != null:
-		mount.add_child(weapon)
-		weapon.position = Vector3(0.3, -0.2, -0.5)
-	current_weapon_index = weapons.size() - 1
-	for w in weapons:
-		w.visible = false
-	weapon.visible = true
+		if item.get_parent() != null:
+			item.get_parent().remove_child(item)
+		mount.add_child(item)
+		item.position = Vector3(0.3, -0.2, -0.5)
+		item.visible = true
+	# Set owner for weapons
+	if item.has_method("set_owner_player"):
+		item.set_owner_player(self)
 
-func switch_weapon(index: int) -> void:
-	if index < 0 or index >= weapons.size():
+func drop_held_item() -> void:
+	if current_held_item == null:
 		return
-	if index == current_weapon_index:
-		return
-	if current_weapon_index >= 0 and current_weapon_index < weapons.size():
-		var old_weapon: Node = weapons[current_weapon_index]
-		if old_weapon != null:
-			old_weapon.visible = false
-	current_weapon_index = index
-	var new_weapon: Node = weapons[current_weapon_index]
-	if new_weapon != null:
-		new_weapon.visible = true
-
-func reload_current_weapon() -> void:
-	if current_weapon_index < 0 or current_weapon_index >= weapons.size():
-		return
-	var weapon: Node = weapons[current_weapon_index]
-	if weapon != null and weapon.has_method("reload"):
-		weapon.reload()
-
-# Drop current weapon
-func drop_current_weapon() -> void:
-	if current_weapon_index < 0 or current_weapon_index >= weapons.size():
-		return
-	var weapon: Node = weapons[current_weapon_index]
-	if weapon == null:
-		return
-	# Spawn weapon pickup in front of player
+	var item: Node = current_held_item
+	var item_path: String = held_item_scene_path
+	# Get drop position in front of player
 	var drop_pos: Vector3 = global_position + -global_transform.basis.z * 1.5
 	drop_pos.y = 0.5
-	var weapon_scene_path: String = weapon_scenes[current_weapon_index]
-	var weapon_name: String = weapon_names[current_weapon_index]
-	var pickup_scene: PackedScene = load("res://modules/weapon/weapon_pickup.tscn")
-	var loaded_scene: PackedScene = load(weapon_scene_path)
-	if pickup_scene != null and loaded_scene != null:
-		var pickup: Node = pickup_scene.instantiate()
-		pickup.weapon_scene = loaded_scene
-		pickup.weapon_name = weapon_name
-		pickup.position = drop_pos
-		get_tree().current_scene.add_child(pickup)
-	# Remove weapon
-	weapon.queue_free()
-	weapons.remove_at(current_weapon_index)
-	weapon_scenes.remove_at(current_weapon_index)
-	weapon_names.remove_at(current_weapon_index)
-	current_weapon_index = -1
-	# If has other weapons, switch to last one
-	if weapons.size() > 0:
-		current_weapon_index = weapons.size() - 1
-		weapons[current_weapon_index].visible = true
+	# If it's a weapon, spawn a weapon pickup
+	if item.has_method("set_owner_player") and item_path != "":
+		var pickup_scene: PackedScene = load("res://modules/weapon/weapon_pickup.tscn")
+		var loaded_scene: PackedScene = load(item_path)
+		if pickup_scene != null and loaded_scene != null:
+			var pickup: Node = pickup_scene.instantiate()
+			pickup.weapon_scene = loaded_scene
+			if item.has_method("weapon_name"):
+				pickup.weapon_name = item.weapon_name
+			pickup.position = drop_pos
+			get_tree().current_scene.add_child(pickup)
+	# If it's a tool (wrench), spawn it directly
+	elif "interact_tag" in item:
+		if item.get_parent() != null:
+			item.get_parent().remove_child(item)
+		get_tree().current_scene.add_child(item)
+		item.global_position = drop_pos
+		if item.has_method("drop"):
+			item.drop(drop_pos)
+	# Clear reference
+	current_held_item = null
+	held_item_scene_path = ""
+	# Free weapon if it was attached
+	if item.has_method("set_owner_player"):
+		item.queue_free()
 
-# Update weapon UI display
-func update_weapon_ui() -> void:
-	if current_weapon_index < 0 or current_weapon_index >= weapons.size():
-		UIManager.update_weapon_ui("None")
+func reload_current_item() -> void:
+	if current_held_item == null:
+		return
+	if current_held_item.has_method("reload"):
+		current_held_item.reload()
+
+func get_current_interact_tag() -> String:
+	# Returns the tool tag of currently held item, empty if no tool
+	if current_held_item == null:
+		return ""
+	if current_held_item.has_method("interact_tag"):
+		return current_held_item.interact_tag
+	if "interact_tag" in current_held_item:
+		return current_held_item.interact_tag
+	return ""
+
+func is_holding_tool() -> bool:
+	if current_held_item == null:
+		return false
+	if "interact_tag" in current_held_item:
+		return current_held_item.item_type == 0
+	return false
+
+func is_holding_weapon() -> bool:
+	if current_held_item == null:
+		return false
+	return current_held_item.has_method("set_owner_player")
+
+func update_held_item_ui() -> void:
+	if current_held_item == null:
+		UIManager.update_weapon_ui("空手")
 		UIManager.set_crosshair_visible(false)
 		return
-	var weapon: Node = weapons[current_weapon_index]
-	if weapon == null:
-		UIManager.update_weapon_ui("None")
+	# Weapon
+	if current_held_item.has_method("set_owner_player"):
+		var w_name: String = "武器"
+		if current_held_item.has_method("weapon_name"):
+			w_name = current_held_item.weapon_name
+		if current_held_item.has_method("reload"):
+			var ammo: int = current_held_item.current_ammo
+			var max_a: int = current_held_item.mag_size
+			UIManager.update_weapon_ui(w_name, ammo, max_a)
+			UIManager.set_crosshair_visible(true)
+		else:
+			UIManager.update_weapon_ui(w_name)
+			UIManager.set_crosshair_visible(false)
+		return
+	# Tool
+	if "interact_tag" in current_held_item:
+		UIManager.update_weapon_ui(current_held_item.item_name)
 		UIManager.set_crosshair_visible(false)
 		return
-	var w_name: String = "Weapon"
-	if weapon_names.size() > current_weapon_index:
-		w_name = weapon_names[current_weapon_index]
-	if weapon.has_method("reload"):
-		# Ranged weapon: show ammo and crosshair
-		var ammo: int = weapon.current_ammo
-		var max_a: int = weapon.mag_size
-		UIManager.update_weapon_ui(w_name, ammo, max_a)
-		UIManager.set_crosshair_visible(true)
-	else:
-		UIManager.update_weapon_ui(w_name)
-		UIManager.set_crosshair_visible(false)
+	UIManager.update_weapon_ui("物品")
+	UIManager.set_crosshair_visible(false)
+
+# ============================================================
+# Legacy weapon system compatibility (for weapon_pickup)
+# ============================================================
+
+func equip_weapon(weapon: Node) -> void:
+	pick_up_item(weapon)
+
+func switch_weapon(index: int) -> void:
+	# No longer used - one item at a time
+	pass
