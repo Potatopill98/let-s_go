@@ -33,6 +33,12 @@ func drop(drop_position: Vector3) -> void:
 		$CollisionShape3D.disabled = false
 
 func _build_wrench_model() -> void:
+	# 发光提示
+	var glow: OmniLight3D = OmniLight3D.new()
+	glow.light_color = Color(0.3, 0.6, 1.0)
+	glow.light_energy = 1.5
+	glow.omni_range = 4.0
+	add_child(glow)
 	# Handle
 	var handle: MeshInstance3D = MeshInstance3D.new()
 	var handle_mesh: CylinderMesh = CylinderMesh.new()

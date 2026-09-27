@@ -1,4 +1,4 @@
-﻿extends CanvasLayer
+extends CanvasLayer
 
 # ============================================================
 # UI Manager - HUD for co-op survival game
@@ -387,10 +387,10 @@ func _process(delta: float) -> void:
 func _create_inventory_ui() -> void:
 	inventory_panel = Panel.new()
 	inventory_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	inventory_panel.offset_left = -220
+	inventory_panel.offset_left = -250
 	inventory_panel.offset_top = 20
 	inventory_panel.offset_right = -20
-	inventory_panel.offset_bottom = 160
+	inventory_panel.offset_bottom = 200
 	inventory_panel.modulate.a = 0.85
 	add_child(inventory_panel)
 
@@ -463,7 +463,7 @@ func update_inventory(task_items: Array, consumable_data: Array) -> void:
 			var item_id: String = task_items[i].get("item_id", "")
 			var color: Color = ItemManager.get_item_color(item_id)
 			task_slots[i].modulate = Color(color.r, color.g, color.b, 0.9)
-			inventory_labels[i].text = ItemManager.get_item_name(item_id).substr(0, 2)
+			inventory_labels[i].text = ItemManager.get_item_name(item_id)
 		else:
 			task_slots[i].modulate.a = 0.3
 			inventory_labels[i].text = ""

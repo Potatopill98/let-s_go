@@ -1,4 +1,4 @@
-﻿extends CharacterBody3D
+extends CharacterBody3D
 class_name Player
 const InventoryScript = preload("res://modules/player/inventory.gd")
 const EquipmentScript = preload("res://modules/player/equipment_manager.gd")
@@ -66,6 +66,10 @@ func _ready() -> void:
 	equipment.name = "Equipment"
 	add_child(equipment)
 	equipment.equipment_changed.connect(_on_equipment_changed)
+	# 初始化UI
+	update_inventory_ui()
+	if UIManager != null:
+		UIManager.update_equipment(equipment.get_equipment_list())
 
 func _input(event: InputEvent) -> void:
 	# Mouse look - highest priority, always works even when repairing
