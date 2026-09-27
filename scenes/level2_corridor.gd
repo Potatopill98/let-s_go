@@ -41,9 +41,9 @@ func _ready() -> void:
 func _build_structure() -> void:
 	var half_w: float = CORRIDOR_WIDTH / 2
 	# 地板（只有通道宽度）
-	_make_floor(Vector3(0, -0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH, 0.2, CORRIDOR_LENGTH))
+	_make_floor(Vector3(0, -0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 0.2, CORRIDOR_LENGTH))
 	# 天花板（只有通道宽度）
-	_make_ceiling(Vector3(0, CORRIDOR_HEIGHT + 0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH, 0.2, CORRIDOR_LENGTH))
+	_make_ceiling(Vector3(0, CORRIDOR_HEIGHT + 0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 0.2, CORRIDOR_LENGTH))
 	# 尽头墙
 	_make_wall(Vector3(0, CORRIDOR_HEIGHT / 2, CORRIDOR_LENGTH), Vector3(CORRIDOR_WIDTH, CORRIDOR_HEIGHT, 0.3))
 	# 入口两侧墙（留中间通道口）
@@ -145,8 +145,8 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	var is_locked: bool = not is_exit and (index % 3 == 0)
 	var has_monster: bool = not is_exit and not is_locked and (index % 5 != 2)
 	var has_health: bool = not is_exit and not is_locked and (index % 5 == 2)
-	if has_monster:
-		_build_small_room(z_pos, is_left, half_w)
+	# 所有门都建小房间，外观一致
+	_build_small_room(z_pos, is_left, half_w)
 	# 门的根节点
 	var door: StaticBody3D = StaticBody3D.new()
 	door.name = "Door_%d" % index
@@ -336,12 +336,9 @@ func _try_open_door(area: Area3D) -> void:
 	var hinge: Node = area.get_meta("hinge")
 	var door: Node = area.get_meta("door_node")
 	# 开门动画：门板向一侧滑动收进墙里
-	var slide_dir: float = 1.0
-	var door_is_left: bool = area.get_meta("room_is_left")
-	if door_is_left:
-		slide_dir = -1.0
+	# 门统一往右侧滑动收进墙里
 	var tw: Tween = create_tween()
-	tw.tween_property(hinge, "position:z", slide_dir * (DOOR_WIDTH + 0.3), 0.8)
+	tw.tween_property(hinge, "position:z", DOOR_WIDTH + 0.3, 0.8)
 	tw.set_trans(Tween.TRANS_QUAD)
 	tw.set_ease(Tween.EASE_IN_OUT)
 	# 出口门
