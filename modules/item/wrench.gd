@@ -14,6 +14,7 @@ var is_held: bool = false
 var holder: Node = null
 
 var player_in_range: bool = false
+var wrench_light: OmniLight3D = null
 
 func _ready() -> void:
 	add_to_group("holdable")
@@ -44,6 +45,8 @@ func pick_up(player: Node) -> void:
 	is_held = true
 	holder = player
 	visible = false
+	if wrench_light != null:
+		wrench_light.light_energy = 0.0
 	if has_node("CollisionShape3D"):
 		$CollisionShape3D.disabled = true
 
@@ -52,16 +55,18 @@ func drop(drop_position: Vector3) -> void:
 	holder = null
 	global_position = drop_position
 	visible = true
+	if wrench_light != null:
+		wrench_light.light_energy = 2.0
 	if has_node("CollisionShape3D"):
 		$CollisionShape3D.disabled = false
 
 func _build_wrench_model() -> void:
-	# 发光提示
-	var glow: OmniLight3D = OmniLight3D.new()
-	glow.light_color = Color(0.3, 0.6, 1.0)
-	glow.light_energy = 1.5
-	glow.omni_range = 4.0
-	add_child(glow)
+	# 发光提示（地上时亮，拾取后灭）
+	wrench_light = OmniLight3D.new()
+	wrench_light.light_color = Color(0.3, 0.6, 1.0)
+	wrench_light.light_energy = 2.0
+	wrench_light.omni_range = 5.0
+	add_child(wrench_light)
 	# Handle
 	var handle: MeshInstance3D = MeshInstance3D.new()
 	var handle_mesh: CylinderMesh = CylinderMesh.new()
