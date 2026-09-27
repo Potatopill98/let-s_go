@@ -25,3 +25,4 @@ func _start_broadcast() -> void:
 	UIManager.show_announcement("门禁权限锁定 - 权限者：皮特博士", 4.0)
 	UIManager.show_announcement("皮特博士最后出现位置：收容区东侧", 4.0)
 	UIManager.show_announcement("目标：修复发电机 → 搜索研究员尸体 → 开启安全门", 6.0)
+	UIManager.show_announcement("操作：WASD移动 | 左键攻击 | E交互/维修 | Shift奔跑 | Q闪避 | G丢弃", 8.0)
