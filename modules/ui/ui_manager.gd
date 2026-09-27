@@ -114,8 +114,10 @@ func _create_health_ui() -> void:
 	health_label.text = "HP 100/100"
 	health_label.offset_left = 10.0
 	health_label.offset_top = 8.0
-	health_label.add_theme_font_size_override("font_size", 18)
+	health_label.add_theme_font_size_override("font_size", 20)
 	health_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	health_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	health_label.add_theme_constant_override("outline_size", 4)
 	health_panel.add_child(health_label)
 
 # ============================================================
@@ -138,8 +140,10 @@ func _create_item_ui() -> void:
 	item_name_label.text = "空手"
 	item_name_label.offset_left = 10.0
 	item_name_label.offset_top = 8.0
-	item_name_label.add_theme_font_size_override("font_size", 18)
+	item_name_label.add_theme_font_size_override("font_size", 20)
 	item_name_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	item_name_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	item_name_label.add_theme_constant_override("outline_size", 4)
 	item_panel.add_child(item_name_label)
 	# Ammo label
 	ammo_label = Label.new()
@@ -287,8 +291,10 @@ func _create_controls_hint() -> void:
 	controls_hint = Label.new()
 	controls_hint.position = Vector2(10, 10)
 	controls_hint.text = "WASD移动 | Shift奔跑 | 空格跳跃 | Q闪避 | 左键攻击 | E交互 | G丢弃 | R换弹 | ESC释放鼠标"
-	controls_hint.add_theme_font_size_override("font_size", 13)
-	controls_hint.modulate = Color(0.85, 0.85, 0.85, 0.7)
+	controls_hint.add_theme_font_size_override("font_size", 16)
+	controls_hint.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	controls_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	controls_hint.add_theme_constant_override("outline_size", 4)
 	add_child(controls_hint)
 
 # ============================================================
@@ -468,15 +474,19 @@ func _create_inventory_ui() -> void:
 
 	var title: Label = Label.new()
 	title.text = "背包"
-	title.add_theme_font_size_override("font_size", 12)
-	title.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	title.add_theme_constant_override("outline_size", 3)
 	vb.add_child(title)
 
 	# Task slots (2)
 	var task_label: Label = Label.new()
 	task_label.text = "任务道具:"
-	task_label.add_theme_font_size_override("font_size", 10)
-	task_label.add_theme_color_override("font_color", Color(0.7, 0.8, 1.0))
+	task_label.add_theme_font_size_override("font_size", 12)
+	task_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	task_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	task_label.add_theme_constant_override("outline_size", 3)
 	vb.add_child(task_label)
 
 	var task_hb: HBoxContainer = HBoxContainer.new()
@@ -588,8 +598,10 @@ func _create_equipment_ui() -> void:
 
 	var title: Label = Label.new()
 	title.text = "装备"
-	title.add_theme_font_size_override("font_size", 12)
-	title.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	title.add_theme_constant_override("outline_size", 3)
 	vb.add_child(title)
 
 	var slot_names: Array = ["头部", "身体", "脚部"]
