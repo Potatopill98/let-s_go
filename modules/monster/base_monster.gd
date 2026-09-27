@@ -140,21 +140,22 @@ func _physics_process(delta: float) -> void:
 			if is_instance_valid(target):
 				target.take_damage(attack_damage, to_target.normalized() * 3.0)
 	else:
+		var use_nav: bool = false
 		# 使用NavigationAgent3D寻路
 		if nav_agent != null and is_instance_valid(nav_agent):
 			nav_agent.target_position = target.global_position
 			var next_pos: Vector3 = nav_agent.get_next_path_position()
 			var to_next: Vector3 = next_pos - global_position
 			to_next.y = 0.0
-			if to_next.length() > 0.1:
+			# 如果寻路有效（下一个路径点距离当前位置>0.5米），用寻路
+			if to_next.length() > 0.5:
 				var dir: Vector3 = to_next.normalized()
 				velocity.x = dir.x * move_speed
 				velocity.z = dir.z * move_speed
 				rotation.y = atan2(-dir.x, -dir.z)
-			else:
-				velocity.x = 0.0
-				velocity.z = 0.0
-		else:
+				use_nav = true
+		# Fallback：寻路失败或未就绪时，直接朝目标移动
+		if not use_nav:
 			var dir: Vector3 = to_target.normalized()
 			velocity.x = dir.x * move_speed
 			velocity.z = dir.z * move_speed
