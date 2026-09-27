@@ -217,10 +217,35 @@ func _build_safe_zone() -> void:
 	_make_wall(Vector3(room_center_x, 3.0, room_z_start), Vector3(room_width, 6.0, 0.3))
 	# 后墙（z=500）
 	_make_wall(Vector3(room_center_x, 3.0, room_z_end), Vector3(room_width, 6.0, 0.3))
-	# 左侧墙（x=5.7），在出口门小房间位置留口（z=459到481，对应小房间2.2米+余量）
-	# 左侧墙分两段：z=440到458，z=482到500
-	_make_wall(Vector3(room_left, 3.0, 449.0), Vector3(0.3, 6.0, 18.0))
-	_make_wall(Vector3(room_left, 3.0, 491.0), Vector3(0.3, 6.0, 18.0))
+	# 左侧墙（x=5.7），只在出口门位置(z=451)留2米宽的口
+	# 第一段：z=440到450
+	_make_wall(Vector3(room_left, 3.0, 445.0), Vector3(0.3, 6.0, 10.0))
+	# 第二段：z=452到500
+	_make_wall(Vector3(room_left, 3.0, 476.0), Vector3(0.3, 6.0, 48.0))
+	# 安全区门（在留口位置，z=451，朝向走廊）
+	var safe_door: StaticBody3D = StaticBody3D.new()
+	var sd_panel: MeshInstance3D = MeshInstance3D.new()
+	var sd_box: BoxMesh = BoxMesh.new()
+	sd_box.size = Vector3(0.15, 3.8, 1.9)
+	var sd_mat: StandardMaterial3D = StandardMaterial3D.new()
+	sd_mat.albedo_color = Color(0.2, 0.5, 0.25)
+	sd_mat.metallic = 0.6
+	sd_mat.roughness = 0.4
+	sd_mat.emission_enabled = true
+	sd_mat.emission = Color(0.05, 0.2, 0.08)
+	sd_mat.emission_energy_multiplier = 0.5
+	sd_box.material = sd_mat
+	sd_panel.mesh = sd_box
+	sd_panel.position = Vector3(0, 1.9, 0)
+	safe_door.add_child(sd_panel)
+	var sd_col: CollisionShape3D = CollisionShape3D.new()
+	var sd_colshape: BoxShape3D = BoxShape3D.new()
+	sd_colshape.size = Vector3(0.17, 3.8, 1.9)
+	sd_col.shape = sd_colshape
+	sd_col.position.y = 1.9
+	safe_door.add_child(sd_col)
+	safe_door.position = Vector3(room_left, 0, 451.0)
+	add_child(safe_door)
 	# 安全区灯光（亮的，4盏）
 	for i in range(4):
 		var lx: float = room_left + 4.0 + (i % 2) * 12.0
