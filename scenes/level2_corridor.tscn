@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3 uid="uid://level2_corridor_001"]
+
+[ext_resource type="Script" path="res://scenes/level2_corridor.gd" id="1_level2"]
+[ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="2_player"]
+
+[node name="Level2Corridor" type="Node3D"]
+script = ExtResource("1_level2")
+
+[node name="PlayerSpawn" type="Node3D" parent="."]
+position = Vector3(0, 1, 5)
+
+[node name="Player" parent="PlayerSpawn" instance=ExtResource("2_player")]

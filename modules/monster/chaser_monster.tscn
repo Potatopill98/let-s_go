@@ -1,0 +1,38 @@
+[gd_scene load_steps=5 format=3 uid="uid://chaser_monster_001"]
+
+[ext_resource type="Script" path="res://modules/monster/chaser_monster.gd" id="1_chaser"]
+
+[sub_resource type="StandardMaterial3D" id="ChaserMat"]
+albedo_color = Color(0.4, 0.1, 0.5, 1)
+emission_enabled = true
+emission = Color(0.6, 0.1, 0.7, 1)
+emission_energy_multiplier = 0.3
+
+[sub_resource type="CapsuleMesh" id="ChaserMesh"]
+material = SubResource("ChaserMat")
+radius = 0.6
+height = 2.2
+
+[sub_resource type="CapsuleShape3D" id="ChaserCol"]
+radius = 0.6
+height = 2.2
+
+[node name="ChaserMonster" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_chaser")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("ChaserMesh")
+position.y = 1.1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("ChaserCol")
+position.y = 1.1
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+radius = 0.6
+height = 2.2
+max_speed = 7.0
+path_desired_distance = 1.5
+target_desired_distance = 2.0
