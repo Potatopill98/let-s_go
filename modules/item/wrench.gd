@@ -15,6 +15,7 @@ var holder: Node = null
 
 var player_in_range: bool = false
 var wrench_light: OmniLight3D = null
+var _model_built: bool = false
 
 func _ready() -> void:
 	add_to_group("holdable")
@@ -82,6 +83,9 @@ func _ensure_light() -> void:
 		add_child(wrench_light)
 
 func _build_wrench_model() -> void:
+	if _model_built:
+		return
+	_model_built = true
 	# 发光提示（地上时亮，拾取后灭）
 	wrench_light = OmniLight3D.new()
 	wrench_light.light_color = Color(0.3, 0.6, 1.0)

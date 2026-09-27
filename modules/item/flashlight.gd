@@ -17,6 +17,7 @@ var holder: Node = null
 var player_in_range: bool = false
 var flash_light: OmniLight3D = null
 var light_spot: SpotLight3D = null
+var _model_built: bool = false
 
 func _ready() -> void:
 	add_to_group("holdable")
@@ -82,9 +83,16 @@ func drop(drop_position: Vector3) -> void:
 		$CollisionShape3D.disabled = false
 
 func _build_flashlight_model() -> void:
+	if _model_built:
+		return
+	_model_built = true
 	_ensure_lights()
-	flash_light.light_energy = 2.0
-	light_spot.light_energy = 0.5
+	if is_held:
+		flash_light.light_energy = 1.5
+		light_spot.light_energy = 2.5
+	else:
+		flash_light.light_energy = 2.0
+		light_spot.light_energy = 0.5
 	var body: MeshInstance3D = MeshInstance3D.new()
 	var body_mesh: CylinderMesh = CylinderMesh.new()
 	body_mesh.top_radius = 0.05
