@@ -204,38 +204,35 @@ func _create_interaction_ui() -> void:
 # Progress bar (repair etc.)
 # ============================================================
 func _create_progress_ui() -> void:
-	# Background panel for progress - 屏幕中间偏下
+	# Background panel - 屏幕中间偏下，固定大小400x70
 	var prog_panel: Panel = Panel.new()
-	prog_panel.anchor_left = 0.5
-	prog_panel.anchor_right = 0.5
-	prog_panel.anchor_bottom = 1.0
+	prog_panel.set_anchors_preset(Control.PRESET_CENTER)
 	prog_panel.offset_left = -200.0
-	prog_panel.offset_top = -180.0
+	prog_panel.offset_top = 200.0
 	prog_panel.offset_right = 200.0
-	prog_panel.offset_bottom = -120.0
-	prog_panel.modulate = Color(0, 0, 0, 0.75)
+	prog_panel.offset_bottom = 270.0
+	prog_panel.modulate = Color(0, 0, 0, 0.8)
 	prog_panel.visible = false
 	prog_panel.name = "ProgressPanel"
 	add_child(prog_panel)
-	# Progress label
+	# Progress label - 居中显示
 	progress_label = Label.new()
 	progress_label.text = "修理中..."
 	progress_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	progress_label.offset_top = 6.0
+	progress_label.offset_bottom = 30.0
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	progress_label.offset_top = 8.0
-	progress_label.add_theme_font_size_override("font_size", 22)
-	progress_label.add_theme_color_override("font_color", Color(0.6, 1, 0.6, 1))
-	progress_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1))
-	progress_label.add_theme_constant_override("shadow_offset_x", 1)
-	progress_label.add_theme_constant_override("shadow_offset_y", 1)
+	progress_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	progress_label.add_theme_font_size_override("font_size", 20)
+	progress_label.add_theme_color_override("font_color", Color(0.7, 1, 0.7, 1))
 	prog_panel.add_child(progress_label)
 	# Progress bar
 	progress_bar = ProgressBar.new()
 	progress_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	progress_bar.offset_left = 20.0
-	progress_bar.offset_top = 38.0
+	progress_bar.offset_top = 34.0
 	progress_bar.offset_right = -20.0
-	progress_bar.offset_bottom = 55.0
+	progress_bar.offset_bottom = 60.0
 	progress_bar.max_value = 100.0
 	progress_bar.value = 0.0
 	progress_bar.show_percentage = true

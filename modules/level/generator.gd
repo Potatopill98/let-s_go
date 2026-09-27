@@ -46,6 +46,7 @@ func _process(delta: float) -> void:
 			repair_progress += delta / repair_time
 			if UIManager != null:
 				UIManager.update_progress(repair_progress * 100, 100)
+				UIManager.show_interaction_prompt("维修中：%d%%" % int(repair_progress * 100))
 			if repair_progress >= 1.0:
 				_finish_repair()
 		else:
