@@ -87,12 +87,13 @@ func _build_wrench_model() -> void:
 		return
 	_model_built = true
 	# 发光提示（地上时亮，拾取后灭）
-	wrench_light = OmniLight3D.new()
-	wrench_light.light_color = Color(0.3, 0.6, 1.0)
-	wrench_light.light_energy = 5.0
-	wrench_light.omni_range = 8.0
-	wrench_light.position.y = 0.3
-	add_child(wrench_light)
+	if wrench_light == null:
+		wrench_light = OmniLight3D.new()
+		wrench_light.light_color = Color(0.3, 0.6, 1.0)
+		wrench_light.light_energy = 5.0
+		wrench_light.omni_range = 8.0
+		wrench_light.position.y = 0.3
+		add_child(wrench_light)
 	# Handle
 	var handle: MeshInstance3D = MeshInstance3D.new()
 	var handle_mesh: CylinderMesh = CylinderMesh.new()

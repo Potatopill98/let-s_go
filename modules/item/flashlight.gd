@@ -2,7 +2,7 @@ extends Area3D
 
 # ============================================================
 # Flashlight Tool
-# 手持时提供照明，地上时也发光方便找到
+# 手持时提供聚光照明，地上时发光方便找到
 # 只能拿一个东西，需要和队友配合
 # ============================================================
 
@@ -93,11 +93,12 @@ func _build_flashlight_model() -> void:
 	else:
 		flash_light.light_energy = 2.0
 		light_spot.light_energy = 0.5
+	# 手电筒主体（圆柱形）- 放大到和扳手差不多大小
 	var body: MeshInstance3D = MeshInstance3D.new()
 	var body_mesh: CylinderMesh = CylinderMesh.new()
-	body_mesh.top_radius = 0.05
-	body_mesh.bottom_radius = 0.06
-	body_mesh.height = 0.3
+	body_mesh.top_radius = 0.08
+	body_mesh.bottom_radius = 0.09
+	body_mesh.height = 0.5
 	var body_mat: StandardMaterial3D = StandardMaterial3D.new()
 	body_mat.albedo_color = Color(0.15, 0.15, 0.18)
 	body_mat.metallic = 0.7
@@ -106,11 +107,12 @@ func _build_flashlight_model() -> void:
 	body.mesh = body_mesh
 	body.rotation.x = deg_to_rad(90)
 	add_child(body)
+	# 灯头（稍大的圆柱）
 	var head: MeshInstance3D = MeshInstance3D.new()
 	var head_mesh: CylinderMesh = CylinderMesh.new()
-	head_mesh.top_radius = 0.07
-	head_mesh.bottom_radius = 0.07
-	head_mesh.height = 0.08
+	head_mesh.top_radius = 0.11
+	head_mesh.bottom_radius = 0.11
+	head_mesh.height = 0.12
 	var head_mat: StandardMaterial3D = StandardMaterial3D.new()
 	head_mat.albedo_color = Color(0.8, 0.8, 0.85)
 	head_mat.metallic = 0.9
@@ -118,13 +120,14 @@ func _build_flashlight_model() -> void:
 	head_mesh.material = head_mat
 	head.mesh = head_mesh
 	head.rotation.x = deg_to_rad(90)
-	head.position.z = -0.18
+	head.position.z = -0.3
 	add_child(head)
+	# 灯头玻璃（发光）
 	var glass: MeshInstance3D = MeshInstance3D.new()
 	var glass_mesh: CylinderMesh = CylinderMesh.new()
-	glass_mesh.top_radius = 0.06
-	glass_mesh.bottom_radius = 0.06
-	glass_mesh.height = 0.02
+	glass_mesh.top_radius = 0.09
+	glass_mesh.bottom_radius = 0.09
+	glass_mesh.height = 0.03
 	var glass_mat: StandardMaterial3D = StandardMaterial3D.new()
 	glass_mat.albedo_color = Color(1.0, 1.0, 0.9)
 	glass_mat.emission_enabled = true
@@ -133,11 +136,22 @@ func _build_flashlight_model() -> void:
 	glass_mesh.material = glass_mat
 	glass.mesh = glass_mesh
 	glass.rotation.x = deg_to_rad(90)
-	glass.position.z = -0.23
+	glass.position.z = -0.38
 	add_child(glass)
+	# 开关按钮
+	var btn: MeshInstance3D = MeshInstance3D.new()
+	var btn_mesh: BoxMesh = BoxMesh.new()
+	btn_mesh.size = Vector3(0.04, 0.02, 0.08)
+	var btn_mat: StandardMaterial3D = StandardMaterial3D.new()
+	btn_mat.albedo_color = Color(0.9, 0.2, 0.2)
+	btn_mesh.material = btn_mat
+	btn.mesh = btn_mesh
+	btn.position = Vector3(0, 0.1, 0.05)
+	add_child(btn)
+	# 碰撞
 	var col: CollisionShape3D = CollisionShape3D.new()
 	var col_shape: BoxShape3D = BoxShape3D.new()
-	col_shape.size = Vector3(0.2, 0.2, 0.5)
+	col_shape.size = Vector3(0.3, 0.3, 0.7)
 	col.shape = col_shape
-	col.position.y = 0.1
+	col.position.y = 0.15
 	add_child(col)
