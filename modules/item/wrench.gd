@@ -45,8 +45,8 @@ func pick_up(player: Node) -> void:
 	is_held = true
 	holder = player
 	visible = false
-	if wrench_light != null:
-		wrench_light.light_energy = 0.0
+	_ensure_light()
+	wrench_light.light_energy = 0.0
 	# 关闭模型自发光
 	for child in get_children():
 		if child is MeshInstance3D and child.mesh != null:
@@ -61,8 +61,8 @@ func drop(drop_position: Vector3) -> void:
 	holder = null
 	global_position = drop_position
 	visible = true
-	if wrench_light != null:
-		wrench_light.light_energy = 5.0
+	_ensure_light()
+	wrench_light.light_energy = 5.0
 	# 恢复模型自发光
 	for child in get_children():
 		if child is MeshInstance3D and child.mesh != null:
@@ -71,6 +71,15 @@ func drop(drop_position: Vector3) -> void:
 				mat.emission_energy_multiplier = 2.0
 	if has_node("CollisionShape3D"):
 		$CollisionShape3D.disabled = false
+
+func _ensure_light() -> void:
+	# 确保光源存在（pick_up可能在_ready之前被调用）
+	if wrench_light == null:
+		wrench_light = OmniLight3D.new()
+		wrench_light.light_color = Color(0.3, 0.6, 1.0)
+		wrench_light.omni_range = 8.0
+		wrench_light.position.y = 0.3
+		add_child(wrench_light)
 
 func _build_wrench_model() -> void:
 	# 发光提示（地上时亮，拾取后灭）

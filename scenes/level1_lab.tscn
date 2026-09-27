@@ -1,4 +1,4 @@
-[gd_scene load_steps=59 format=3 uid="uid://level1_lab_001"]
+[gd_scene load_steps=60 format=3 uid="uid://level1_lab_001"]
 
 [ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://modules/monster/base_monster.tscn" id="2_monster"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://modules/item/wrench.tscn" id="6_wrench"]
 [ext_resource type="PackedScene" path="res://modules/monster/sprinter.tscn" id="7_sprinter"]
 [ext_resource type="PackedScene" path="res://modules/monster/berserker.tscn" id="8_berserker"]
+[ext_resource type="PackedScene" path="res://modules/item/flashlight.tscn" id="9_flashlight"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMat"]
 albedo_color = Color(0.2, 0.2, 0.22, 1)
