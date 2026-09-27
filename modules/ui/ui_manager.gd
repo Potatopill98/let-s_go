@@ -204,36 +204,41 @@ func _create_interaction_ui() -> void:
 # Progress bar (repair etc.)
 # ============================================================
 func _create_progress_ui() -> void:
-	# Background panel for progress
+	# Background panel for progress - 屏幕中间偏下
 	var prog_panel: Panel = Panel.new()
-	prog_panel.anchor_right = 1.0
+	prog_panel.anchor_left = 0.5
+	prog_panel.anchor_right = 0.5
 	prog_panel.anchor_bottom = 1.0
-	prog_panel.offset_left = -180.0
-	prog_panel.offset_top = -170.0
-	prog_panel.offset_right = 180.0
+	prog_panel.offset_left = -200.0
+	prog_panel.offset_top = -180.0
+	prog_panel.offset_right = 200.0
 	prog_panel.offset_bottom = -120.0
-	prog_panel.modulate = Color(0, 0, 0, 0.6)
+	prog_panel.modulate = Color(0, 0, 0, 0.75)
 	prog_panel.visible = false
 	prog_panel.name = "ProgressPanel"
 	add_child(prog_panel)
 	# Progress label
 	progress_label = Label.new()
 	progress_label.text = "修理中..."
-	progress_label.anchor_right = 1.0
+	progress_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	progress_label.offset_top = 5.0
-	progress_label.add_theme_font_size_override("font_size", 16)
-	progress_label.add_theme_color_override("font_color", Color(0.5, 1, 0.5, 1))
+	progress_label.offset_top = 8.0
+	progress_label.add_theme_font_size_override("font_size", 22)
+	progress_label.add_theme_color_override("font_color", Color(0.6, 1, 0.6, 1))
+	progress_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1))
+	progress_label.add_theme_constant_override("shadow_offset_x", 1)
+	progress_label.add_theme_constant_override("shadow_offset_y", 1)
 	prog_panel.add_child(progress_label)
 	# Progress bar
 	progress_bar = ProgressBar.new()
-	progress_bar.offset_left = 15.0
-	progress_bar.offset_top = 28.0
-	progress_bar.offset_right = -15.0
-	progress_bar.offset_bottom = 42.0
+	progress_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	progress_bar.offset_left = 20.0
+	progress_bar.offset_top = 38.0
+	progress_bar.offset_right = -20.0
+	progress_bar.offset_bottom = 55.0
 	progress_bar.max_value = 100.0
 	progress_bar.value = 0.0
-	progress_bar.show_percentage = false
+	progress_bar.show_percentage = true
 	prog_panel.add_child(progress_bar)
 	# Store reference to panel for visibility control
 	progress_bar.set_meta("panel", prog_panel)

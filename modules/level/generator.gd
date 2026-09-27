@@ -26,26 +26,43 @@ func _ready() -> void:
 		pm.register_generator(generator_id)
 
 func _process(delta: float) -> void:
-	# 检测E键开始维修
-	if player_inside != null and not is_repaired and not is_being_repaired:
-		if Input.is_action_pressed("interact") or Input.is_key_pressed(KEY_E):
-			# 检查是否有扳手
-			if player_inside.has_method("has_held_item") and player_inside.has_held_item(requires_tool):
+	if player_inside == null or is_repaired:
+		# 玩家离开或已修好，隐藏进度条
+		if repair_progress > 0 and not is_repaired:
+			repair_progress = max(0, repair_progress - delta * 0.5)
+		if is_being_repaired:
+			is_being_repaired = false
+			if UIManager != null:
+				UIManager.hide_progress()
+		return
+	# 检测是否按住E键
+	var is_pressing: bool = Input.is_action_pressed("interact") or Input.is_key_pressed(KEY_E)
+	if is_pressing:
+		# 检查是否有扳手
+		if player_inside.has_method("has_held_item") and player_inside.has_held_item(requires_tool):
+			if not is_being_repaired:
 				start_repair()
-			else:
+			# 持续按住E，增加进度
+			repair_progress += delta / repair_time
+			if UIManager != null:
+				UIManager.update_progress(repair_progress * 100, 100)
+			if repair_progress >= 1.0:
+				_finish_repair()
+		else:
+			if UIManager != null and not is_being_repaired:
+				UIManager.show_toast("需要扳手才能维修")
+			if is_being_repaired:
+				is_being_repaired = false
 				if UIManager != null:
-					UIManager.show_toast("需要扳手才能维修")
-	if is_being_repaired and player_inside != null:
-		repair_progress += delta / repair_time
-		if UIManager != null:
-			UIManager.update_progress(repair_progress * 100, 100)
-		if repair_progress >= 1.0:
-			_finish_repair()
-	elif not is_being_repaired and repair_progress > 0 and not is_repaired:
+					UIManager.hide_progress()
+	else:
 		# 松开E键，进度回退
-		repair_progress = max(0, repair_progress - delta * 0.5)
-		if UIManager != null:
-			UIManager.hide_progress()
+		if is_being_repaired:
+			is_being_repaired = false
+			if UIManager != null:
+				UIManager.hide_progress()
+		if repair_progress > 0:
+			repair_progress = max(0, repair_progress - delta * 0.5)
 
 func _build_visual() -> void:
 	mesh_instance = MeshInstance3D.new()
