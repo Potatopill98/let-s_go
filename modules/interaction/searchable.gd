@@ -1,4 +1,4 @@
-﻿extends StaticBody3D
+extends StaticBody3D
 class_name Searchable
 ## 可搜索物体基类
 ## 尸体、柜子、抽屉等，按E搜索获得物品
@@ -108,6 +108,8 @@ func start_search() -> void:
 	if is_searched or player_inside == null:
 		return
 	is_being_searched = true
+	if UIManager != null:
+		UIManager.show_progress(0, 100, "搜索中...")
 
 func cancel_search() -> void:
 	is_being_searched = false
@@ -120,6 +122,8 @@ func _finish_search() -> void:
 	is_searched = true
 	is_being_searched = false
 	search_progress = 1.0
+	if UIManager != null:
+		UIManager.hide_progress()
 	# 掉落物品
 	_drop_loot()
 	# 视觉反馈：变灰

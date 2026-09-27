@@ -1,4 +1,4 @@
-﻿extends StaticBody3D
+extends StaticBody3D
 class_name Generator
 ## 发电机
 ## 需要用扳手维修，修好后提供电力
@@ -44,6 +44,8 @@ func _process(delta: float) -> void:
 	elif not is_being_repaired and repair_progress > 0 and not is_repaired:
 		# 松开E键，进度回退
 		repair_progress = max(0, repair_progress - delta * 0.5)
+		if UIManager != null:
+			UIManager.hide_progress()
 
 func _build_visual() -> void:
 	mesh_instance = MeshInstance3D.new()
@@ -100,11 +102,15 @@ func start_repair() -> void:
 	if is_repaired or player_inside == null:
 		return
 	is_being_repaired = true
+	if UIManager != null:
+		UIManager.show_progress(0, 100, "维修发电机中...")
 
 func _finish_repair() -> void:
 	is_repaired = true
 	is_being_repaired = false
 	repair_progress = 1.0
+	if UIManager != null:
+		UIManager.hide_progress()
 	# 状态灯变绿
 	if status_light != null:
 		status_light.light_color = Color(0.2, 1, 0.3)

@@ -192,7 +192,7 @@ func _create_interaction_ui() -> void:
 	interaction_prompt.offset_bottom = -120.0
 	interaction_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	interaction_prompt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	interaction_prompt.add_theme_font_size_override("font_size", 26)
+	interaction_prompt.add_theme_font_size_override("font_size", 40)
 	interaction_prompt.add_theme_color_override("font_color", Color(1, 1, 1, 1))
 	interaction_prompt.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1))
 	interaction_prompt.add_theme_constant_override("shadow_offset_x", 2)
