@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://generator_001"]
+
+[ext_resource type="Script" path="res://modules/level/generator.gd" id="1"]
+
+[node name="Generator" type="StaticBody3D"]
+script = ExtResource("1")
+generator_id = "generator_1"
+generator_name = "1号发电机"
