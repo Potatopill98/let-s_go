@@ -152,14 +152,17 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	door.name = "Door_%d" % index
 	# 门框材质
 	var frame_mat: StandardMaterial3D = StandardMaterial3D.new()
-	frame_mat.albedo_color = Color(0.35, 0.38, 0.42)
-	frame_mat.metallic = 0.7
-	frame_mat.roughness = 0.4
+	frame_mat.albedo_color = Color(0.4, 0.43, 0.48)
+	frame_mat.metallic = 0.8
+	frame_mat.roughness = 0.35
 	# 门板材质（统一钢门颜色）
 	var panel_mat: StandardMaterial3D = StandardMaterial3D.new()
-	panel_mat.albedo_color = Color(0.45, 0.48, 0.52)
-	panel_mat.metallic = 0.6
-	panel_mat.roughness = 0.5
+	panel_mat.albedo_color = Color(0.55, 0.58, 0.62)
+	panel_mat.metallic = 0.7
+	panel_mat.roughness = 0.4
+	panel_mat.emission_enabled = true
+	panel_mat.emission = Color(0.15, 0.15, 0.18)
+	panel_mat.emission_energy_multiplier = 0.3
 	# 门框（上下左右四条）
 	var frame_thickness: float = 0.15
 	var frame_depth: float = 0.2
@@ -195,7 +198,7 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	var panel: MeshInstance3D = MeshInstance3D.new()
 	panel.name = "Panel"
 	var p_box: BoxMesh = BoxMesh.new()
-	p_box.size = Vector3(0.08, DOOR_HEIGHT - 0.2, DOOR_WIDTH - 0.1)
+	p_box.size = Vector3(0.15, DOOR_HEIGHT - 0.2, DOOR_WIDTH - 0.1)
 	p_box.material = panel_mat
 	panel.mesh = p_box
 	panel.position = Vector3(0, DOOR_HEIGHT / 2, 0)
@@ -253,7 +256,7 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	# 门的碰撞（跟随门板）
 	var col: CollisionShape3D = CollisionShape3D.new()
 	var col_shape: BoxShape3D = BoxShape3D.new()
-	col_shape.size = Vector3(0.1, DOOR_HEIGHT - 0.2, DOOR_WIDTH - 0.1)
+	col_shape.size = Vector3(0.17, DOOR_HEIGHT - 0.2, DOOR_WIDTH - 0.1)
 	col.shape = col_shape
 	col.position = Vector3(0, DOOR_HEIGHT / 2, 0)
 	hinge.add_child(col)
