@@ -302,6 +302,17 @@ func is_holding_tool() -> bool:
 		return current_held_item.item_type == 0
 	return false
 
+func has_held_item(tag: String) -> bool:
+	# 检查当前手持物品的interact_tag是否匹配
+	if current_held_item == null:
+		return false
+	var current_tag: String = ""
+	if current_held_item.has_method("interact_tag"):
+		current_tag = current_held_item.interact_tag
+	elif "interact_tag" in current_held_item:
+		current_tag = current_held_item.interact_tag
+	return current_tag == tag
+
 func is_holding_weapon() -> bool:
 	if current_held_item == null:
 		return false

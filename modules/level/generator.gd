@@ -6,7 +6,7 @@ class_name Generator
 @export var generator_id: String = "generator_1"
 @export var generator_name: String = "发电机"
 @export var repair_time: float = 5.0
-@export var requires_tool: String = "tool_wrench"  # 需要的工具
+@export var requires_tool: String = "wrench"  # 需要的工具
 
 var is_repaired: bool = false
 var is_being_repaired: bool = false
