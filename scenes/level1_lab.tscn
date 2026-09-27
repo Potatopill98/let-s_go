@@ -1,4 +1,4 @@
-[gd_scene load_steps=55 format=3 uid="uid://level1_lab_001"]
+[gd_scene load_steps=59 format=3 uid="uid://level1_lab_001"]
 
 [ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://modules/monster/base_monster.tscn" id="2_monster"]
@@ -89,6 +89,23 @@ height = 5
 material = SubResource("LabFloorMat")
 size = Vector3(3, 0.2, 3)
 
+
+[sub_resource type="StandardMaterial3D" id="BloodMat"]
+albedo_color = Color(0.5, 0.05, 0.05, 1)
+roughness = 0.7
+metallic = 0.0
+
+[sub_resource type="PlaneMesh" id="BloodMesh1"]
+material = SubResource("BloodMat")
+size = Vector2(1.5, 0.8)
+
+[sub_resource type="PlaneMesh" id="BloodMesh2"]
+material = SubResource("BloodMat")
+size = Vector2(2.0, 0.5)
+
+[sub_resource type="PlaneMesh" id="BloodMesh3"]
+material = SubResource("BloodMat")
+size = Vector2(1.0, 1.0)
 [sub_resource type="Environment" id="Env1"]
 background_mode = 1
 ambient_light_color = Color(0.15, 0.15, 0.18, 1)

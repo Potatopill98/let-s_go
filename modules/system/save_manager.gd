@@ -66,7 +66,7 @@ func load_save() -> bool:
 ## 删除存档
 func delete_save() -> void:
 	if FileAccess.file_exists(SAVE_PATH):
-		FileAccess.remove(SAVE_PATH)
+		DirAccess.remove_absolute(SAVE_PATH)
 	current_save = {}
 	has_save = false
 

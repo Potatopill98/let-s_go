@@ -139,5 +139,12 @@ func _finish_repair() -> void:
 	# UI
 	if UIManager != null:
 		UIManager.hide_progress()
+		var pm3: Node = get_node_or_null("/root/PowerManager")
+		if pm3 != null:
+			var done: int = pm3.get_repaired_count()
+			var total: int = pm3.get_total_generators()
+			UIManager.show_toast("修好一个发电机（%d/%d）" % [done, total])
+		else:
+			UIManager.show_toast("发电机维修完成")
 		UIManager.hide_interaction_prompt()
 		UIManager.show_toast(generator_name + " 维修完成")
