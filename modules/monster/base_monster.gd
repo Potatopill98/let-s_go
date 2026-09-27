@@ -57,6 +57,7 @@ func _build_hp_bar() -> void:
 	hp_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	hp_label.no_depth_test = true
 	hp_label.position = Vector3(0, 2.8, 0)
+	hp_label.visible = false  # 初始隐藏，警觉后才显示
 	add_child(hp_label)
 	_update_hp_bar()
 
@@ -67,11 +68,11 @@ func _update_hp_bar() -> void:
 	var bar_len: int = 12
 	var filled: int = int(ratio * bar_len)
 	var bar: String = "█".repeat(filled) + "░".repeat(bar_len - filled)
-	var col: Color = Color(0.2, 1.0, 0.4)
+	var col: Color = Color(1.0, 0.2, 0.15)  # 满血红色
 	if ratio < 0.3:
-		col = Color(1.0, 0.2, 0.15)
+		col = Color(0.7, 0.1, 0.1)  # 低血量暗红
 	elif ratio < 0.6:
-		col = Color(1.0, 0.8, 0.2)
+		col = Color(1.0, 0.4, 0.1)  # 中血量橙红
 	hp_label.modulate = col
 	hp_label.text = "%s  %d" % [bar, int(current_health)]
 
@@ -90,6 +91,12 @@ func _physics_process(delta: float) -> void:
 		hit_stun_timer -= delta
 		move_and_slide()
 		return
+	# 血条显示控制：只有警觉时才显示
+	if hp_label != null and is_instance_valid(hp_label):
+		if is_alerted and not is_dead:
+			hp_label.visible = true
+		else:
+			hp_label.visible = false
 	# 警觉计时器
 	if is_alerted and alert_timer > 0.0:
 		alert_timer -= delta
