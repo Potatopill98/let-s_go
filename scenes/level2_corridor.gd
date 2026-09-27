@@ -44,8 +44,8 @@ func _build_structure() -> void:
 	_make_floor(Vector3(0, -0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 0.2, CORRIDOR_LENGTH))
 	# 天花板（只有通道宽度）
 	_make_ceiling(Vector3(0, CORRIDOR_HEIGHT + 0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 0.2, CORRIDOR_LENGTH))
-	# 尽头墙（封死走廊正前方，玩家不能一直往前走）
-	_make_wall(Vector3(0, CORRIDOR_HEIGHT / 2, CORRIDOR_LENGTH), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, CORRIDOR_HEIGHT, 0.3))
+	# 尽头墙（封死走廊正前方，加高到6米防止透光）
+	_make_wall(Vector3(0, 3.0, CORRIDOR_LENGTH), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 6.0, 0.3))
 	# 入口由连接室处理
 	# 左右外墙（分段，留门洞）
 	var door_count: int = int((CORRIDOR_LENGTH - 40) / DOOR_SPACING)
@@ -315,8 +315,8 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	var is_locked: bool = not is_exit and (index % 3 == 0)
 	var has_monster: bool = not is_exit and not is_locked and (index % 5 != 2)
 	var has_health: bool = not is_exit and not is_locked and (index % 5 == 2)
-	# 所有门都建小房间，外观一致
-	_build_small_room(z_pos, is_left, half_w)
+	# 所有门都建小房间，外观一致；出口门不建后墙，直接连通安全区
+	_build_small_room(z_pos, is_left, half_w, is_exit)
 	# 门的根节点
 	var door: StaticBody3D = StaticBody3D.new()
 	door.name = "Door_%d" % index
@@ -475,7 +475,7 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	door.position = Vector3(door_x, 0, z_pos)
 	add_child(door)
 
-func _build_small_room(z_pos: float, is_left: bool, half_w: float) -> void:
+func _build_small_room(z_pos: float, is_left: bool, half_w: float, no_back_wall: bool = false) -> void:
 	var room_x: float = 0.0
 	var back_x: float = 0.0
 	if is_left:
@@ -488,8 +488,9 @@ func _build_small_room(z_pos: float, is_left: bool, half_w: float) -> void:
 	_make_floor(Vector3(room_x, -0.1, z_pos), Vector3(ROOM_SIZE, 0.2, ROOM_SIZE))
 	# 房间天花板
 	_make_ceiling(Vector3(room_x, CORRIDOR_HEIGHT + 0.1, z_pos), Vector3(ROOM_SIZE, 0.2, ROOM_SIZE))
-	# 后墙
-	_make_wall(Vector3(back_x, CORRIDOR_HEIGHT / 2, z_pos), Vector3(0.3, CORRIDOR_HEIGHT, ROOM_SIZE))
+	# 后墙（出口门不建后墙，直接连通安全区）
+	if not no_back_wall:
+		_make_wall(Vector3(back_x, CORRIDOR_HEIGHT / 2, z_pos), Vector3(0.3, CORRIDOR_HEIGHT, ROOM_SIZE))
 	# 左侧墙（z-方向）
 	_make_wall(Vector3(room_x, CORRIDOR_HEIGHT / 2, z_pos - ROOM_SIZE / 2), Vector3(ROOM_SIZE, CORRIDOR_HEIGHT, 0.3))
 	# 右侧墙（z+方向）
@@ -555,27 +556,7 @@ func _try_open_door(area: Area3D) -> void:
 		)
 		add_child(close_timer)
 		close_timer.start()
-		# 在出口门小房间里创建传送区域
-		var room_z: float = area.get_meta("room_z")
-		var room_is_left: bool = area.get_meta("room_is_left")
-		var half_w3: float = CORRIDOR_WIDTH / 2
-		var tx: float = -half_w3 - ROOM_SIZE / 2 if room_is_left else half_w3 + ROOM_SIZE / 2
-		var teleport: Area3D = Area3D.new()
-		var tc: CollisionShape3D = CollisionShape3D.new()
-		var tshape: BoxShape3D = BoxShape3D.new()
-		tshape.size = Vector3(ROOM_SIZE - 0.5, 3.0, ROOM_SIZE - 0.5)
-		tc.shape = tshape
-		tc.position.y = 1.5
-		teleport.add_child(tc)
-		teleport.position = Vector3(tx, 0, room_z)
-		teleport.body_entered.connect(func(body):
-			if body.is_in_group("player"):
-				if UIManager != null:
-					UIManager.show_announcement("已进入安全区！", 3.0)
-				# 传送到安全区通道
-				body.global_position = Vector3(15.7, 1.0, 470.0)
-		)
-		add_child(teleport)
+		# 出口门直接连通安全区（小房间后墙已去掉）
 		return
 	# 普通门：开门后放怪
 	var has_m: bool = area.get_meta("has_monster")
