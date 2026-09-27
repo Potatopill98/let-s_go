@@ -1,4 +1,4 @@
-extends StaticBody3D
+﻿extends StaticBody3D
 class_name Generator
 ## 发电机
 ## 需要用扳手维修，修好后提供电力
@@ -21,8 +21,9 @@ func _ready() -> void:
 	_build_visual()
 	_build_interaction_area()
 	# 注册到电力管理器
-	if PowerManager != null:
-		PowerManager.register_generator(generator_id)
+	var pm: Node = get_node_or_null("/root/PowerManager")
+	if pm != null:
+		pm.register_generator(generator_id)
 
 func _process(delta: float) -> void:
 	# 检测E键开始维修
@@ -108,8 +109,9 @@ func _finish_repair() -> void:
 	if status_light != null:
 		status_light.light_color = Color(0.2, 1, 0.3)
 	# 通知电力管理器
-	if PowerManager != null:
-		PowerManager.generator_repaired(generator_id)
+	var pm2: Node = get_node_or_null("/root/PowerManager")
+	if pm2 != null:
+		pm2.generator_repaired(generator_id)
 	# UI
 	if UIManager != null:
 		UIManager.hide_progress()

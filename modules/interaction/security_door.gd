@@ -1,4 +1,4 @@
-extends StaticBody3D
+﻿extends StaticBody3D
 class_name SecurityDoor
 ## 安全门
 ## 需要电力恢复 + 门禁卡才能打开
@@ -27,9 +27,10 @@ func _ready() -> void:
 	_build_visual()
 	_build_interaction_area()
 	# 监听电力恢复信号
-	if PowerManager != null:
-		PowerManager.power_restored.connect(_on_power_restored)
-		is_powered = PowerManager.get_power_status()
+	var pm: Node = get_node_or_null("/root/PowerManager")
+	if pm != null:
+		pm.power_restored.connect(_on_power_restored)
+		is_powered = pm.get_power_status()
 
 func _process(delta: float) -> void:
 	if is_opening and not is_open:

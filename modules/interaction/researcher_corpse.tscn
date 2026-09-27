@@ -9,6 +9,6 @@ searchable_name = "研究员尸体"
 search_prompt = "按E搜索研究员尸体"
 search_time = 2.0
 guaranteed_loot = "task_keycard_lab"
-loot_table = PackedStringArray(["con_medkit", "con_pistol_ammo"])
+loot_table = ["con_medkit", "con_pistol_ammo"]
 search_color = Color(0.9, 0.9, 0.95, 1)
 model_type = "corpse"
