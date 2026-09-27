@@ -47,6 +47,12 @@ func pick_up(player: Node) -> void:
 	visible = false
 	if wrench_light != null:
 		wrench_light.light_energy = 0.0
+	# 关闭模型自发光
+	for child in get_children():
+		if child is MeshInstance3D and child.mesh != null:
+			var mat: StandardMaterial3D = child.mesh.material as StandardMaterial3D
+			if mat != null and mat.emission_enabled:
+				mat.emission_energy_multiplier = 0.0
 	if has_node("CollisionShape3D"):
 		$CollisionShape3D.disabled = true
 
@@ -56,7 +62,13 @@ func drop(drop_position: Vector3) -> void:
 	global_position = drop_position
 	visible = true
 	if wrench_light != null:
-		wrench_light.light_energy = 2.0
+		wrench_light.light_energy = 5.0
+	# 恢复模型自发光
+	for child in get_children():
+		if child is MeshInstance3D and child.mesh != null:
+			var mat: StandardMaterial3D = child.mesh.material as StandardMaterial3D
+			if mat != null and mat.emission_enabled:
+				mat.emission_energy_multiplier = 2.0
 	if has_node("CollisionShape3D"):
 		$CollisionShape3D.disabled = false
 
@@ -64,8 +76,9 @@ func _build_wrench_model() -> void:
 	# 发光提示（地上时亮，拾取后灭）
 	wrench_light = OmniLight3D.new()
 	wrench_light.light_color = Color(0.3, 0.6, 1.0)
-	wrench_light.light_energy = 2.0
-	wrench_light.omni_range = 5.0
+	wrench_light.light_energy = 5.0
+	wrench_light.omni_range = 8.0
+	wrench_light.position.y = 0.3
 	add_child(wrench_light)
 	# Handle
 	var handle: MeshInstance3D = MeshInstance3D.new()
@@ -76,6 +89,9 @@ func _build_wrench_model() -> void:
 	var handle_mat: StandardMaterial3D = StandardMaterial3D.new()
 	handle_mat.albedo_color = Color(0.2, 0.5, 0.9)
 	handle_mat.roughness = 0.4
+	handle_mat.emission_enabled = true
+	handle_mat.emission = Color(0.2, 0.5, 1.0)
+	handle_mat.emission_energy_multiplier = 2.0
 	handle_mesh.material = handle_mat
 	handle.mesh = handle_mesh
 	handle.rotation.x = deg_to_rad(90)
