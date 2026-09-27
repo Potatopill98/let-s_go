@@ -13,6 +13,7 @@ const DOOR_HEIGHT: float = 4.0
 
 var chaser_scene: PackedScene = preload("res://modules/monster/chaser_monster.tscn")
 var monster_scene: PackedScene = preload("res://modules/monster/base_monster.tscn")
+var health_scene: PackedScene = preload("res://modules/item/health_pickup.tscn")
 var chaser: Node = null
 var button_pressed: bool = false
 var countdown_timer: float = 0.0
@@ -51,7 +52,7 @@ func _build_structure() -> void:
 	# 左右外墙（分段，留门洞）
 	var door_count: int = int((CORRIDOR_LENGTH - 40) / DOOR_SPACING)
 	for i in range(door_count):
-		var z_center: float = 25.0 + i * DOOR_SPACING
+		var z_center: float = 65.0 + i * DOOR_SPACING
 		if z_center > CORRIDOR_LENGTH - 30:
 			break
 		var seg_start: float = z_center - DOOR_SPACING / 2
@@ -69,7 +70,7 @@ func _build_structure() -> void:
 		if seg_end > door_end:
 			_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, (door_end + seg_end) / 2), Vector3(0.3, CORRIDOR_HEIGHT, seg_end - door_end))
 	# 补充墙段（第一个门之前和最后一个门之后）
-	var first_z: float = 25.0 - DOOR_SPACING / 2
+	var first_z: float = 65.0 - DOOR_SPACING / 2
 	if first_z > 0:
 		_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, first_z / 2), Vector3(0.3, CORRIDOR_HEIGHT, first_z))
 		_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, first_z / 2), Vector3(0.3, CORRIDOR_HEIGHT, first_z))
@@ -128,7 +129,7 @@ func _build_doors_and_rooms() -> void:
 	var door_count: int = int((CORRIDOR_LENGTH - 40) / DOOR_SPACING)
 	var idx: int = 0
 	for i in range(door_count):
-		var z_pos: float = 25.0 + i * DOOR_SPACING
+		var z_pos: float = 65.0 + i * DOOR_SPACING
 		if z_pos > CORRIDOR_LENGTH - 30:
 			break
 		var is_exit: bool = (i == door_count - 1)
@@ -142,7 +143,8 @@ func _build_doors_and_rooms() -> void:
 func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: float) -> void:
 	var door_x: float = -half_w if is_left else half_w
 	var is_locked: bool = not is_exit and (index % 3 == 0)
-	var has_monster: bool = not is_exit and not is_locked
+	var has_monster: bool = not is_exit and not is_locked and (index % 5 != 2)
+	var has_health: bool = not is_exit and not is_locked and (index % 5 == 2)
 	if has_monster:
 		_build_small_room(z_pos, is_left, half_w)
 	# 门的根节点
@@ -185,10 +187,9 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	frame_t.mesh = ft_box
 	frame_t.position = Vector3(0, DOOR_HEIGHT - frame_thickness / 2, 0)
 	door.add_child(frame_t)
-	# 铰链（在门的一侧，用于旋转开门）
+	# 门板容器（用于滑动开门）
 	var hinge: Node3D = Node3D.new()
-	hinge.name = "Hinge"
-	hinge.position = Vector3(0, 0, -DOOR_WIDTH / 2 + 0.05)
+	hinge.name = "PanelContainer"
 	door.add_child(hinge)
 	# 门板
 	var panel: MeshInstance3D = MeshInstance3D.new()
@@ -197,7 +198,7 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	p_box.size = Vector3(0.08, DOOR_HEIGHT - 0.2, DOOR_WIDTH - 0.1)
 	p_box.material = panel_mat
 	panel.mesh = p_box
-	panel.position = Vector3(0, DOOR_HEIGHT / 2, DOOR_WIDTH / 2 - 0.05)
+	panel.position = Vector3(0, DOOR_HEIGHT / 2, 0)
 	hinge.add_child(panel)
 	# 门板加强筋（横向三条）
 	for i in range(3):
@@ -206,7 +207,7 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 		rib_box.size = Vector3(0.02, 0.08, DOOR_WIDTH - 0.3)
 		rib_box.material = frame_mat
 		rib.mesh = rib_box
-		rib.position = Vector3(0.05, 1.0 + i * 1.2, DOOR_WIDTH / 2 - 0.05)
+		rib.position = Vector3(0.05, 1.0 + i * 1.2, 0)
 		hinge.add_child(rib)
 	# 门把手
 	var handle: MeshInstance3D = MeshInstance3D.new()
@@ -218,7 +219,7 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	h_mat.roughness = 0.2
 	h_box.material = h_mat
 	handle.mesh = h_box
-	handle.position = Vector3(0.08, 1.5, DOOR_WIDTH / 2 - 0.3)
+	handle.position = Vector3(0.08, 1.5, 0.6)
 	hinge.add_child(handle)
 	# 观察窗
 	var window: MeshInstance3D = MeshInstance3D.new()
@@ -233,7 +234,7 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	w_mat.albedo_color = Color(0.2, 0.3, 0.4, 0.7)
 	w_box.material = w_mat
 	window.mesh = w_box
-	window.position = Vector3(0.05, 2.8, DOOR_WIDTH / 2 - 0.05)
+	window.position = Vector3(0.05, 2.8, 0)
 	hinge.add_child(window)
 	# 出口门指示灯（绿色小灯）
 	if is_exit:
@@ -247,14 +248,14 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 		ind_mat.emission_energy_multiplier = 2.0
 		ind_box.material = ind_mat
 		indicator.mesh = ind_box
-		indicator.position = Vector3(0.06, 3.5, DOOR_WIDTH / 2 - 0.05)
+		indicator.position = Vector3(0.06, 3.5, 0.5)
 		hinge.add_child(indicator)
 	# 门的碰撞（跟随门板）
 	var col: CollisionShape3D = CollisionShape3D.new()
 	var col_shape: BoxShape3D = BoxShape3D.new()
 	col_shape.size = Vector3(0.1, DOOR_HEIGHT - 0.2, DOOR_WIDTH - 0.1)
 	col.shape = col_shape
-	col.position = Vector3(0, DOOR_HEIGHT / 2, DOOR_WIDTH / 2 - 0.05)
+	col.position = Vector3(0, DOOR_HEIGHT / 2, 0)
 	hinge.add_child(col)
 	# 交互区域
 	var area: Area3D = Area3D.new()
@@ -270,6 +271,7 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	area.set_meta("room_z", z_pos)
 	area.set_meta("room_is_left", is_left)
 	area.set_meta("has_monster", has_monster)
+	area.set_meta("has_health", has_health)
 	area.set_meta("spawned", false)
 	area.set_meta("is_opening", false)
 	area.body_entered.connect(func(body): _on_door_enter(body, area))
@@ -333,11 +335,15 @@ func _try_open_door(area: Area3D) -> void:
 	area.set_meta("is_opening", true)
 	var hinge: Node = area.get_meta("hinge")
 	var door: Node = area.get_meta("door_node")
-	# 开门动画：铰链旋转90度
+	# 开门动画：门板向一侧滑动收进墙里
+	var slide_dir: float = 1.0
+	var door_is_left: bool = area.get_meta("room_is_left")
+	if door_is_left:
+		slide_dir = -1.0
 	var tw: Tween = create_tween()
-	tw.tween_property(hinge, "rotation:y", -PI / 2, 0.6)
+	tw.tween_property(hinge, "position:z", slide_dir * (DOOR_WIDTH + 0.3), 0.8)
 	tw.set_trans(Tween.TRANS_QUAD)
-	tw.set_ease(Tween.EASE_OUT)
+	tw.set_ease(Tween.EASE_IN_OUT)
 	# 出口门
 	if dt == "exit":
 		exit_door_open = true
@@ -367,6 +373,16 @@ func _try_open_door(area: Area3D) -> void:
 		)
 		add_child(delay_timer)
 		delay_timer.start()
+	# 医疗包门：开门后在房间里生成医疗包
+	var has_h: bool = area.get_meta("has_health")
+	if has_h:
+		var z_pos2: float = area.get_meta("room_z")
+		var is_left2: bool = area.get_meta("room_is_left")
+		var half_w2: float = CORRIDOR_WIDTH / 2
+		var hx: float = -half_w2 - ROOM_SIZE / 2 if is_left2 else half_w2 + ROOM_SIZE / 2
+		var hp: Node = health_scene.instantiate()
+		hp.position = Vector3(hx, 1.0, z_pos2)
+		add_child(hp)
 
 func _build_obstacles() -> void:
 	for i in range(1, 16):
