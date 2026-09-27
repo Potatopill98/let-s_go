@@ -9,7 +9,7 @@ const CORRIDOR_HEIGHT: float = 4.0
 const ROOM_SIZE: float = 2.2
 const DOOR_SPACING: float = 22.0
 const DOOR_WIDTH: float = 2.0
-const DOOR_HEIGHT: float = 2.5
+const DOOR_HEIGHT: float = 4.0
 
 var chaser_scene: PackedScene = preload("res://modules/monster/chaser_monster.tscn")
 var monster_scene: PackedScene = preload("res://modules/monster/base_monster.tscn")
@@ -143,50 +143,135 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	var door_x: float = -half_w if is_left else half_w
 	var is_locked: bool = not is_exit and (index % 3 == 0)
 	var has_monster: bool = not is_exit and not is_locked
-	# 如果有怪物，先建小房间
 	if has_monster:
 		_build_small_room(z_pos, is_left, half_w)
-	# 门
+	# 门的根节点
 	var door: StaticBody3D = StaticBody3D.new()
 	door.name = "Door_%d" % index
-	var m: MeshInstance3D = MeshInstance3D.new()
-	var b: BoxMesh = BoxMesh.new()
-	b.size = Vector3(0.12, DOOR_HEIGHT, DOOR_WIDTH)
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
+	# 门框材质
+	var frame_mat: StandardMaterial3D = StandardMaterial3D.new()
+	frame_mat.albedo_color = Color(0.35, 0.38, 0.42)
+	frame_mat.metallic = 0.7
+	frame_mat.roughness = 0.4
+	# 门板材质（统一钢门颜色）
+	var panel_mat: StandardMaterial3D = StandardMaterial3D.new()
+	panel_mat.albedo_color = Color(0.45, 0.48, 0.52)
+	panel_mat.metallic = 0.6
+	panel_mat.roughness = 0.5
+	# 门框（上下左右四条）
+	var frame_thickness: float = 0.15
+	var frame_depth: float = 0.2
+	# 左门框
+	var frame_l: MeshInstance3D = MeshInstance3D.new()
+	var fl_box: BoxMesh = BoxMesh.new()
+	fl_box.size = Vector3(frame_depth, DOOR_HEIGHT, frame_thickness)
+	fl_box.material = frame_mat
+	frame_l.mesh = fl_box
+	frame_l.position = Vector3(0, DOOR_HEIGHT / 2, -DOOR_WIDTH / 2 - frame_thickness / 2)
+	door.add_child(frame_l)
+	# 右门框
+	var frame_r: MeshInstance3D = MeshInstance3D.new()
+	var fr_box: BoxMesh = BoxMesh.new()
+	fr_box.size = Vector3(frame_depth, DOOR_HEIGHT, frame_thickness)
+	fr_box.material = frame_mat
+	frame_r.mesh = fr_box
+	frame_r.position = Vector3(0, DOOR_HEIGHT / 2, DOOR_WIDTH / 2 + frame_thickness / 2)
+	door.add_child(frame_r)
+	# 上门框
+	var frame_t: MeshInstance3D = MeshInstance3D.new()
+	var ft_box: BoxMesh = BoxMesh.new()
+	ft_box.size = Vector3(frame_depth, frame_thickness, DOOR_WIDTH + frame_thickness * 2)
+	ft_box.material = frame_mat
+	frame_t.mesh = ft_box
+	frame_t.position = Vector3(0, DOOR_HEIGHT - frame_thickness / 2, 0)
+	door.add_child(frame_t)
+	# 铰链（在门的一侧，用于旋转开门）
+	var hinge: Node3D = Node3D.new()
+	hinge.name = "Hinge"
+	hinge.position = Vector3(0, 0, -DOOR_WIDTH / 2 + 0.05)
+	door.add_child(hinge)
+	# 门板
+	var panel: MeshInstance3D = MeshInstance3D.new()
+	panel.name = "Panel"
+	var p_box: BoxMesh = BoxMesh.new()
+	p_box.size = Vector3(0.08, DOOR_HEIGHT - 0.2, DOOR_WIDTH - 0.1)
+	p_box.material = panel_mat
+	panel.mesh = p_box
+	panel.position = Vector3(0, DOOR_HEIGHT / 2, DOOR_WIDTH / 2 - 0.05)
+	hinge.add_child(panel)
+	# 门板加强筋（横向三条）
+	for i in range(3):
+		var rib: MeshInstance3D = MeshInstance3D.new()
+		var rib_box: BoxMesh = BoxMesh.new()
+		rib_box.size = Vector3(0.02, 0.08, DOOR_WIDTH - 0.3)
+		rib_box.material = frame_mat
+		rib.mesh = rib_box
+		rib.position = Vector3(0.05, 1.0 + i * 1.2, DOOR_WIDTH / 2 - 0.05)
+		hinge.add_child(rib)
+	# 门把手
+	var handle: MeshInstance3D = MeshInstance3D.new()
+	var h_box: BoxMesh = BoxMesh.new()
+	h_box.size = Vector3(0.15, 0.12, 0.04)
+	var h_mat: StandardMaterial3D = StandardMaterial3D.new()
+	h_mat.albedo_color = Color(0.7, 0.7, 0.75)
+	h_mat.metallic = 0.9
+	h_mat.roughness = 0.2
+	h_box.material = h_mat
+	handle.mesh = h_box
+	handle.position = Vector3(0.08, 1.5, DOOR_WIDTH / 2 - 0.3)
+	hinge.add_child(handle)
+	# 观察窗
+	var window: MeshInstance3D = MeshInstance3D.new()
+	var w_box: BoxMesh = BoxMesh.new()
+	w_box.size = Vector3(0.02, 0.5, 0.6)
+	var w_mat: StandardMaterial3D = StandardMaterial3D.new()
+	w_mat.albedo_color = Color(0.2, 0.3, 0.4)
+	w_mat.emission_enabled = true
+	w_mat.emission = Color(0.1, 0.2, 0.3)
+	w_mat.emission_energy_multiplier = 0.5
+	w_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	w_mat.albedo_color = Color(0.2, 0.3, 0.4, 0.7)
+	w_box.material = w_mat
+	window.mesh = w_box
+	window.position = Vector3(0.05, 2.8, DOOR_WIDTH / 2 - 0.05)
+	hinge.add_child(window)
+	# 出口门指示灯（绿色小灯）
 	if is_exit:
-		mat.albedo_color = Color(0.2, 0.6, 0.2)
-		mat.emission_enabled = true
-		mat.emission = Color(0.1, 0.9, 0.2)
-		mat.emission_energy_multiplier = 1.0
-	elif is_locked:
-		mat.albedo_color = Color(0.45, 0.35, 0.25)
-	else:
-		mat.albedo_color = Color(0.35, 0.35, 0.4)
-	mat.metallic = 0.4
-	mat.roughness = 0.6
-	b.material = mat
-	m.mesh = b
-	m.position.y = DOOR_HEIGHT / 2
-	door.add_child(m)
-	var c: CollisionShape3D = CollisionShape3D.new()
-	var s: BoxShape3D = BoxShape3D.new()
-	s.size = Vector3(0.12, DOOR_HEIGHT, DOOR_WIDTH)
-	c.shape = s
-	c.position.y = DOOR_HEIGHT / 2
-	door.add_child(c)
+		var indicator: MeshInstance3D = MeshInstance3D.new()
+		var ind_box: BoxMesh = BoxMesh.new()
+		ind_box.size = Vector3(0.05, 0.15, 0.15)
+		var ind_mat: StandardMaterial3D = StandardMaterial3D.new()
+		ind_mat.albedo_color = Color(0.1, 1.0, 0.2)
+		ind_mat.emission_enabled = true
+		ind_mat.emission = Color(0.1, 1.0, 0.2)
+		ind_mat.emission_energy_multiplier = 2.0
+		ind_box.material = ind_mat
+		indicator.mesh = ind_box
+		indicator.position = Vector3(0.06, 3.5, DOOR_WIDTH / 2 - 0.05)
+		hinge.add_child(indicator)
+	# 门的碰撞（跟随门板）
+	var col: CollisionShape3D = CollisionShape3D.new()
+	var col_shape: BoxShape3D = BoxShape3D.new()
+	col_shape.size = Vector3(0.1, DOOR_HEIGHT - 0.2, DOOR_WIDTH - 0.1)
+	col.shape = col_shape
+	col.position = Vector3(0, DOOR_HEIGHT / 2, DOOR_WIDTH / 2 - 0.05)
+	hinge.add_child(col)
+	# 交互区域
 	var area: Area3D = Area3D.new()
 	var ac: CollisionShape3D = CollisionShape3D.new()
 	var ashape: BoxShape3D = BoxShape3D.new()
-	ashape.size = Vector3(3.0, DOOR_HEIGHT, DOOR_WIDTH + 1.5)
+	ashape.size = Vector3(3.0, DOOR_HEIGHT, DOOR_WIDTH + 2.0)
 	ac.shape = ashape
 	ac.position.y = DOOR_HEIGHT / 2
 	area.add_child(ac)
 	area.set_meta("door_type", "exit" if is_exit else ("locked" if is_locked else "monster"))
 	area.set_meta("door_node", door)
+	area.set_meta("hinge", hinge)
 	area.set_meta("room_z", z_pos)
 	area.set_meta("room_is_left", is_left)
 	area.set_meta("has_monster", has_monster)
 	area.set_meta("spawned", false)
+	area.set_meta("is_opening", false)
 	area.body_entered.connect(func(body): _on_door_enter(body, area))
 	area.body_exited.connect(func(body): _on_door_exit(body))
 	door.add_child(area)
@@ -237,32 +322,51 @@ func _on_door_exit(body: Node) -> void:
 			UIManager.hide_interaction_prompt()
 
 func _try_open_door(area: Area3D) -> void:
-	var door: Node = area.get_meta("door_node")
 	var dt: String = area.get_meta("door_type")
+	var is_opening: bool = area.get_meta("is_opening")
+	if is_opening:
+		return
 	if dt == "locked":
 		if UIManager != null:
 			UIManager.show_toast("门已锁死")
 		return
+	area.set_meta("is_opening", true)
+	var hinge: Node = area.get_meta("hinge")
+	var door: Node = area.get_meta("door_node")
+	# 开门动画：铰链旋转90度
+	var tw: Tween = create_tween()
+	tw.tween_property(hinge, "rotation:y", -PI / 2, 0.6)
+	tw.set_trans(Tween.TRANS_QUAD)
+	tw.set_ease(Tween.EASE_OUT)
+	# 出口门
 	if dt == "exit":
 		exit_door_open = true
-		door.queue_free()
 		if UIManager != null:
 			UIManager.show_announcement("安全门已打开 - 进入下一关！", 5.0)
 		return
-	door.queue_free()
+	# 普通门：开门后放怪
 	var has_m: bool = area.get_meta("has_monster")
 	var spawned: bool = area.get_meta("spawned")
 	if has_m and not spawned:
-		area.set_meta("spawned", true)
-		var z_pos: float = area.get_meta("room_z")
-		var is_left: bool = area.get_meta("room_is_left")
-		var half_w: float = CORRIDOR_WIDTH / 2
-		var sx: float = -half_w - ROOM_SIZE / 2 if is_left else half_w + ROOM_SIZE / 2
-		var m: Node = monster_scene.instantiate()
-		m.position = Vector3(sx, 1.0, z_pos)
-		add_child(m)
-		if UIManager != null:
-			UIManager.show_toast("房间里有怪物！")
+		# 延迟0.5秒放怪（等门开一点）
+		var delay_timer: Timer = Timer.new()
+		delay_timer.wait_time = 0.5
+		delay_timer.one_shot = true
+		delay_timer.timeout.connect(func():
+			area.set_meta("spawned", true)
+			var z_pos: float = area.get_meta("room_z")
+			var is_left: bool = area.get_meta("room_is_left")
+			var half_w: float = CORRIDOR_WIDTH / 2
+			var sx: float = -half_w - ROOM_SIZE / 2 if is_left else half_w + ROOM_SIZE / 2
+			var m: Node = monster_scene.instantiate()
+			m.position = Vector3(sx, 1.0, z_pos)
+			add_child(m)
+			if UIManager != null:
+				UIManager.show_toast("房间里有怪物！")
+			delay_timer.queue_free()
+		)
+		add_child(delay_timer)
+		delay_timer.start()
 
 func _build_obstacles() -> void:
 	for i in range(1, 16):
