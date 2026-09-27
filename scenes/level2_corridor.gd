@@ -27,11 +27,11 @@ var alarm_timer: float = 0.0
 func _ready() -> void:
 	randomize()
 	_build_structure()
+	_build_connection_room()
 	_build_doors_and_rooms()
-	_build_button()
-	_build_ceiling_trap()
 	_build_alarm_lights()
 	_build_floor_lights()
+	_build_safe_zone()
 	_build_navigation()
 	if UIManager != null:
 		UIManager.show_announcement("紧急疏散通道 - B区", 3.0)
@@ -44,15 +44,12 @@ func _build_structure() -> void:
 	_make_floor(Vector3(0, -0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 0.2, CORRIDOR_LENGTH))
 	# 天花板（只有通道宽度）
 	_make_ceiling(Vector3(0, CORRIDOR_HEIGHT + 0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 0.2, CORRIDOR_LENGTH))
-	# 尽头墙（加宽，完全封死包括小房间区域）
-	_make_wall(Vector3(0, CORRIDOR_HEIGHT / 2, CORRIDOR_LENGTH), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, CORRIDOR_HEIGHT, 0.3))
-	# 入口两侧墙（留中间通道口）
-	_make_wall(Vector3(-half_w / 2 - 0.15, CORRIDOR_HEIGHT / 2, 0), Vector3(half_w, CORRIDOR_HEIGHT, 0.3))
-	_make_wall(Vector3(half_w / 2 + 0.15, CORRIDOR_HEIGHT / 2, 0), Vector3(half_w, CORRIDOR_HEIGHT, 0.3))
+	# 尽头由安全区大房间的后墙封死(z=590)
+	# 入口由连接室处理
 	# 左右外墙（分段，留门洞）
 	var door_count: int = int((CORRIDOR_LENGTH - 40) / DOOR_SPACING)
 	for i in range(door_count):
-		var z_center: float = 65.0 + i * DOOR_SPACING
+		var z_center: float = 55.0 + i * DOOR_SPACING
 		if z_center > CORRIDOR_LENGTH - 30:
 			break
 		var seg_start: float = z_center - DOOR_SPACING / 2
@@ -70,10 +67,170 @@ func _build_structure() -> void:
 		if seg_end > door_end:
 			_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, (door_end + seg_end) / 2), Vector3(0.3, CORRIDOR_HEIGHT, seg_end - door_end))
 	# 补充墙段（第一个门之前和最后一个门之后）
-	var first_z: float = 65.0 - DOOR_SPACING / 2
+	var first_z: float = 55.0 - DOOR_SPACING / 2
 	if first_z > 0:
 		_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, first_z / 2), Vector3(0.3, CORRIDOR_HEIGHT, first_z))
 		_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, first_z / 2), Vector3(0.3, CORRIDOR_HEIGHT, first_z))
+
+
+func _build_connection_room() -> void:
+	# 入口连接室：z=0到z=20，玩家从第一关过来后进入这里
+	var half_w: float = CORRIDOR_WIDTH / 2
+	# 连接室地板和天花板（已经由主结构覆盖，这里只建墙）
+	# 两侧墙
+	_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, 10.0), Vector3(0.3, CORRIDOR_HEIGHT, 20.0))
+	_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, 10.0), Vector3(0.3, CORRIDOR_HEIGHT, 20.0))
+	# 入口墙（z=0，留中间通道口给第一关过来）
+	_make_wall(Vector3(-half_w / 2 - 0.15, CORRIDOR_HEIGHT / 2, 0), Vector3(half_w, CORRIDOR_HEIGHT, 0.3))
+	_make_wall(Vector3(half_w / 2 + 0.15, CORRIDOR_HEIGHT / 2, 0), Vector3(half_w, CORRIDOR_HEIGHT, 0.3))
+	# 连接室里的灯（亮的，玩家在这里准备）
+	var room_light: OmniLight3D = OmniLight3D.new()
+	room_light.light_color = Color(0.9, 0.9, 0.95)
+	room_light.light_energy = 2.0
+	room_light.omni_range = 15.0
+	room_light.position = Vector3(0, CORRIDOR_HEIGHT - 0.5, 10.0)
+	add_child(room_light)
+	# 出口大门（整个通道大小，z=20）
+	var big_door: StaticBody3D = StaticBody3D.new()
+	big_door.name = "ConnectionDoor"
+	# 门框
+	var frame_mat: StandardMaterial3D = StandardMaterial3D.new()
+	frame_mat.albedo_color = Color(0.4, 0.43, 0.48)
+	frame_mat.metallic = 0.8
+	frame_mat.roughness = 0.35
+	# 门板材质
+	var panel_mat: StandardMaterial3D = StandardMaterial3D.new()
+	panel_mat.albedo_color = Color(0.55, 0.58, 0.62)
+	panel_mat.metallic = 0.7
+	panel_mat.roughness = 0.4
+	panel_mat.emission_enabled = true
+	panel_mat.emission = Color(0.2, 0.15, 0.05)
+	panel_mat.emission_energy_multiplier = 0.5
+	# 门板容器
+	var door_hinge: Node3D = Node3D.new()
+	door_hinge.name = "BigDoorPanel"
+	big_door.add_child(door_hinge)
+	# 门板（整个通道大小）
+	var panel: MeshInstance3D = MeshInstance3D.new()
+	var p_box: BoxMesh = BoxMesh.new()
+	p_box.size = Vector3(CORRIDOR_WIDTH - 0.2, CORRIDOR_HEIGHT - 0.2, 0.2)
+	p_box.material = panel_mat
+	panel.mesh = p_box
+	panel.position = Vector3(0, CORRIDOR_HEIGHT / 2, 0)
+	door_hinge.add_child(panel)
+	# 加强筋
+	for i in range(5):
+		var rib: MeshInstance3D = MeshInstance3D.new()
+		var rib_box: BoxMesh = BoxMesh.new()
+		rib_box.size = Vector3(CORRIDOR_WIDTH - 0.5, 0.1, 0.25)
+		rib_box.material = frame_mat
+		rib.mesh = rib_box
+		rib.position = Vector3(0, 0.8 + i * 0.7, 0)
+		door_hinge.add_child(rib)
+	# 碰撞
+	var col: CollisionShape3D = CollisionShape3D.new()
+	var col_shape: BoxShape3D = BoxShape3D.new()
+	col_shape.size = Vector3(CORRIDOR_WIDTH - 0.2, CORRIDOR_HEIGHT - 0.2, 0.25)
+	col.shape = col_shape
+	col.position = Vector3(0, CORRIDOR_HEIGHT / 2, 0)
+	door_hinge.add_child(col)
+	# 交互区域
+	var area: Area3D = Area3D.new()
+	var ac: CollisionShape3D = CollisionShape3D.new()
+	var ashape: BoxShape3D = BoxShape3D.new()
+	ashape.size = Vector3(CORRIDOR_WIDTH, CORRIDOR_HEIGHT, 4.0)
+	ac.shape = ashape
+	ac.position.y = CORRIDOR_HEIGHT / 2
+	area.add_child(ac)
+	area.set_meta("is_big_door", true)
+	area.set_meta("hinge", door_hinge)
+	area.set_meta("is_opening", false)
+	area.body_entered.connect(func(body): _on_big_door_enter(body, area))
+	area.body_exited.connect(func(body): _on_big_door_exit(body))
+	big_door.add_child(area)
+	big_door.position = Vector3(0, 0, 20.0)
+	add_child(big_door)
+	# 天花板陷阱（怪物从这里掉下来）
+	ceiling_trap = MeshInstance3D.new()
+	var b: BoxMesh = BoxMesh.new()
+	b.size = Vector3(4.0, 0.2, 4.0)
+	var mat: StandardMaterial3D = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.3, 0.3, 0.35)
+	b.material = mat
+	ceiling_trap.mesh = b
+	ceiling_trap.position = Vector3(0, CORRIDOR_HEIGHT - 0.1, 10.0)
+	add_child(ceiling_trap)
+
+func _on_big_door_enter(body: Node, area: Area3D) -> void:
+	if body.is_in_group("player") and not button_pressed and not _btn_prompt:
+		_btn_prompt = true
+		_cur_big_door = area
+		if UIManager != null:
+			UIManager.show_interaction_prompt("按E - 开启测试通道")
+
+func _on_big_door_exit(body: Node) -> void:
+	if body.is_in_group("player"):
+		_btn_prompt = false
+		_cur_big_door = null
+		if UIManager != null:
+			UIManager.hide_interaction_prompt()
+
+func _open_big_door(area: Area3D) -> void:
+	if button_pressed:
+		return
+	button_pressed = true
+	countdown_timer = 15.0
+	_btn_prompt = false
+	_cur_big_door = null
+	if UIManager != null:
+		UIManager.hide_interaction_prompt()
+		UIManager.show_announcement("测试程序已启动", 3.0)
+		UIManager.show_announcement("警告：实验体收容协议解除", 3.0)
+		UIManager.show_announcement("所有人员请立即前往安全门", 3.0)
+		UIManager.show_announcement("15秒后实验体将被释放", 4.0)
+	var hinge: Node = area.get_meta("hinge")
+	# 大门向上收起（滑动开门）
+	var tw: Tween = create_tween()
+	tw.tween_property(hinge, "position:y", CORRIDOR_HEIGHT + 1.0, 1.5)
+	tw.set_trans(Tween.TRANS_QUAD)
+	tw.set_ease(Tween.EASE_IN_OUT)
+
+func _build_safe_zone() -> void:
+	# 出口后面的安全区：通道+大房间，亮着灯
+	var half_w: float = CORRIDOR_WIDTH / 2
+	# 安全区通道（z=500到z=530）
+	_make_floor(Vector3(0, -0.1, 515.0), Vector3(CORRIDOR_WIDTH, 0.2, 30.0))
+	_make_ceiling(Vector3(0, CORRIDOR_HEIGHT + 0.1, 515.0), Vector3(CORRIDOR_WIDTH, 0.2, 30.0))
+	_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, 515.0), Vector3(0.3, CORRIDOR_HEIGHT, 30.0))
+	_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, 515.0), Vector3(0.3, CORRIDOR_HEIGHT, 30.0))
+	# 大房间（z=530到z=590，宽20米）
+	var room_half: float = 10.0
+	_make_floor(Vector3(0, -0.1, 560.0), Vector3(room_half * 2, 0.2, 60.0))
+	_make_ceiling(Vector3(0, 6.1, 560.0), Vector3(room_half * 2, 0.2, 60.0))
+	_make_wall(Vector3(-room_half, 3.0, 560.0), Vector3(0.3, 6.0, 60.0))
+	_make_wall(Vector3(room_half, 3.0, 560.0), Vector3(0.3, 6.0, 60.0))
+	_make_wall(Vector3(0, 3.0, 590.0), Vector3(room_half * 2, 6.0, 0.3))
+	# 安全区灯光（亮的）
+	for i in range(4):
+		var l: OmniLight3D = OmniLight3D.new()
+		l.light_color = Color(1.0, 0.98, 0.9)
+		l.light_energy = 3.0
+		l.omni_range = 15.0
+		l.position = Vector3(0, 5.5, 510.0 + i * 20.0)
+		add_child(l)
+	# 安全区标识
+	var sign: MeshInstance3D = MeshInstance3D.new()
+	var sb: BoxMesh = BoxMesh.new()
+	sb.size = Vector3(3.0, 1.0, 0.1)
+	var smat: StandardMaterial3D = StandardMaterial3D.new()
+	smat.albedo_color = Color(0.1, 0.8, 0.2)
+	smat.emission_enabled = true
+	smat.emission = Color(0.1, 1.0, 0.2)
+	smat.emission_energy_multiplier = 2.0
+	sb.material = smat
+	sign.mesh = sb
+	sign.position = Vector3(0, 4.0, 540.0)
+	add_child(sign)
 
 func _make_floor(pos: Vector3, size: Vector3) -> void:
 	var floor: StaticBody3D = StaticBody3D.new()
@@ -129,7 +286,7 @@ func _build_doors_and_rooms() -> void:
 	var door_count: int = int((CORRIDOR_LENGTH - 40) / DOOR_SPACING)
 	var idx: int = 0
 	for i in range(door_count):
-		var z_pos: float = 65.0 + i * DOOR_SPACING
+		var z_pos: float = 55.0 + i * DOOR_SPACING
 		if z_pos > CORRIDOR_LENGTH - 30:
 			break
 		var is_exit: bool = (i == door_count - 1)
@@ -401,9 +558,9 @@ func _try_open_door(area: Area3D) -> void:
 		teleport.body_entered.connect(func(body):
 			if body.is_in_group("player"):
 				if UIManager != null:
-					UIManager.show_announcement("已进入安全区 - 下一关加载中...", 3.0)
-				# 传送到下一关（暂时打印，后续接主场景）
-				print("[Level2] 玩家进入安全区，准备传送下一关")
+					UIManager.show_announcement("已进入安全区！", 3.0)
+				# 传送到安全区通道
+				body.global_position = Vector3(0, 1.0, 515.0)
 		)
 		add_child(teleport)
 		return
@@ -530,6 +687,7 @@ func _build_button() -> void:
 	add_child(btn)
 
 var _btn_prompt: bool = false
+var _cur_big_door: Area3D = null
 
 func _on_btn_enter(body: Node) -> void:
 	if body.is_in_group("player") and not button_pressed and not _btn_prompt:
@@ -638,23 +796,12 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("interact"):
 		if _door_prompt and _cur_door != null:
 			_try_open_door(_cur_door)
-		if _btn_prompt and not button_pressed:
-			_press_button()
+		if _btn_prompt and _cur_big_door != null and not button_pressed:
+			_open_big_door(_cur_big_door)
 	if button_pressed and countdown_timer > 0:
 		countdown_timer -= delta
 		if countdown_timer <= 0 and not ceiling_open:
 			_spawn_chaser()
-
-func _press_button() -> void:
-	button_pressed = true
-	countdown_timer = 10.0
-	_btn_prompt = false
-	if UIManager != null:
-		UIManager.hide_interaction_prompt()
-		UIManager.show_announcement("测试程序已启动", 3.0)
-		UIManager.show_announcement("警告：实验体收容协议解除", 3.0)
-		UIManager.show_announcement("所有人员请立即前往安全门", 3.0)
-		UIManager.show_announcement("10秒后实验体将被释放", 4.0)
 
 func _spawn_chaser() -> void:
 	ceiling_open = true
@@ -663,7 +810,7 @@ func _spawn_chaser() -> void:
 		tw.tween_property(ceiling_trap, "position:y", CORRIDOR_HEIGHT + 3.0, 1.5)
 	if chaser_scene != null:
 		chaser = chaser_scene.instantiate()
-		chaser.position = Vector3(0, CORRIDOR_HEIGHT - 1.0, 15.0)
+		chaser.position = Vector3(0, CORRIDOR_HEIGHT - 1.0, 10.0)
 		add_child(chaser)
 	if UIManager != null:
 		UIManager.show_announcement("实验体已释放 - 快跑！！！", 5.0)
