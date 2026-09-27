@@ -1,13 +1,13 @@
 extends Node3D
 
-## 第二关：狭长逃生走廊 v3
-## 500米长x7米宽通道，两侧3.5米深房间，门贴墙，警报灯闪烁
+## 第二关：狭长逃生走廊 v4
+## 通道7米宽，两侧实心墙，有怪门后建独立小房间，锁死门直接贴墙
 
 const CORRIDOR_LENGTH: float = 500.0
 const CORRIDOR_WIDTH: float = 7.0
 const CORRIDOR_HEIGHT: float = 4.0
-const ROOM_DEPTH: float = 3.5
-const DOOR_SPACING: float = 20.0
+const ROOM_SIZE: float = 2.2
+const DOOR_SPACING: float = 22.0
 const DOOR_WIDTH: float = 2.0
 const DOOR_HEIGHT: float = 2.5
 
@@ -26,7 +26,7 @@ var alarm_timer: float = 0.0
 func _ready() -> void:
 	randomize()
 	_build_structure()
-	_build_doors()
+	_build_doors_and_rooms()
 	_build_obstacles()
 	_build_button()
 	_build_ceiling_trap()
@@ -35,115 +35,123 @@ func _ready() -> void:
 	if UIManager != null:
 		UIManager.show_announcement("紧急疏散通道 - B区", 3.0)
 		UIManager.show_announcement("前方通道已封锁 - 请寻找安全出口", 3.0)
-		UIManager.show_announcement("警告：部分房间内可能有实验体", 3.0)
+		UIManager.show_announcement("警告：部分房门后可能有实验体", 3.0)
 
 func _build_structure() -> void:
-	var total_w: float = CORRIDOR_WIDTH + ROOM_DEPTH * 2
-	var half_w: float = total_w / 2
-	# 地板（BoxMesh，更可靠）
-	var floor: StaticBody3D = StaticBody3D.new()
-	var floor_mesh: MeshInstance3D = MeshInstance3D.new()
-	var fbox: BoxMesh = BoxMesh.new()
-	fbox.size = Vector3(total_w, 0.2, CORRIDOR_LENGTH)
-	var fmat: StandardMaterial3D = StandardMaterial3D.new()
-	fmat.albedo_color = Color(0.2, 0.2, 0.22)
-	fmat.roughness = 0.9
-	fbox.material = fmat
-	floor_mesh.mesh = fbox
-	floor_mesh.position.y = -0.1
-	floor.add_child(floor_mesh)
-	var fcol: CollisionShape3D = CollisionShape3D.new()
-	var fshape: BoxShape3D = BoxShape3D.new()
-	fshape.size = Vector3(total_w, 0.2, CORRIDOR_LENGTH)
-	fcol.shape = fshape
-	floor.add_child(fcol)
-	floor.position.z = CORRIDOR_LENGTH / 2
-	add_child(floor)
-	# 天花板（BoxMesh）
-	var ceil_mesh: MeshInstance3D = MeshInstance3D.new()
-	var cbox: BoxMesh = BoxMesh.new()
-	cbox.size = Vector3(total_w, 0.2, CORRIDOR_LENGTH)
-	var cmat: StandardMaterial3D = StandardMaterial3D.new()
-	cmat.albedo_color = Color(0.18, 0.18, 0.2)
-	cbox.material = cmat
-	ceil_mesh.mesh = cbox
-	ceil_mesh.position = Vector3(0, CORRIDOR_HEIGHT + 0.1, CORRIDOR_LENGTH / 2)
-	add_child(ceil_mesh)
-	# 外墙（左右）
-	_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, CORRIDOR_LENGTH / 2), Vector3(0.3, CORRIDOR_HEIGHT, CORRIDOR_LENGTH))
-	_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, CORRIDOR_LENGTH / 2), Vector3(0.3, CORRIDOR_HEIGHT, CORRIDOR_LENGTH))
+	var half_w: float = CORRIDOR_WIDTH / 2
+	# 地板（只有通道宽度）
+	_make_floor(Vector3(0, -0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH, 0.2, CORRIDOR_LENGTH))
+	# 天花板（只有通道宽度）
+	_make_ceiling(Vector3(0, CORRIDOR_HEIGHT + 0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH, 0.2, CORRIDOR_LENGTH))
 	# 尽头墙
-	_make_wall(Vector3(0, CORRIDOR_HEIGHT / 2, CORRIDOR_LENGTH), Vector3(total_w, CORRIDOR_HEIGHT, 0.3))
-	# 入口墙（留通道口）
+	_make_wall(Vector3(0, CORRIDOR_HEIGHT / 2, CORRIDOR_LENGTH), Vector3(CORRIDOR_WIDTH, CORRIDOR_HEIGHT, 0.3))
+	# 入口两侧墙（留中间通道口）
 	_make_wall(Vector3(-half_w / 2 - 0.15, CORRIDOR_HEIGHT / 2, 0), Vector3(half_w, CORRIDOR_HEIGHT, 0.3))
 	_make_wall(Vector3(half_w / 2 + 0.15, CORRIDOR_HEIGHT / 2, 0), Vector3(half_w, CORRIDOR_HEIGHT, 0.3))
-	# 内墙（通道与房间之间，留门洞）
-	var left_x: float = -CORRIDOR_WIDTH / 2
-	var right_x: float = CORRIDOR_WIDTH / 2
-	var door_count: int = int((CORRIDOR_LENGTH - 30) / DOOR_SPACING)
+	# 左右外墙（分段，留门洞）
+	var door_count: int = int((CORRIDOR_LENGTH - 40) / DOOR_SPACING)
 	for i in range(door_count):
-		var z_center: float = 20.0 + i * DOOR_SPACING
+		var z_center: float = 25.0 + i * DOOR_SPACING
 		if z_center > CORRIDOR_LENGTH - 30:
 			break
 		var seg_start: float = z_center - DOOR_SPACING / 2
 		var seg_end: float = z_center + DOOR_SPACING / 2
 		var door_start: float = z_center - DOOR_WIDTH / 2
 		var door_end: float = z_center + DOOR_WIDTH / 2
-		# 左侧内墙
+		# 左墙
 		if door_start > seg_start:
-			_make_wall(Vector3(left_x, CORRIDOR_HEIGHT / 2, (seg_start + door_start) / 2), Vector3(0.15, CORRIDOR_HEIGHT, door_start - seg_start))
+			_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, (seg_start + door_start) / 2), Vector3(0.3, CORRIDOR_HEIGHT, door_start - seg_start))
 		if seg_end > door_end:
-			_make_wall(Vector3(left_x, CORRIDOR_HEIGHT / 2, (door_end + seg_end) / 2), Vector3(0.15, CORRIDOR_HEIGHT, seg_end - door_end))
-		# 右侧内墙
+			_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, (door_end + seg_end) / 2), Vector3(0.3, CORRIDOR_HEIGHT, seg_end - door_end))
+		# 右墙
 		if door_start > seg_start:
-			_make_wall(Vector3(right_x, CORRIDOR_HEIGHT / 2, (seg_start + door_start) / 2), Vector3(0.15, CORRIDOR_HEIGHT, door_start - seg_start))
+			_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, (seg_start + door_start) / 2), Vector3(0.3, CORRIDOR_HEIGHT, door_start - seg_start))
 		if seg_end > door_end:
-			_make_wall(Vector3(right_x, CORRIDOR_HEIGHT / 2, (door_end + seg_end) / 2), Vector3(0.15, CORRIDOR_HEIGHT, seg_end - door_end))
+			_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, (door_end + seg_end) / 2), Vector3(0.3, CORRIDOR_HEIGHT, seg_end - door_end))
+	# 补充墙段（第一个门之前和最后一个门之后）
+	var first_z: float = 25.0 - DOOR_SPACING / 2
+	if first_z > 0:
+		_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, first_z / 2), Vector3(0.3, CORRIDOR_HEIGHT, first_z))
+		_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, first_z / 2), Vector3(0.3, CORRIDOR_HEIGHT, first_z))
+
+func _make_floor(pos: Vector3, size: Vector3) -> void:
+	var floor: StaticBody3D = StaticBody3D.new()
+	var m: MeshInstance3D = MeshInstance3D.new()
+	var b: BoxMesh = BoxMesh.new()
+	b.size = size
+	var mat: StandardMaterial3D = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.2, 0.2, 0.22)
+	mat.roughness = 0.9
+	b.material = mat
+	m.mesh = b
+	floor.add_child(m)
+	var c: CollisionShape3D = CollisionShape3D.new()
+	var s: BoxShape3D = BoxShape3D.new()
+	s.size = size
+	c.shape = s
+	floor.add_child(c)
+	floor.position = pos
+	add_child(floor)
+
+func _make_ceiling(pos: Vector3, size: Vector3) -> void:
+	var m: MeshInstance3D = MeshInstance3D.new()
+	var b: BoxMesh = BoxMesh.new()
+	b.size = size
+	var mat: StandardMaterial3D = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.18, 0.18, 0.2)
+	b.material = mat
+	m.mesh = b
+	m.position = pos
+	add_child(m)
 
 func _make_wall(pos: Vector3, size: Vector3) -> void:
 	var wall: StaticBody3D = StaticBody3D.new()
-	var mesh: MeshInstance3D = MeshInstance3D.new()
-	var box: BoxMesh = BoxMesh.new()
-	box.size = size
+	var m: MeshInstance3D = MeshInstance3D.new()
+	var b: BoxMesh = BoxMesh.new()
+	b.size = size
 	var mat: StandardMaterial3D = StandardMaterial3D.new()
 	mat.albedo_color = Color(0.28, 0.28, 0.32)
 	mat.roughness = 0.85
-	box.material = mat
-	mesh.mesh = box
-	wall.add_child(mesh)
-	var col: CollisionShape3D = CollisionShape3D.new()
-	var shape: BoxShape3D = BoxShape3D.new()
-	shape.size = size
-	col.shape = shape
-	wall.add_child(col)
+	b.material = mat
+	m.mesh = b
+	wall.add_child(m)
+	var c: CollisionShape3D = CollisionShape3D.new()
+	var s: BoxShape3D = BoxShape3D.new()
+	s.size = size
+	c.shape = s
+	wall.add_child(c)
 	wall.position = pos
 	add_child(wall)
 
-func _build_doors() -> void:
-	var door_count: int = int((CORRIDOR_LENGTH - 30) / DOOR_SPACING)
+func _build_doors_and_rooms() -> void:
+	var half_w: float = CORRIDOR_WIDTH / 2
+	var door_count: int = int((CORRIDOR_LENGTH - 40) / DOOR_SPACING)
 	var idx: int = 0
 	for i in range(door_count):
-		var z_pos: float = 20.0 + i * DOOR_SPACING
+		var z_pos: float = 25.0 + i * DOOR_SPACING
 		if z_pos > CORRIDOR_LENGTH - 30:
 			break
-		# 判断是否是出口门（最后一个左侧门）
 		var is_exit: bool = (i == door_count - 1)
 		# 左侧门
-		_make_door(z_pos, true, idx, is_exit)
+		_make_door(z_pos, true, idx, is_exit, half_w)
 		idx += 1
 		# 右侧门（不是出口）
-		_make_door(z_pos, false, idx, false)
+		_make_door(z_pos, false, idx, false, half_w)
 		idx += 1
 
-func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool) -> void:
-	var door_x: float = -CORRIDOR_WIDTH / 2 if is_left else CORRIDOR_WIDTH / 2
+func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: float) -> void:
+	var door_x: float = -half_w if is_left else half_w
 	var is_locked: bool = not is_exit and (index % 3 == 0)
 	var has_monster: bool = not is_exit and not is_locked
+	# 如果有怪物，先建小房间
+	if has_monster:
+		_build_small_room(z_pos, is_left, half_w)
+	# 门
 	var door: StaticBody3D = StaticBody3D.new()
 	door.name = "Door_%d" % index
-	var mesh: MeshInstance3D = MeshInstance3D.new()
-	var box: BoxMesh = BoxMesh.new()
-	box.size = Vector3(0.12, DOOR_HEIGHT, DOOR_WIDTH)
+	var m: MeshInstance3D = MeshInstance3D.new()
+	var b: BoxMesh = BoxMesh.new()
+	b.size = Vector3(0.12, DOOR_HEIGHT, DOOR_WIDTH)
 	var mat: StandardMaterial3D = StandardMaterial3D.new()
 	if is_exit:
 		mat.albedo_color = Color(0.2, 0.6, 0.2)
@@ -156,23 +164,23 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool) -> void:
 		mat.albedo_color = Color(0.35, 0.35, 0.4)
 	mat.metallic = 0.4
 	mat.roughness = 0.6
-	box.material = mat
-	mesh.mesh = box
-	mesh.position.y = DOOR_HEIGHT / 2
-	door.add_child(mesh)
-	var col: CollisionShape3D = CollisionShape3D.new()
-	var shape: BoxShape3D = BoxShape3D.new()
-	shape.size = Vector3(0.12, DOOR_HEIGHT, DOOR_WIDTH)
-	col.shape = shape
-	col.position.y = DOOR_HEIGHT / 2
-	door.add_child(col)
+	b.material = mat
+	m.mesh = b
+	m.position.y = DOOR_HEIGHT / 2
+	door.add_child(m)
+	var c: CollisionShape3D = CollisionShape3D.new()
+	var s: BoxShape3D = BoxShape3D.new()
+	s.size = Vector3(0.12, DOOR_HEIGHT, DOOR_WIDTH)
+	c.shape = s
+	c.position.y = DOOR_HEIGHT / 2
+	door.add_child(c)
 	var area: Area3D = Area3D.new()
-	var acol: CollisionShape3D = CollisionShape3D.new()
+	var ac: CollisionShape3D = CollisionShape3D.new()
 	var ashape: BoxShape3D = BoxShape3D.new()
 	ashape.size = Vector3(3.0, DOOR_HEIGHT, DOOR_WIDTH + 1.5)
-	acol.shape = ashape
-	acol.position.y = DOOR_HEIGHT / 2
-	area.add_child(acol)
+	ac.shape = ashape
+	ac.position.y = DOOR_HEIGHT / 2
+	area.add_child(ac)
 	area.set_meta("door_type", "exit" if is_exit else ("locked" if is_locked else "monster"))
 	area.set_meta("door_node", door)
 	area.set_meta("room_z", z_pos)
@@ -184,6 +192,26 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool) -> void:
 	door.add_child(area)
 	door.position = Vector3(door_x, 0, z_pos)
 	add_child(door)
+
+func _build_small_room(z_pos: float, is_left: bool, half_w: float) -> void:
+	var room_x: float = 0.0
+	var back_x: float = 0.0
+	if is_left:
+		room_x = -half_w - ROOM_SIZE / 2
+		back_x = -half_w - ROOM_SIZE
+	else:
+		room_x = half_w + ROOM_SIZE / 2
+		back_x = half_w + ROOM_SIZE
+	# 房间地板
+	_make_floor(Vector3(room_x, -0.1, z_pos), Vector3(ROOM_SIZE, 0.2, ROOM_SIZE))
+	# 房间天花板
+	_make_ceiling(Vector3(room_x, CORRIDOR_HEIGHT + 0.1, z_pos), Vector3(ROOM_SIZE, 0.2, ROOM_SIZE))
+	# 后墙
+	_make_wall(Vector3(back_x, CORRIDOR_HEIGHT / 2, z_pos), Vector3(0.3, CORRIDOR_HEIGHT, ROOM_SIZE))
+	# 左侧墙（z-方向）
+	_make_wall(Vector3(room_x, CORRIDOR_HEIGHT / 2, z_pos - ROOM_SIZE / 2), Vector3(ROOM_SIZE, CORRIDOR_HEIGHT, 0.3))
+	# 右侧墙（z+方向）
+	_make_wall(Vector3(room_x, CORRIDOR_HEIGHT / 2, z_pos + ROOM_SIZE / 2), Vector3(ROOM_SIZE, CORRIDOR_HEIGHT, 0.3))
 
 var _door_prompt: bool = false
 var _cur_door: Area3D = null
@@ -228,7 +256,8 @@ func _try_open_door(area: Area3D) -> void:
 		area.set_meta("spawned", true)
 		var z_pos: float = area.get_meta("room_z")
 		var is_left: bool = area.get_meta("room_is_left")
-		var sx: float = -CORRIDOR_WIDTH / 2 - ROOM_DEPTH / 2 if is_left else CORRIDOR_WIDTH / 2 + ROOM_DEPTH / 2
+		var half_w: float = CORRIDOR_WIDTH / 2
+		var sx: float = -half_w - ROOM_SIZE / 2 if is_left else half_w + ROOM_SIZE / 2
 		var m: Node = monster_scene.instantiate()
 		m.position = Vector3(sx, 1.0, z_pos)
 		add_child(m)
@@ -236,8 +265,8 @@ func _try_open_door(area: Area3D) -> void:
 			UIManager.show_toast("房间里有怪物！")
 
 func _build_obstacles() -> void:
-	for i in range(1, 18):
-		var z_pos: float = 30.0 + i * 25.0
+	for i in range(1, 16):
+		var z_pos: float = 35.0 + i * 28.0
 		if z_pos > CORRIDOR_LENGTH - 40:
 			break
 		var r: int = randi() % 3
@@ -320,7 +349,7 @@ func _build_button() -> void:
 	area.body_entered.connect(_on_btn_enter)
 	area.body_exited.connect(_on_btn_exit)
 	btn.add_child(area)
-	btn.position = Vector3(0, 0, 40.0)
+	btn.position = Vector3(0, 0, 45.0)
 	add_child(btn)
 
 var _btn_prompt: bool = false
@@ -345,12 +374,12 @@ func _build_ceiling_trap() -> void:
 	mat.albedo_color = Color(0.3, 0.3, 0.35)
 	b.material = mat
 	ceiling_trap.mesh = b
-	ceiling_trap.position = Vector3(0, CORRIDOR_HEIGHT - 0.1, 12.0)
+	ceiling_trap.position = Vector3(0, CORRIDOR_HEIGHT - 0.1, 15.0)
 	add_child(ceiling_trap)
 
 func _build_alarm_lights() -> void:
-	for i in range(16):
-		var z: float = 15.0 + i * 30.0
+	for i in range(15):
+		var z: float = 20.0 + i * 32.0
 		if z > CORRIDOR_LENGTH - 20:
 			break
 		var ll: OmniLight3D = OmniLight3D.new()
@@ -369,7 +398,6 @@ func _build_alarm_lights() -> void:
 		lr.visible = (i % 2 == 1)
 		add_child(lr)
 		alarm_lights.append(lr)
-	# 环境光
 	var env: WorldEnvironment = WorldEnvironment.new()
 	var env_res: Environment = Environment.new()
 	env_res.ambient_light_color = Color(0.3, 0.3, 0.35)
@@ -423,7 +451,7 @@ func _spawn_chaser() -> void:
 		tw.tween_property(ceiling_trap, "position:y", CORRIDOR_HEIGHT + 3.0, 1.5)
 	if chaser_scene != null:
 		chaser = chaser_scene.instantiate()
-		chaser.position = Vector3(0, CORRIDOR_HEIGHT - 1.0, 12.0)
+		chaser.position = Vector3(0, CORRIDOR_HEIGHT - 1.0, 15.0)
 		add_child(chaser)
 	if UIManager != null:
 		UIManager.show_announcement("实验体已释放 - 快跑！！！", 5.0)
