@@ -1,4 +1,4 @@
-[gd_scene load_steps=50 format=3 uid="uid://level1_lab_001"]
+[gd_scene load_steps=55 format=3 uid="uid://level1_lab_001"]
 
 [ext_resource type="PackedScene" path="res://modules/player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://modules/monster/base_monster.tscn" id="2_monster"]
@@ -9,7 +9,6 @@
 [ext_resource type="PackedScene" path="res://modules/monster/sprinter.tscn" id="7_sprinter"]
 [ext_resource type="PackedScene" path="res://modules/monster/berserker.tscn" id="8_berserker"]
 
-; ==================== 材质定义 ====================
 [sub_resource type="StandardMaterial3D" id="FloorMat"]
 albedo_color = Color(0.2, 0.2, 0.22, 1)
 roughness = 0.9
@@ -27,11 +26,9 @@ albedo_color = Color(0.5, 0.5, 0.55, 1)
 metallic = 0.8
 roughness = 0.3
 
-[sub_resource type="StandardMaterial3D" id="AlarmMat"]
-albedo_color = Color(1, 0.1, 0.1, 1)
-emission_enabled = true
-emission = Color(1, 0.1, 0.1, 1)
-emission_energy_multiplier = 3.0
+[sub_resource type="StandardMaterial3D" id="PillarMat"]
+albedo_color = Color(0.3, 0.3, 0.35, 1)
+roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="LabFloorMat"]
 albedo_color = Color(0.18, 0.18, 0.2, 1)
@@ -39,24 +36,24 @@ roughness = 0.8
 
 [sub_resource type="BoxMesh" id="FloorMesh"]
 material = SubResource("FloorMat")
-size = Vector3(100, 1, 100)
+size = Vector3(120, 1, 120)
 
 [sub_resource type="BoxShape3D" id="FloorCol"]
-size = Vector3(100, 1, 100)
+size = Vector3(120, 1, 120)
 
 [sub_resource type="BoxMesh" id="WallMesh"]
 material = SubResource("WallMat")
-size = Vector3(2, 6, 100)
+size = Vector3(2, 6, 120)
 
 [sub_resource type="BoxShape3D" id="WallCol"]
-size = Vector3(2, 6, 100)
+size = Vector3(2, 6, 120)
 
 [sub_resource type="BoxMesh" id="WallMesh2"]
 material = SubResource("WallMat")
-size = Vector3(100, 6, 2)
+size = Vector3(120, 6, 2)
 
 [sub_resource type="BoxShape3D" id="WallCol2"]
-size = Vector3(100, 6, 2)
+size = Vector3(120, 6, 2)
 
 [sub_resource type="BoxMesh" id="CellWallMesh"]
 material = SubResource("CellMat")
@@ -78,9 +75,15 @@ top_radius = 0.05
 bottom_radius = 0.05
 height = 3.5
 
-[sub_resource type="BoxMesh" id="AlarmLightMesh"]
-material = SubResource("AlarmMat")
-size = Vector3(0.3, 0.3, 0.3)
+[sub_resource type="CylinderMesh" id="PillarMesh"]
+material = SubResource("PillarMat")
+top_radius = 0.6
+bottom_radius = 0.6
+height = 5
+
+[sub_resource type="CylinderShape3D" id="PillarCol"]
+radius = 0.6
+height = 5
 
 [sub_resource type="BoxMesh" id="LabPodMesh"]
 material = SubResource("LabFloorMat")
@@ -88,22 +91,19 @@ size = Vector3(3, 0.2, 3)
 
 [sub_resource type="Environment" id="Env1"]
 background_mode = 1
-ambient_light_color = Color(0.3, 0.3, 0.35, 1)
-ambient_light_energy = 0.4
+ambient_light_color = Color(0.15, 0.15, 0.18, 1)
+ambient_light_energy = 0.3
 
-; ==================== 根节点 ====================
 [node name="Level1" type="Node3D"]
 
-; ==================== 环境光 ====================
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-light_energy = 0.3
+light_energy = 0.15
 light_color = Color(0.8, 0.8, 1.0, 1)
 rotation.x = -1.0
 
 [node name="AmbientLight" type="WorldEnvironment" parent="."]
 environment = SubResource("Env1")
 
-; ==================== 地面 ====================
 [node name="Floor" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
@@ -116,9 +116,8 @@ position.y = -0.5
 shape = SubResource("FloorCol")
 position.y = -0.5
 
-; ==================== 四周墙壁 ====================
 [node name="WallNorth" type="StaticBody3D" parent="."]
-position = Vector3(0, 3, -50)
+position = Vector3(0, 3, -60)
 
 [node name="Mesh" type="MeshInstance3D" parent="WallNorth"]
 mesh = SubResource("WallMesh2")
@@ -127,7 +126,7 @@ mesh = SubResource("WallMesh2")
 shape = SubResource("WallCol2")
 
 [node name="WallSouth" type="StaticBody3D" parent="."]
-position = Vector3(0, 3, 50)
+position = Vector3(0, 3, 60)
 
 [node name="Mesh" type="MeshInstance3D" parent="WallSouth"]
 mesh = SubResource("WallMesh2")
@@ -136,7 +135,7 @@ mesh = SubResource("WallMesh2")
 shape = SubResource("WallCol2")
 
 [node name="WallEast" type="StaticBody3D" parent="."]
-position = Vector3(50, 3, 0)
+position = Vector3(60, 3, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="WallEast"]
 mesh = SubResource("WallMesh")
@@ -145,17 +144,131 @@ mesh = SubResource("WallMesh")
 shape = SubResource("WallCol")
 
 [node name="WallWest" type="StaticBody3D" parent="."]
-position = Vector3(-50, 3, 0)
+position = Vector3(-60, 3, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="WallWest"]
 mesh = SubResource("WallMesh")
 
 [node name="Col" type="CollisionShape3D" parent="WallWest"]
 shape = SubResource("WallCol")
+[node name="Pillar1" type="StaticBody3D" parent="."]
+position = Vector3(-20, 2.5, -20)
 
-; ==================== 玩家出生点（实验室培养舱区域）====================
+[node name="Mesh" type="MeshInstance3D" parent="Pillar1"]
+mesh = SubResource("PillarMesh")
+
+[node name="Col" type="CollisionShape3D" parent="Pillar1"]
+shape = SubResource("PillarCol")
+
+[node name="Pillar2" type="StaticBody3D" parent="."]
+position = Vector3(20, 2.5, -20)
+
+[node name="Mesh" type="MeshInstance3D" parent="Pillar2"]
+mesh = SubResource("PillarMesh")
+
+[node name="Col" type="CollisionShape3D" parent="Pillar2"]
+shape = SubResource("PillarCol")
+
+[node name="Pillar3" type="StaticBody3D" parent="."]
+position = Vector3(-20, 2.5, 20)
+
+[node name="Mesh" type="MeshInstance3D" parent="Pillar3"]
+mesh = SubResource("PillarMesh")
+
+[node name="Col" type="CollisionShape3D" parent="Pillar3"]
+shape = SubResource("PillarCol")
+
+[node name="Pillar4" type="StaticBody3D" parent="."]
+position = Vector3(20, 2.5, 20)
+
+[node name="Mesh" type="MeshInstance3D" parent="Pillar4"]
+mesh = SubResource("PillarMesh")
+
+[node name="Col" type="CollisionShape3D" parent="Pillar4"]
+shape = SubResource("PillarCol")
+
+[node name="Pillar5" type="StaticBody3D" parent="."]
+position = Vector3(0, 2.5, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Pillar5"]
+mesh = SubResource("PillarMesh")
+
+[node name="Col" type="CollisionShape3D" parent="Pillar5"]
+shape = SubResource("PillarCol")
+
+[node name="Pillar6" type="StaticBody3D" parent="."]
+position = Vector3(-40, 2.5, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Pillar6"]
+mesh = SubResource("PillarMesh")
+
+[node name="Col" type="CollisionShape3D" parent="Pillar6"]
+shape = SubResource("PillarCol")
+
+[node name="Pillar7" type="StaticBody3D" parent="."]
+position = Vector3(40, 2.5, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Pillar7"]
+mesh = SubResource("PillarMesh")
+
+[node name="Col" type="CollisionShape3D" parent="Pillar7"]
+shape = SubResource("PillarCol")
+
+[node name="Pillar8" type="StaticBody3D" parent="."]
+position = Vector3(0, 2.5, -40)
+
+[node name="Mesh" type="MeshInstance3D" parent="Pillar8"]
+mesh = SubResource("PillarMesh")
+
+[node name="Col" type="CollisionShape3D" parent="Pillar8"]
+shape = SubResource("PillarCol")
+
+[node name="Pillar9" type="StaticBody3D" parent="."]
+position = Vector3(0, 2.5, 40)
+
+[node name="Mesh" type="MeshInstance3D" parent="Pillar9"]
+mesh = SubResource("PillarMesh")
+
+[node name="Col" type="CollisionShape3D" parent="Pillar9"]
+shape = SubResource("PillarCol")
+
+[node name="MainLight1" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.95, 0.9, 1)
+light_energy = 0.1
+omni_range = 25.0
+position = Vector3(-30, 5.5, -30)
+groups = ["main_light"]
+
+[node name="MainLight2" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.95, 0.9, 1)
+light_energy = 0.1
+omni_range = 25.0
+position = Vector3(30, 5.5, -30)
+groups = ["main_light"]
+
+[node name="MainLight3" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.95, 0.9, 1)
+light_energy = 0.1
+omni_range = 25.0
+position = Vector3(-30, 5.5, 30)
+groups = ["main_light"]
+
+[node name="MainLight4" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.95, 0.9, 1)
+light_energy = 0.1
+omni_range = 25.0
+position = Vector3(30, 5.5, 30)
+groups = ["main_light"]
+
+[node name="MainLight5" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.95, 0.9, 1)
+light_energy = 0.1
+omni_range = 25.0
+position = Vector3(0, 5.5, 0)
+groups = ["main_light"]
+
 [node name="SpawnArea" type="Node3D" parent="."]
-position = Vector3(-35, 0, -35)
+position = Vector3(-45, 0, -45)
 
 [node name="LabPod1" type="MeshInstance3D" parent="SpawnArea"]
 mesh = SubResource("LabPodMesh")
@@ -171,14 +284,11 @@ position = Vector3(-5, 0.1, 0)
 
 [node name="Player" parent="SpawnArea" instance=ExtResource("1_player")]
 position = Vector3(0, 1, 0)
-
-; ==================== 牢房区域（左侧，一排排牢房）====================
 [node name="CellBlockA" type="Node3D" parent="."]
-position = Vector3(-20, 0, 0)
+position = Vector3(-25, 0, 0)
 
-; 牢房1
 [node name="Cell1" type="Node3D" parent="CellBlockA"]
-position = Vector3(0, 0, -20)
+position = Vector3(0, 0, -25)
 
 [node name="BackWall" type="StaticBody3D" parent="CellBlockA/Cell1"]
 position = Vector3(0, 2, -3)
@@ -207,7 +317,6 @@ mesh = SubResource("CellWallMesh")
 [node name="Col" type="CollisionShape3D" parent="CellBlockA/Cell1/RightWall"]
 shape = SubResource("CellWallCol")
 
-; 铁栏杆
 [node name="Bar1" type="MeshInstance3D" parent="CellBlockA/Cell1"]
 mesh = SubResource("BarMesh")
 position = Vector3(-1.5, 1.75, 3)
@@ -224,7 +333,6 @@ position = Vector3(0.5, 1.75, 3)
 mesh = SubResource("BarMesh")
 position = Vector3(1.5, 1.75, 3)
 
-; 牢房2
 [node name="Cell2" type="Node3D" parent="CellBlockA"]
 position = Vector3(0, 0, 0)
 
@@ -255,9 +363,8 @@ mesh = SubResource("CellWallMesh")
 [node name="Col" type="CollisionShape3D" parent="CellBlockA/Cell2/RightWall"]
 shape = SubResource("CellWallCol")
 
-; 牢房3（破了的，怪物从这里出来）
 [node name="Cell3" type="Node3D" parent="CellBlockA"]
-position = Vector3(0, 0, 20)
+position = Vector3(0, 0, 25)
 
 [node name="BackWall" type="StaticBody3D" parent="CellBlockA/Cell3"]
 position = Vector3(0, 2, -3)
@@ -286,12 +393,11 @@ mesh = SubResource("CellWallMesh")
 [node name="Col" type="CollisionShape3D" parent="CellBlockA/Cell3/RightWall"]
 shape = SubResource("CellWallCol")
 
-; ==================== 牢房区域（右侧）====================
 [node name="CellBlockB" type="Node3D" parent="."]
-position = Vector3(20, 0, 0)
+position = Vector3(25, 0, 0)
 
 [node name="Cell4" type="Node3D" parent="CellBlockB"]
-position = Vector3(0, 0, -20)
+position = Vector3(0, 0, -25)
 
 [node name="BackWall" type="StaticBody3D" parent="CellBlockB/Cell4"]
 position = Vector3(0, 2, 3)
@@ -321,7 +427,7 @@ mesh = SubResource("CellWallMesh")
 shape = SubResource("CellWallCol")
 
 [node name="Cell5" type="Node3D" parent="CellBlockB"]
-position = Vector3(0, 0, 0)
+position = Vector3(0, 0, 25)
 
 [node name="BackWall" type="StaticBody3D" parent="CellBlockB/Cell5"]
 position = Vector3(0, 2, 3)
@@ -349,37 +455,31 @@ mesh = SubResource("CellWallMesh")
 
 [node name="Col" type="CollisionShape3D" parent="CellBlockB/Cell5/RightWall"]
 shape = SubResource("CellWallCol")
-
-; ==================== 3个发电机（分散布置）====================
 [node name="Generator1" parent="." instance=ExtResource("3_generator")]
-position = Vector3(-30, 0, 30)
+position = Vector3(-40, 0, 40)
 generator_id = "generator_1"
 generator_name = "1号发电机"
 
 [node name="Generator2" parent="." instance=ExtResource("3_generator")]
-position = Vector3(30, 0, -30)
+position = Vector3(40, 0, -40)
 generator_id = "generator_2"
 generator_name = "2号发电机"
 
 [node name="Generator3" parent="." instance=ExtResource("3_generator")]
-position = Vector3(0, 0, 35)
+position = Vector3(0, 0, 45)
 generator_id = "generator_3"
 generator_name = "3号发电机"
 
-; ==================== 研究员尸体（带门禁卡）====================
 [node name="ResearcherCorpse" parent="." instance=ExtResource("4_corpse")]
-position = Vector3(10, 0, -10)
+position = Vector3(15, 0, -15)
 rotation.y = 1.5
 
-; ==================== 扳手（出生点附近）====================
 [node name="Wrench" parent="." instance=ExtResource("6_wrench")]
-position = Vector3(-30, 0.5, -30)
+position = Vector3(-40, 0.5, -40)
 
-; ==================== 安全门（出口，南侧）====================
 [node name="SecurityDoor" parent="." instance=ExtResource("5_door")]
-position = Vector3(0, 0, 48)
+position = Vector3(0, 0, 58)
 
-; ==================== 怪物（游荡型）====================
 [node name="Monster1" parent="." instance=ExtResource("2_monster")]
 position = Vector3(-15, 1, 10)
 
@@ -390,31 +490,32 @@ position = Vector3(15, 1, -15)
 position = Vector3(0, 1, 20)
 
 [node name="Monster4" parent="." instance=ExtResource("2_monster")]
-position = Vector3(-25, 1, 25)
+position = Vector3(-35, 1, 25)
 
 [node name="Monster5" parent="." instance=ExtResource("8_berserker")]
-position = Vector3(25, 1, 25)
+position = Vector3(35, 1, 25)
 
-; ==================== 警报红灯 ====================
 [node name="AlarmLight1" type="OmniLight3D" parent="."]
 light_color = Color(1, 0.1, 0.1, 1)
 light_energy = 2.0
-omni_range = 15.0
-position = Vector3(-35, 5, -35)
+omni_range = 18.0
+position = Vector3(-45, 5, -45)
+groups = ["emergency_light"]
 
 [node name="AlarmLight2" type="OmniLight3D" parent="."]
 light_color = Color(1, 0.1, 0.1, 1)
 light_energy = 2.0
-omni_range = 15.0
-position = Vector3(35, 5, 35)
+omni_range = 18.0
+position = Vector3(45, 5, 45)
+groups = ["emergency_light"]
 
 [node name="AlarmLight3" type="OmniLight3D" parent="."]
 light_color = Color(1, 0.1, 0.1, 1)
 light_energy = 1.5
-omni_range = 12.0
+omni_range = 15.0
 position = Vector3(0, 5, 0)
+groups = ["emergency_light"]
 
-; ==================== 任务提示标记 ====================
 [node name="TaskHint" type="Label3D" parent="."]
 text = "目标：修复3个发电机 → 搜索研究员尸体获得门禁卡 → 打开安全门逃离"
 font_size = 24
@@ -422,4 +523,4 @@ outline_size = 6
 outline_modulate = Color(0, 0, 0, 0.9)
 billboard = 2
 no_depth_test = true
-position = Vector3(0, 8, -45)
+position = Vector3(0, 8, -55)

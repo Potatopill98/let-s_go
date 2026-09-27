@@ -13,9 +13,32 @@ var interact_tag: String = "wrench"
 var is_held: bool = false
 var holder: Node = null
 
+var player_in_range: bool = false
+
 func _ready() -> void:
 	add_to_group("holdable")
 	_build_wrench_model()
+	body_entered.connect(_on_body_entered)
+	body_exited.connect(_on_body_exited)
+
+func _process(delta: float) -> void:
+	if player_in_range and Input.is_action_just_pressed("interact") and not is_held:
+		var player: Node = get_tree().get_first_node_in_group("player")
+		if player != null:
+			player.pick_up_item(self)
+			player_in_range = false
+
+func _on_body_entered(body: Node) -> void:
+	if body.is_in_group("player") and not is_held:
+		player_in_range = true
+		if UIManager != null:
+			UIManager.show_interaction_prompt("按E拾取扳手")
+
+func _on_body_exited(body: Node) -> void:
+	if body.is_in_group("player"):
+		player_in_range = false
+		if UIManager != null:
+			UIManager.hide_interaction_prompt()
 
 func pick_up(player: Node) -> void:
 	is_held = true

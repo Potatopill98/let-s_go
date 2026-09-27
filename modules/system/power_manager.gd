@@ -31,13 +31,18 @@ func _restore_power() -> void:
 	is_powered = true
 	power_restored.emit()
 	if UIManager != null:
-		UIManager.show_toast("电力已恢复！大门已通电")
-	# 全局灯光变亮
-	var lights: Array = get_tree().get_nodes_in_group("emergency_light")
-	for light in lights:
+		UIManager.show_toast("电力已恢复！实验室灯光已开启")
+	# 警报灯熄灭
+	var alarms: Array = get_tree().get_nodes_in_group("emergency_light")
+	for light in alarms:
 		if light is OmniLight3D:
-			light.light_color = Color(1, 1, 1)
-			light.light_energy = 2.0
+			light.light_energy = 0.0
+	# 主灯点亮
+	var main_lights: Array = get_tree().get_nodes_in_group("main_light")
+	for light in main_lights:
+		if light is OmniLight3D:
+			var tween: Tween = create_tween()
+			tween.tween_property(light, "light_energy", 3.0, 1.0)
 
 func get_power_status() -> bool:
 	return is_powered
