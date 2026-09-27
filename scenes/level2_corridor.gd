@@ -98,7 +98,7 @@ func _init_materials() -> void:
 	mat_handle.roughness = 0.2
 	mat_window = StandardMaterial3D.new()
 	mat_window.albedo_color = Color(0.2, 0.3, 0.4, 0.7)
-	mat_window.emission_enabled = true
+	mat_window.emission_enabled = false
 	mat_window.emission = Color(0.1, 0.2, 0.3)
 	mat_window.emission_energy_multiplier = 0.5
 	mat_window.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -392,15 +392,15 @@ func _frame_piece(pos: Vector3, size: Vector3) -> MeshInstance3D:
 func _indicator(x: float) -> MeshInstance3D:
 	var m: MeshInstance3D = MeshInstance3D.new()
 	var b: BoxMesh = BoxMesh.new()
-	b.size = Vector3(0.05, 0.15, 0.15)
+	b.size = Vector3(0.08, 0.25, 0.9)
 	var imat: StandardMaterial3D = StandardMaterial3D.new()
 	imat.albedo_color = Color(0.1, 1.0, 0.2)
 	imat.emission_enabled = true
 	imat.emission = Color(0.1, 1.0, 0.2)
-	imat.emission_energy_multiplier = 2.0
+	imat.emission_energy_multiplier = 5.0
 	b.material = imat
 	m.mesh = b
-	m.position = Vector3(x, 3.5, 0.5)
+	m.position = Vector3(x, 3.75, 0.5)
 	return m
 
 func _on_door_enter(body: Node, area: Area3D) -> void:
@@ -547,24 +547,48 @@ func _build_escape_and_hub() -> void:
 func build_alarm_system() -> void:
 	var we: WorldEnvironment = WorldEnvironment.new()
 	var env: Environment = Environment.new()
-	env.ambient_light_color = Color(0.03, 0.03, 0.04)
-	env.ambient_light_energy = 0.04
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0, 0, 0)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0, 0, 0)
+	env.ambient_light_energy = 0.0
+	env.tonemap_exposure = 0.6
 	we.environment = env
 	add_child(we)
 	var z: float = 25.0
 	while z < MAIN_END - 10.0:
 		var ll: OmniLight3D = OmniLight3D.new()
 		ll.light_color = Color(1.0, 0.1, 0.1)
-		ll.light_energy = 3.0
-		ll.omni_range = 10.0
+		ll.light_energy = 1.0
+		ll.omni_range = 6.0
 		ll.position = Vector3(-HALF_W + 0.5, CORRIDOR_HEIGHT - 0.4, z)
+		var ll_bulb: MeshInstance3D = MeshInstance3D.new()
+		var ll_box: BoxMesh = BoxMesh.new()
+		ll_box.size = Vector3(0.15, 0.15, 0.6)
+		var ll_mat: StandardMaterial3D = StandardMaterial3D.new()
+		ll_mat.emission_enabled = true
+		ll_mat.emission = Color(1.0, 0.1, 0.1)
+		ll_mat.emission_energy_multiplier = 4.0
+		ll_box.material = ll_mat
+		ll_bulb.mesh = ll_box
+		ll.add_child(ll_bulb)
 		add_child(ll)
 		alarm_lights.append(ll)
 		var lr: OmniLight3D = OmniLight3D.new()
 		lr.light_color = Color(1.0, 0.1, 0.1)
-		lr.light_energy = 3.0
-		lr.omni_range = 10.0
+		lr.light_energy = 1.0
+		lr.omni_range = 6.0
 		lr.position = Vector3(HALF_W - 0.5, CORRIDOR_HEIGHT - 0.4, z)
+		var lr_bulb: MeshInstance3D = MeshInstance3D.new()
+		var lr_box: BoxMesh = BoxMesh.new()
+		lr_box.size = Vector3(0.15, 0.15, 0.6)
+		var lr_mat: StandardMaterial3D = StandardMaterial3D.new()
+		lr_mat.emission_enabled = true
+		lr_mat.emission = Color(1.0, 0.1, 0.1)
+		lr_mat.emission_energy_multiplier = 4.0
+		lr_box.material = lr_mat
+		lr_bulb.mesh = lr_box
+		lr.add_child(lr_bulb)
 		add_child(lr)
 		alarm_lights.append(lr)
 		_build_floor_light(-2.5, z)
@@ -579,7 +603,7 @@ func _build_floor_light(x: float, z: float) -> void:
 	fm.albedo_color = Color(1.0, 0.3, 0.1)
 	fm.emission_enabled = true
 	fm.emission = Color(1.0, 0.2, 0.05)
-	fm.emission_energy_multiplier = 3.0
+	fm.emission_energy_multiplier = 0.7
 	b.material = fm
 	m.mesh = b
 	m.position = Vector3(x, 0.03, z + 10.0)
