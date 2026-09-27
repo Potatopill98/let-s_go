@@ -37,6 +37,7 @@ var last_pos: Vector3 = Vector3.ZERO
 var hp_label: Label3D = null
 
 @onready var mesh: MeshInstance3D = $MeshInstance3D
+var nav_agent: NavigationAgent3D = null
 
 func _ready() -> void:
 	current_health = max_health
@@ -44,6 +45,7 @@ func _ready() -> void:
 	last_pos = global_position
 	home_position = global_position
 	_build_hp_bar()
+	nav_agent = get_node_or_null("NavigationAgent3D") as NavigationAgent3D
 
 ## 头顶血条（Label3D billboard，参考霓虹竞技场实现）
 func _build_hp_bar() -> void:
@@ -138,9 +140,24 @@ func _physics_process(delta: float) -> void:
 			if is_instance_valid(target):
 				target.take_damage(attack_damage, to_target.normalized() * 3.0)
 	else:
-		var dir: Vector3 = to_target.normalized()
-		velocity.x = dir.x * move_speed
-		velocity.z = dir.z * move_speed
+		# 使用NavigationAgent3D寻路
+		if nav_agent != null and is_instance_valid(nav_agent):
+			nav_agent.target_position = target.global_position
+			var next_pos: Vector3 = nav_agent.get_next_path_position()
+			var to_next: Vector3 = next_pos - global_position
+			to_next.y = 0.0
+			if to_next.length() > 0.1:
+				var dir: Vector3 = to_next.normalized()
+				velocity.x = dir.x * move_speed
+				velocity.z = dir.z * move_speed
+				rotation.y = atan2(-dir.x, -dir.z)
+			else:
+				velocity.x = 0.0
+				velocity.z = 0.0
+		else:
+			var dir: Vector3 = to_target.normalized()
+			velocity.x = dir.x * move_speed
+			velocity.z = dir.z * move_speed
 	# Stuck detection - jump if stuck
 	if velocity.length() > 1.0:
 		stuck_check_timer += delta

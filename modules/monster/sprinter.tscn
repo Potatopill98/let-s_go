@@ -37,3 +37,10 @@ position.y = 0.8
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("SprinterCol")
 position.y = 0.8
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+radius = 0.35
+height = 1.6
+max_speed = 8.0
+path_desired_distance = 1.0
+target_desired_distance = 1.5

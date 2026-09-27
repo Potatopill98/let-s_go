@@ -33,3 +33,10 @@ position.y = 1.25
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("BerserkerCol")
 position.y = 1.25
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+radius = 0.75
+height = 2.5
+max_speed = 4.0
+path_desired_distance = 1.5
+target_desired_distance = 2.0

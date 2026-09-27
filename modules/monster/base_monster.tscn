@@ -1,4 +1,4 @@
-﻿[gd_scene load_steps=5 format=3 uid="uid://monster_module_001"]
+[gd_scene load_steps=5 format=3 uid="uid://monster_module_001"]
 
 [ext_resource type="Script" path="res://modules/monster/base_monster.gd" id="1"]
 
@@ -25,4 +25,11 @@ position.y = 0.9
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("MonsterCol")
 position.y = 0.9
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+radius = 0.5
+height = 1.8
+max_speed = 5.0
+path_desired_distance = 1.0
+target_desired_distance = 1.5
 

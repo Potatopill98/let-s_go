@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://modules/monster/sprinter.tscn" id="7_sprinter"]
 [ext_resource type="PackedScene" path="res://modules/monster/berserker.tscn" id="8_berserker"]
 [ext_resource type="PackedScene" path="res://modules/item/flashlight.tscn" id="9_flashlight"]
+[ext_resource type="Script" path="res://modules/level/navigation_region.gd" id="10_nav"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMat"]
 albedo_color = Color(0.2, 0.2, 0.22, 1)
