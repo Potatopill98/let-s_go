@@ -495,6 +495,16 @@ rotation.y = 1.5
 [node name="Wrench" parent="." instance=ExtResource("6_wrench")]
 position = Vector3(-40, 0.5, -40)
 
+; ==================== 手电筒（散落照明道具）====================
+[node name="Flashlight1" parent="." instance=ExtResource("9_flashlight")]
+position = Vector3(-10, 0.5, -35)
+
+[node name="Flashlight2" parent="." instance=ExtResource("9_flashlight")]
+position = Vector3(30, 0.5, 10)
+
+[node name="Flashlight3" parent="." instance=ExtResource("9_flashlight")]
+position = Vector3(-35, 0.5, 35)
+
 [node name="SecurityDoor" parent="." instance=ExtResource("5_door")]
 position = Vector3(0, 0, 58)
 
