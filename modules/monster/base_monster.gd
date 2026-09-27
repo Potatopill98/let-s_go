@@ -168,12 +168,9 @@ func find_nearest_player() -> Player:
 			nearest = p
 	return nearest
 
-## 扇形视野检测：只检测面前view_angle度、view_range米内的玩家
+## 360度圆形范围检测+墙壁遮挡：玩家在view_range米内且无墙壁遮挡则被发现
 func find_player_in_fov() -> Player:
 	var players: Array = get_tree().get_nodes_in_group("player")
-	var forward: Vector3 = -global_transform.basis.z
-	forward.y = 0.0
-	forward = forward.normalized()
 	for node in players:
 		if not is_instance_valid(node):
 			continue
@@ -185,19 +182,15 @@ func find_player_in_fov() -> Player:
 		var dist: float = to_player.length()
 		if dist > view_range or dist < 0.1:
 			continue
-		var dir_to_player: Vector3 = to_player.normalized()
-		var dot: float = forward.dot(dir_to_player)
-		var angle_deg: float = rad_to_deg(acos(clamp(dot, -1.0, 1.0)))
-		if angle_deg <= view_angle * 0.5:
-			# 可选：射线检测遮挡
-			var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
-			var from: Vector3 = global_position + Vector3(0, 1.0, 0)
-			var to: Vector3 = p.global_position + Vector3(0, 1.0, 0)
-			var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(from, to)
-			query.exclude = [get_rid()]
-			var result: Dictionary = space_state.intersect_ray(query)
-			if result.is_empty() or (result.has("collider") and result["collider"] == p):
-				return p
+		# 射线检测：有墙壁遮挡则看不到玩家
+		var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+		var from: Vector3 = global_position + Vector3(0, 1.0, 0)
+		var to: Vector3 = p.global_position + Vector3(0, 1.0, 0)
+		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(from, to)
+		query.exclude = [get_rid()]
+		var result: Dictionary = space_state.intersect_ray(query)
+		if result.is_empty() or (result.has("collider") and result["collider"] == p):
+			return p
 	return null
 
 func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
