@@ -28,7 +28,6 @@ func _ready() -> void:
 	randomize()
 	_build_structure()
 	_build_doors_and_rooms()
-	_build_obstacles()
 	_build_button()
 	_build_ceiling_trap()
 	_build_alarm_lights()
@@ -551,13 +550,20 @@ func _build_navigation() -> void:
 	nav.bake_navigation_mesh(true)
 
 func _process(delta: float) -> void:
+	# 警报灯：左闪→右闪→全黑→循环
 	alarm_timer += delta
-	if alarm_timer >= 0.7:
-		alarm_timer = 0.0
-		alarm_state = not alarm_state
-		for i in range(alarm_lights.size()):
-			if alarm_lights[i] != null and is_instance_valid(alarm_lights[i]):
-				alarm_lights[i].visible = (i % 2 == 0) == alarm_state
+	var phase: int = int(alarm_timer / 0.6) % 3
+	for i in range(alarm_lights.size()):
+		if alarm_lights[i] != null and is_instance_valid(alarm_lights[i]):
+			if phase == 0:
+				# 左闪
+				alarm_lights[i].visible = (i % 2 == 0)
+			elif phase == 1:
+				# 右闪
+				alarm_lights[i].visible = (i % 2 == 1)
+			else:
+				# 全黑
+				alarm_lights[i].visible = false
 	if Input.is_action_just_pressed("interact"):
 		if _door_prompt and _cur_door != null:
 			_try_open_door(_cur_door)
