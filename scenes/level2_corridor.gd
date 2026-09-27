@@ -31,6 +31,7 @@ func _ready() -> void:
 	_build_button()
 	_build_ceiling_trap()
 	_build_alarm_lights()
+	_build_floor_lights()
 	_build_navigation()
 	if UIManager != null:
 		UIManager.show_announcement("紧急疏散通道 - B区", 3.0)
@@ -43,8 +44,8 @@ func _build_structure() -> void:
 	_make_floor(Vector3(0, -0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 0.2, CORRIDOR_LENGTH))
 	# 天花板（只有通道宽度）
 	_make_ceiling(Vector3(0, CORRIDOR_HEIGHT + 0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 0.2, CORRIDOR_LENGTH))
-	# 尽头墙
-	_make_wall(Vector3(0, CORRIDOR_HEIGHT / 2, CORRIDOR_LENGTH), Vector3(CORRIDOR_WIDTH, CORRIDOR_HEIGHT, 0.3))
+	# 尽头墙（加宽，完全封死包括小房间区域）
+	_make_wall(Vector3(0, CORRIDOR_HEIGHT / 2, CORRIDOR_LENGTH), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, CORRIDOR_HEIGHT, 0.3))
 	# 入口两侧墙（留中间通道口）
 	_make_wall(Vector3(-half_w / 2 - 0.15, CORRIDOR_HEIGHT / 2, 0), Vector3(half_w, CORRIDOR_HEIGHT, 0.3))
 	_make_wall(Vector3(half_w / 2 + 0.15, CORRIDOR_HEIGHT / 2, 0), Vector3(half_w, CORRIDOR_HEIGHT, 0.3))
@@ -294,6 +295,13 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	area.body_entered.connect(func(body): _on_door_enter(body, area))
 	area.body_exited.connect(func(body): _on_door_exit(body))
 	door.add_child(area)
+	# 门上方小灯指引（微弱发光，让玩家知道这里有门）
+	var door_light: OmniLight3D = OmniLight3D.new()
+	door_light.light_color = Color(0.6, 0.6, 0.7)
+	door_light.light_energy = 0.8
+	door_light.omni_range = 4.0
+	door_light.position = Vector3(0, CORRIDOR_HEIGHT - 0.5, 0)
+	door.add_child(door_light)
 	door.position = Vector3(door_x, 0, z_pos)
 	add_child(door)
 
@@ -358,11 +366,46 @@ func _try_open_door(area: Area3D) -> void:
 	tw.tween_property(hinge, "position:z", DOOR_WIDTH + 0.3, 0.8)
 	tw.set_trans(Tween.TRANS_QUAD)
 	tw.set_ease(Tween.EASE_IN_OUT)
-	# 出口门
+	# 出口门：开门2秒后自动关闭
 	if dt == "exit":
 		exit_door_open = true
 		if UIManager != null:
-			UIManager.show_announcement("安全门已打开 - 进入下一关！", 5.0)
+			UIManager.show_announcement("安全门已打开 - 快进去！", 3.0)
+		# 2秒后自动关门
+		var close_timer: Timer = Timer.new()
+		close_timer.wait_time = 2.0
+		close_timer.one_shot = true
+		close_timer.timeout.connect(func():
+			var tw2: Tween = create_tween()
+			tw2.tween_property(hinge, "position:z", 0.0, 0.6)
+			tw2.set_trans(Tween.TRANS_QUAD)
+			tw2.set_ease(Tween.EASE_IN_OUT)
+			area.set_meta("is_opening", false)
+			close_timer.queue_free()
+		)
+		add_child(close_timer)
+		close_timer.start()
+		# 在出口门小房间里创建传送区域
+		var room_z: float = area.get_meta("room_z")
+		var room_is_left: bool = area.get_meta("room_is_left")
+		var half_w3: float = CORRIDOR_WIDTH / 2
+		var tx: float = -half_w3 - ROOM_SIZE / 2 if room_is_left else half_w3 + ROOM_SIZE / 2
+		var teleport: Area3D = Area3D.new()
+		var tc: CollisionShape3D = CollisionShape3D.new()
+		var tshape: BoxShape3D = BoxShape3D.new()
+		tshape.size = Vector3(ROOM_SIZE - 0.5, 3.0, ROOM_SIZE - 0.5)
+		tc.shape = tshape
+		tc.position.y = 1.5
+		teleport.add_child(tc)
+		teleport.position = Vector3(tx, 0, room_z)
+		teleport.body_entered.connect(func(body):
+			if body.is_in_group("player"):
+				if UIManager != null:
+					UIManager.show_announcement("已进入安全区 - 下一关加载中...", 3.0)
+				# 传送到下一关（暂时打印，后续接主场景）
+				print("[Level2] 玩家进入安全区，准备传送下一关")
+		)
+		add_child(teleport)
 		return
 	# 普通门：开门后放怪
 	var has_m: bool = area.get_meta("has_monster")
@@ -534,10 +577,38 @@ func _build_alarm_lights() -> void:
 		alarm_lights.append(lr)
 	var env: WorldEnvironment = WorldEnvironment.new()
 	var env_res: Environment = Environment.new()
-	env_res.ambient_light_color = Color(0.3, 0.3, 0.35)
-	env_res.ambient_light_energy = 0.6
+	env_res.ambient_light_color = Color(0.08, 0.08, 0.1)
+	env_res.ambient_light_energy = 0.12
 	env.environment = env_res
 	add_child(env)
+
+func _build_floor_lights() -> void:
+	# 地板警示灯：每隔一段距离一个小的红色发光方块，照亮环境
+	for i in range(25):
+		var z: float = 15.0 + i * 20.0
+		if z > CORRIDOR_LENGTH - 15:
+			break
+		# 左侧地板灯
+		var fl: MeshInstance3D = MeshInstance3D.new()
+		var fb: BoxMesh = BoxMesh.new()
+		fb.size = Vector3(0.3, 0.05, 0.3)
+		var fmat: StandardMaterial3D = StandardMaterial3D.new()
+		fmat.albedo_color = Color(1.0, 0.3, 0.1)
+		fmat.emission_enabled = true
+		fmat.emission = Color(1.0, 0.2, 0.05)
+		fmat.emission_energy_multiplier = 3.0
+		fb.material = fmat
+		fl.mesh = fb
+		fl.position = Vector3(-2.5, 0.03, z)
+		add_child(fl)
+		# 右侧地板灯
+		var fr: MeshInstance3D = MeshInstance3D.new()
+		var frb: BoxMesh = BoxMesh.new()
+		frb.size = Vector3(0.3, 0.05, 0.3)
+		frb.material = fmat
+		fr.mesh = frb
+		fr.position = Vector3(2.5, 0.03, z)
+		add_child(fr)
 
 func _build_navigation() -> void:
 	var nav: NavigationRegion3D = NavigationRegion3D.new()
