@@ -3,7 +3,7 @@ extends BaseMonster
 ## 追逐型怪物（第二关Boss）
 ## 体型巨大塞满通道，可穿过所有障碍物，速度慢但一直追
 
-@export var chase_speed: float = 24.0
+@export var chase_speed: float = 20.4
 
 func _ready() -> void:
 	super._ready()

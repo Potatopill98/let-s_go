@@ -304,7 +304,7 @@ func _build_one_door(dz: float, is_left: bool, idx: int, is_exit: bool) -> void:
 	# 门上方指引灯
 	var dl: OmniLight3D = OmniLight3D.new()
 	dl.light_color = Color(0.6, 0.6, 0.7)
-	dl.light_energy = 0.7
+	dl.light_energy = 0.3
 	dl.omni_range = 4.0
 	dl.position = Vector3(0, CORRIDOR_HEIGHT - 0.5, 0)
 	frame_body.add_child(dl)
@@ -547,8 +547,8 @@ func _build_escape_and_hub() -> void:
 func build_alarm_system() -> void:
 	var we: WorldEnvironment = WorldEnvironment.new()
 	var env: Environment = Environment.new()
-	env.ambient_light_color = Color(0.08, 0.08, 0.1)
-	env.ambient_light_energy = 0.12
+	env.ambient_light_color = Color(0.03, 0.03, 0.04)
+	env.ambient_light_energy = 0.04
 	we.environment = env
 	add_child(we)
 	var z: float = 25.0
