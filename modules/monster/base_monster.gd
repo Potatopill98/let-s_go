@@ -8,7 +8,7 @@ class_name BaseMonster
 # ============================================================
 
 # Params
-@export var move_speed: float = 3.0
+@export var move_speed: float = 6.0
 @export var detect_range: float = 35.0
 @export var attack_range: float = 1.8
 @export var attack_damage: float = 8.0

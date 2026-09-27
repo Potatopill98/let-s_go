@@ -13,12 +13,12 @@ const ThrowableScript = preload("res://modules/weapon/throwable.gd")
 # ============================================================
 
 # Movement params
-@export var walk_speed: float = 5.0
-@export var run_speed: float = 8.0
+@export var walk_speed: float = 10.0
+@export var run_speed: float = 16.0
 @export var jump_velocity: float = 4.5
 @export var mouse_sensitivity: float = 0.002
 # Dodge params
-@export var dodge_speed: float = 12.0
+@export var dodge_speed: float = 24.0
 @export var dodge_duration: float = 0.3
 @export var dodge_cooldown: float = 1.0
 # Punch params
@@ -38,6 +38,14 @@ var is_dodging: bool = false
 var punch_cd_timer: float = 0.0
 var dodge_direction: Vector3 = Vector3.ZERO
 var hit_stun_timer: float = 0.0
+# Downed / death state
+var is_downed: bool = false
+var is_dead: bool = false
+var downed_bleed_timer: float = 100.0
+var downed_crawl_speed: float = 1.5
+var revive_health: float = 30.0
+var nearby_downed_player: Node = null
+var revive_prompt_shown: bool = false
 
 # Holdable item system - one item at a time
 var current_held_item: Node = null
@@ -79,6 +87,13 @@ func _input(event: InputEvent) -> void:
 		head.rotation.x = clamp(head.rotation.x, -PI / 2.0 + 0.01, PI / 2.0 - 0.01)
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Skip most input when downed/dead
+	if is_downed or is_dead:
+		return
+	# Revive teammate with E
+	if event.is_action_pressed("interact"):
+		_try_revive()
+		return
 	# Skip input during hit stun
 	if hit_stun_timer > 0.0:
 		return
@@ -125,6 +140,8 @@ func _physics_process(delta: float) -> void:
 		UIManager.update_health(current_health, max_health)
 	# Update held item UI
 	update_held_item_ui()
+	# Check for nearby downed teammate to revive
+	_check_downed_teammate()
 	# Attack check - left click
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not is_dodging and hit_stun_timer <= 0.0:
 		handle_attack()
@@ -155,6 +172,8 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 func handle_attack() -> void:
+	if is_downed or is_dead:
+		return
 	# If holding weapon, use weapon attack
 	if current_held_item != null and current_held_item.has_method("can_attack") and current_held_item.can_attack():
 		current_held_item.attack()
@@ -208,7 +227,13 @@ func start_punch() -> void:
 		hit_monster.take_damage(punch_damage, knockback)
 
 func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
-	if current_health <= 0.0:
+	if is_dead:
+		return
+	# Already downed: monsters reduce bleed-out timer, no knockback
+	if is_downed:
+		downed_bleed_timer -= amount
+		if downed_bleed_timer <= 0.0:
+			_die()
 		return
 	# Apply equipment damage resistance
 	var actual_damage: float = amount
@@ -221,7 +246,69 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	if UIManager != null:
 		UIManager.flash_damage()
 	if current_health <= 0.0:
-		current_health = 0.0
+		_enter_downed()
+
+func _enter_downed() -> void:
+	is_downed = true
+	current_health = 0.0
+	downed_bleed_timer = 100.0
+	velocity = Vector3.ZERO
+	# Lower camera to ground
+	head.position.y = 0.5
+	if UIManager != null:
+		UIManager.show_announcement("你已倒地 - 等待队友救援", 3.0)
+	print("[Player] 进入倒地状态，100秒内需要救援")
+
+func _check_downed_teammate() -> void:
+	var players: Array = get_tree().get_nodes_in_group("player")
+	var found: Node = null
+	for p in players:
+		if p == self:
+			continue
+		if p.is_downed and not p.is_dead:
+			var d: float = global_position.distance_to(p.global_position)
+			if d <= 2.5:
+				found = p
+				break
+	nearby_downed_player = found
+	if found != null:
+		if not revive_prompt_shown:
+			revive_prompt_shown = true
+			if UIManager != null:
+				UIManager.show_interaction_prompt("按E - 救起队友 (%.0f秒)" % found.downed_bleed_timer)
+		else:
+			if UIManager != null:
+				UIManager.show_interaction_prompt("按E - 救起队友 (%.0f秒)" % found.downed_bleed_timer)
+	else:
+		if revive_prompt_shown:
+			revive_prompt_shown = false
+			if UIManager != null:
+				UIManager.hide_interaction_prompt()
+
+func _try_revive() -> void:
+	if nearby_downed_player != null and is_instance_valid(nearby_downed_player):
+		nearby_downed_player.revive_player()
+		nearby_downed_player = null
+		revive_prompt_shown = false
+		if UIManager != null:
+			UIManager.hide_interaction_prompt()
+func revive_player() -> void:
+	if not is_downed:
+		return
+	is_downed = false
+	current_health = revive_health
+	head.position.y = 1.6
+	if UIManager != null:
+		UIManager.show_announcement("已被队友救起", 2.0)
+	print("[Player] 被队友救起")
+
+func _die() -> void:
+	is_dead = true
+	is_downed = false
+	head.position.y = 0.3
+	if UIManager != null:
+		UIManager.show_announcement("你已死亡", 3.0)
+	print("[Player] 死亡出局")
 
 # ============================================================
 # Holdable Item System

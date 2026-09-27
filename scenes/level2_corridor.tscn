@@ -10,3 +10,4 @@ script = ExtResource("1_level2")
 position = Vector3(0, 1, 5)
 
 [node name="Player" parent="PlayerSpawn" instance=ExtResource("2_player")]
+rotation = Vector3(0, 3.14159, 0)

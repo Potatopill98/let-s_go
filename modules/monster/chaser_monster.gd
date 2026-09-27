@@ -3,7 +3,7 @@ extends BaseMonster
 ## 追逐型怪物（第二关Boss）
 ## 体型巨大塞满通道，可穿过所有障碍物，速度慢但一直追
 
-@export var chase_speed: float = 2.5
+@export var chase_speed: float = 24.0
 
 func _ready() -> void:
 	super._ready()
@@ -47,7 +47,13 @@ func _physics_process(delta: float) -> void:
 	else:
 		# 直接朝玩家移动，穿过所有障碍物
 		var dir: Vector3 = to_target.normalized()
-		global_position.x += dir.x * move_speed * delta
-		global_position.z += dir.z * move_speed * delta
+		var new_x: float = global_position.x + dir.x * move_speed * delta
+		var new_z: float = global_position.z + dir.z * move_speed * delta
+		# 边界：不能进入逃生走廊（安全门x=3.5, z=449.5~452.5）
+		# 大怪物半径约3，中心x限制在0.5，停在安全门前
+		if abs(new_z - 451.0) < 3.5 and new_x > 0.5:
+			new_x = 0.5
+		global_position.x = new_x
+		global_position.z = new_z
 		# 保持在地面高度
 		global_position.y = 2.0

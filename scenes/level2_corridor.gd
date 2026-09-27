@@ -1,533 +1,411 @@
 extends Node3D
 
-## 第二关：狭长逃生走廊 v4
-## 通道7米宽，两侧实心墙，有怪门后建独立小房间，锁死门直接贴墙
+## ============================================================
+## 第二关：狭长逃生走廊（重做版）
+## 连接室 -> 主走廊(黑暗/警报灯) -> 侧面安全门 -> 逃生走廊 -> 安全中间层
+## 门板为独立可移动 StaticBody，碰撞直接挂 CollisionObject（最可靠）
+## ============================================================
 
-const CORRIDOR_LENGTH: float = 500.0
+# ---- 主走廊尺寸 ----
 const CORRIDOR_WIDTH: float = 7.0
 const CORRIDOR_HEIGHT: float = 4.0
-const ROOM_SIZE: float = 2.2
+const CONNECTION_ROOM_END: float = 20.0
+const MAIN_END: float = 460.0
+const HALF_W: float = 3.5
+
+# ---- 门 / 小房间 ----
 const DOOR_SPACING: float = 22.0
 const DOOR_WIDTH: float = 2.0
 const DOOR_HEIGHT: float = 4.0
+const ROOM_DEPTH: float = 2.2
+const FIRST_DOOR_Z: float = 55.0
+const WALL_THICK: float = 0.3
 
-var chaser_scene: PackedScene = preload("res://modules/monster/chaser_monster.tscn")
-var monster_scene: PackedScene = preload("res://modules/monster/base_monster.tscn")
-var health_scene: PackedScene = preload("res://modules/item/health_pickup.tscn")
+# ---- 出口 / 逃生走廊 / 中间层 ----
+const EXIT_Z: float = 451.0
+const ESCAPE_LENGTH: float = 50.0
+const ESCAPE_WIDTH: float = 3.0
+const HUB_SIZE: float = 16.0
+const HUB_HEIGHT: float = 5.0
+
+# ---- 场景 ----
+const MONSTER_SCENE: PackedScene = preload("res://modules/monster/base_monster.tscn")
+const CHASER_SCENE: PackedScene = preload("res://modules/monster/chaser_monster.tscn")
+const HEALTH_SCENE: PackedScene = preload("res://modules/item/health_pickup.tscn")
+
+# ---- 运行状态 ----
 var chaser: Node = null
-var button_pressed: bool = false
-var countdown_timer: float = 0.0
-var ceiling_open: bool = false
+var test_started: bool = false
+var countdown: float = 0.0
+var chaser_released: bool = false
 var ceiling_trap: MeshInstance3D = null
-var exit_door_open: bool = false
 var alarm_lights: Array = []
-var alarm_state: bool = false
 var alarm_timer: float = 0.0
+var current_door_area: Area3D = null
+var current_gate_area: Area3D = null
+var door_z_list: Array = []
+var hub_reached: bool = false
+
+# ---- 材质 ----
+var mat_floor: StandardMaterial3D
+var mat_wall: StandardMaterial3D
+var mat_ceiling: StandardMaterial3D
+var mat_frame: StandardMaterial3D
+var mat_panel: StandardMaterial3D
+var mat_handle: StandardMaterial3D
+var mat_window: StandardMaterial3D
 
 func _ready() -> void:
 	randomize()
-	_build_structure()
+	_init_materials()
+	_build_door_z_list()
+	_build_base()
 	_build_connection_room()
-	_build_doors_and_rooms()
-	_build_alarm_lights()
-	_build_floor_lights()
-	_build_safe_zone()
+	_build_main_walls()
+	_build_rooms_and_doors()
+	_build_escape_and_hub()
+	build_alarm_system()
 	_build_navigation()
 	if UIManager != null:
 		UIManager.show_announcement("紧急疏散通道 - B区", 3.0)
-		UIManager.show_announcement("前方通道已封锁 - 请寻找安全出口", 3.0)
-		UIManager.show_announcement("警告：部分房门后可能有实验体", 3.0)
+		UIManager.show_announcement("前方通道已封锁 - 请寻找安全出口", 3.5)
+		UIManager.show_announcement("警告：部分房门后可能有实验体", 4.0)
 
-func _build_structure() -> void:
-	var half_w: float = CORRIDOR_WIDTH / 2
-	# 地板（只有通道宽度）
-	_make_floor(Vector3(0, -0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 0.2, CORRIDOR_LENGTH))
-	# 天花板（只有通道宽度）
-	_make_ceiling(Vector3(0, CORRIDOR_HEIGHT + 0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 0.2, CORRIDOR_LENGTH))
-	# 尽头墙（封死走廊正前方，加高到6米防止透光）
-	_make_wall(Vector3(0, 3.0, CORRIDOR_LENGTH), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 6.0, 0.3))
-	# 入口由连接室处理
-	# 左右外墙（分段，留门洞）
-	var door_count: int = int((CORRIDOR_LENGTH - 40) / DOOR_SPACING)
-	for i in range(door_count):
-		var z_center: float = 55.0 + i * DOOR_SPACING
-		if z_center > CORRIDOR_LENGTH - 30:
-			break
-		var seg_start: float = z_center - DOOR_SPACING / 2
-		var seg_end: float = z_center + DOOR_SPACING / 2
-		var door_start: float = z_center - DOOR_WIDTH / 2
-		var door_end: float = z_center + DOOR_WIDTH / 2
-		# 左墙
-		if door_start > seg_start:
-			_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, (seg_start + door_start) / 2), Vector3(0.3, CORRIDOR_HEIGHT, door_start - seg_start))
-		if seg_end > door_end:
-			_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, (door_end + seg_end) / 2), Vector3(0.3, CORRIDOR_HEIGHT, seg_end - door_end))
-		# 右墙
-		if door_start > seg_start:
-			_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, (seg_start + door_start) / 2), Vector3(0.3, CORRIDOR_HEIGHT, door_start - seg_start))
-		if seg_end > door_end:
-			_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, (door_end + seg_end) / 2), Vector3(0.3, CORRIDOR_HEIGHT, seg_end - door_end))
-	# 补充墙段（第一个门之前和最后一个门之后）
-	var first_z: float = 55.0 - DOOR_SPACING / 2
-	if first_z > 0:
-		_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, first_z / 2), Vector3(0.3, CORRIDOR_HEIGHT, first_z))
-		_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, first_z / 2), Vector3(0.3, CORRIDOR_HEIGHT, first_z))
+# ============================================================
+# 材质
+# ============================================================
+func _init_materials() -> void:
+	mat_floor = StandardMaterial3D.new()
+	mat_floor.albedo_color = Color(0.2, 0.2, 0.22)
+	mat_floor.roughness = 0.9
+	mat_wall = StandardMaterial3D.new()
+	mat_wall.albedo_color = Color(0.28, 0.28, 0.32)
+	mat_wall.roughness = 0.85
+	mat_ceiling = StandardMaterial3D.new()
+	mat_ceiling.albedo_color = Color(0.18, 0.18, 0.2)
+	mat_ceiling.roughness = 0.9
+	mat_frame = StandardMaterial3D.new()
+	mat_frame.albedo_color = Color(0.4, 0.43, 0.48)
+	mat_frame.metallic = 0.8
+	mat_frame.roughness = 0.35
+	mat_panel = StandardMaterial3D.new()
+	mat_panel.albedo_color = Color(0.55, 0.58, 0.62)
+	mat_panel.metallic = 0.7
+	mat_panel.roughness = 0.4
+	mat_handle = StandardMaterial3D.new()
+	mat_handle.albedo_color = Color(0.7, 0.7, 0.75)
+	mat_handle.metallic = 0.9
+	mat_handle.roughness = 0.2
+	mat_window = StandardMaterial3D.new()
+	mat_window.albedo_color = Color(0.2, 0.3, 0.4, 0.7)
+	mat_window.emission_enabled = true
+	mat_window.emission = Color(0.1, 0.2, 0.3)
+	mat_window.emission_energy_multiplier = 0.5
+	mat_window.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 
+func _build_door_z_list() -> void:
+	door_z_list.clear()
+	var z: float = FIRST_DOOR_Z
+	while z <= EXIT_Z:
+		door_z_list.append(z)
+		z += DOOR_SPACING
 
+# ============================================================
+# 基础：地板 / 天花板（一整块覆盖走廊+两侧房间）
+# ============================================================
+func _build_base() -> void:
+	var cover_width: float = CORRIDOR_WIDTH + ROOM_DEPTH * 2.0
+	_make_solid(Vector3(0, -0.1, MAIN_END / 2.0), Vector3(cover_width, 0.2, MAIN_END), mat_floor)
+	_make_solid(Vector3(0, CORRIDOR_HEIGHT + 0.1, MAIN_END / 2.0), Vector3(cover_width, 0.2, MAIN_END), mat_ceiling)
+	_make_solid(Vector3(0, 3.0, MAIN_END), Vector3(cover_width, 6.0, 0.4), mat_wall)
+
+func _make_solid(pos: Vector3, size: Vector3, mat: Material) -> StaticBody3D:
+	var body: StaticBody3D = StaticBody3D.new()
+	var mesh: MeshInstance3D = MeshInstance3D.new()
+	var box: BoxMesh = BoxMesh.new()
+	box.size = size
+	box.material = mat
+	mesh.mesh = box
+	body.add_child(mesh)
+	var col: CollisionShape3D = CollisionShape3D.new()
+	var shape: BoxShape3D = BoxShape3D.new()
+	shape.size = size
+	col.shape = shape
+	body.add_child(col)
+	body.position = pos
+	add_child(body)
+	return body
+
+# ============================================================
+# 连接室（z=0~20，亮灯准备区）
+# ============================================================
 func _build_connection_room() -> void:
-	# 入口连接室：z=0到z=20，玩家从第一关过来后进入这里
-	var half_w: float = CORRIDOR_WIDTH / 2
-	# 连接室地板和天花板（已经由主结构覆盖，这里只建墙）
-	# 两侧墙
-	_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, 10.0), Vector3(0.3, CORRIDOR_HEIGHT, 20.0))
-	_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, 10.0), Vector3(0.3, CORRIDOR_HEIGHT, 20.0))
-	# 入口墙（z=0，留中间通道口给第一关过来）
-	_make_wall(Vector3(-half_w / 2 - 0.15, CORRIDOR_HEIGHT / 2, 0), Vector3(half_w, CORRIDOR_HEIGHT, 0.3))
-	_make_wall(Vector3(half_w / 2 + 0.15, CORRIDOR_HEIGHT / 2, 0), Vector3(half_w, CORRIDOR_HEIGHT, 0.3))
-	# 连接室里的灯（亮的，玩家在这里准备）
-	var room_light: OmniLight3D = OmniLight3D.new()
-	room_light.light_color = Color(0.9, 0.9, 0.95)
-	room_light.light_energy = 2.0
-	room_light.omni_range = 15.0
-	room_light.position = Vector3(0, CORRIDOR_HEIGHT - 0.5, 10.0)
-	add_child(room_light)
-	# 出口大门（整个通道大小，z=20）
-	var big_door: StaticBody3D = StaticBody3D.new()
-	big_door.name = "ConnectionDoor"
-	# 门框
-	var frame_mat: StandardMaterial3D = StandardMaterial3D.new()
-	frame_mat.albedo_color = Color(0.4, 0.43, 0.48)
-	frame_mat.metallic = 0.8
-	frame_mat.roughness = 0.35
-	# 门板材质
-	var panel_mat: StandardMaterial3D = StandardMaterial3D.new()
-	panel_mat.albedo_color = Color(0.55, 0.58, 0.62)
-	panel_mat.metallic = 0.7
-	panel_mat.roughness = 0.4
-	panel_mat.emission_enabled = true
-	panel_mat.emission = Color(0.2, 0.15, 0.05)
-	panel_mat.emission_energy_multiplier = 0.5
-	# 门板容器
-	var door_hinge: Node3D = Node3D.new()
-	door_hinge.name = "BigDoorPanel"
-	big_door.add_child(door_hinge)
-	# 门板（整个通道大小）
+	_make_solid(Vector3(-HALF_W, CORRIDOR_HEIGHT / 2.0, CONNECTION_ROOM_END / 2.0), Vector3(WALL_THICK, CORRIDOR_HEIGHT, CONNECTION_ROOM_END), mat_wall)
+	_make_solid(Vector3(HALF_W, CORRIDOR_HEIGHT / 2.0, CONNECTION_ROOM_END / 2.0), Vector3(WALL_THICK, CORRIDOR_HEIGHT, CONNECTION_ROOM_END), mat_wall)
+	_make_solid(Vector3(-2.0, CORRIDOR_HEIGHT / 2.0, 0.0), Vector3(3.0, CORRIDOR_HEIGHT, WALL_THICK), mat_wall)
+	_make_solid(Vector3(2.0, CORRIDOR_HEIGHT / 2.0, 0.0), Vector3(3.0, CORRIDOR_HEIGHT, WALL_THICK), mat_wall)
+	var light: OmniLight3D = OmniLight3D.new()
+	light.light_color = Color(1.0, 0.97, 0.9)
+	light.light_energy = 2.5
+	light.omni_range = 16.0
+	light.position = Vector3(0, CORRIDOR_HEIGHT - 0.5, 10.0)
+	add_child(light)
+	ceiling_trap = MeshInstance3D.new()
+	var trap_box: BoxMesh = BoxMesh.new()
+	trap_box.size = Vector3(5.0, 0.2, 5.0)
+	var trap_mat: StandardMaterial3D = StandardMaterial3D.new()
+	trap_mat.albedo_color = Color(0.3, 0.3, 0.35)
+	trap_box.material = trap_mat
+	ceiling_trap.mesh = trap_box
+	ceiling_trap.position = Vector3(0, CORRIDOR_HEIGHT - 0.05, 10.0)
+	add_child(ceiling_trap)
+	_build_gate()
+
+# 连接室出口大门（门板独立 StaticBody，向上滑动）
+func _build_gate() -> void:
+	# ---- 门板 StaticBody ----
+	var gate: StaticBody3D = StaticBody3D.new()
+	gate.name = "TestGate"
 	var panel: MeshInstance3D = MeshInstance3D.new()
-	var p_box: BoxMesh = BoxMesh.new()
-	p_box.size = Vector3(CORRIDOR_WIDTH - 0.2, CORRIDOR_HEIGHT - 0.2, 0.2)
-	p_box.material = panel_mat
-	panel.mesh = p_box
-	panel.position = Vector3(0, CORRIDOR_HEIGHT / 2, 0)
-	door_hinge.add_child(panel)
-	# 加强筋
+	var pbox: BoxMesh = BoxMesh.new()
+	pbox.size = Vector3(CORRIDOR_WIDTH - 0.2, CORRIDOR_HEIGHT - 0.2, 0.2)
+	pbox.material = mat_panel
+	panel.mesh = pbox
+	panel.position = Vector3(0, CORRIDOR_HEIGHT / 2.0, 0)
+	gate.add_child(panel)
 	for i in range(5):
 		var rib: MeshInstance3D = MeshInstance3D.new()
-		var rib_box: BoxMesh = BoxMesh.new()
-		rib_box.size = Vector3(CORRIDOR_WIDTH - 0.5, 0.1, 0.25)
-		rib_box.material = frame_mat
-		rib.mesh = rib_box
+		var rbox: BoxMesh = BoxMesh.new()
+		rbox.size = Vector3(CORRIDOR_WIDTH - 0.5, 0.1, 0.25)
+		rbox.material = mat_frame
+		rib.mesh = rbox
 		rib.position = Vector3(0, 0.8 + i * 0.7, 0)
-		door_hinge.add_child(rib)
-	# 碰撞
+		gate.add_child(rib)
 	var col: CollisionShape3D = CollisionShape3D.new()
-	var col_shape: BoxShape3D = BoxShape3D.new()
-	col_shape.size = Vector3(CORRIDOR_WIDTH - 0.2, CORRIDOR_HEIGHT - 0.2, 0.25)
-	col.shape = col_shape
-	col.position = Vector3(0, CORRIDOR_HEIGHT / 2, 0)
-	door_hinge.add_child(col)
-	# 交互区域
+	var shape: BoxShape3D = BoxShape3D.new()
+	shape.size = Vector3(CORRIDOR_WIDTH - 0.2, CORRIDOR_HEIGHT - 0.2, 0.6)
+	col.shape = shape
+	col.position = Vector3(0, CORRIDOR_HEIGHT / 2.0, 0)
+	gate.add_child(col)
+	gate.position = Vector3(0, 0, CONNECTION_ROOM_END)
+	add_child(gate)
+	# ---- 交互 Area（独立 holder）----
+	var holder: Node3D = Node3D.new()
+	holder.name = "GateAreaHolder"
 	var area: Area3D = Area3D.new()
 	var ac: CollisionShape3D = CollisionShape3D.new()
 	var ashape: BoxShape3D = BoxShape3D.new()
 	ashape.size = Vector3(CORRIDOR_WIDTH, CORRIDOR_HEIGHT, 4.0)
 	ac.shape = ashape
-	ac.position.y = CORRIDOR_HEIGHT / 2
+	ac.position.y = CORRIDOR_HEIGHT / 2.0
 	area.add_child(ac)
-	area.set_meta("is_big_door", true)
-	area.set_meta("hinge", door_hinge)
-	area.set_meta("is_opening", false)
-	area.body_entered.connect(func(body): _on_big_door_enter(body, area))
-	area.body_exited.connect(func(body): _on_big_door_exit(body))
-	big_door.add_child(area)
-	big_door.position = Vector3(0, 0, 20.0)
-	add_child(big_door)
-	# 天花板陷阱（怪物从这里掉下来）
-	ceiling_trap = MeshInstance3D.new()
-	var b: BoxMesh = BoxMesh.new()
-	b.size = Vector3(4.0, 0.2, 4.0)
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.3, 0.3, 0.35)
-	b.material = mat
-	ceiling_trap.mesh = b
-	ceiling_trap.position = Vector3(0, CORRIDOR_HEIGHT - 0.1, 10.0)
-	add_child(ceiling_trap)
+	area.set_meta("kind", "gate")
+	area.set_meta("gate", gate)
+	area.body_entered.connect(func(b): _on_gate_enter(b, area))
+	area.body_exited.connect(func(b): _on_gate_exit(b))
+	holder.add_child(area)
+	holder.position = Vector3(0, 0, CONNECTION_ROOM_END)
+	add_child(holder)
 
-func _on_big_door_enter(body: Node, area: Area3D) -> void:
-	if body.is_in_group("player") and not button_pressed and not _btn_prompt:
-		_btn_prompt = true
-		_cur_big_door = area
+func _on_gate_enter(body: Node, area: Area3D) -> void:
+	if body.is_in_group("player") and not test_started and current_gate_area == null:
+		current_gate_area = area
 		if UIManager != null:
 			UIManager.show_interaction_prompt("按E - 开启测试通道")
 
-func _on_big_door_exit(body: Node) -> void:
-	if body.is_in_group("player"):
-		_btn_prompt = false
-		_cur_big_door = null
+func _on_gate_exit(body: Node) -> void:
+	if body.is_in_group("player") and not test_started:
+		current_gate_area = null
 		if UIManager != null:
 			UIManager.hide_interaction_prompt()
 
-func _open_big_door(area: Area3D) -> void:
-	if button_pressed:
+func _start_test(area: Area3D) -> void:
+	if test_started:
 		return
-	button_pressed = true
-	countdown_timer = 15.0
-	_btn_prompt = false
-	_cur_big_door = null
+	test_started = true
+	countdown = 15.0
+	current_gate_area = null
 	if UIManager != null:
 		UIManager.hide_interaction_prompt()
 		UIManager.show_announcement("测试程序已启动", 3.0)
-		UIManager.show_announcement("警告：实验体收容协议解除", 3.0)
-		UIManager.show_announcement("所有人员请立即前往安全门", 3.0)
-		UIManager.show_announcement("15秒后实验体将被释放", 4.0)
-	var hinge: Node = area.get_meta("hinge")
-	# 大门向上收起（滑动开门）
+		UIManager.show_announcement("警告：实验体收容协议解除", 3.5)
+		UIManager.show_announcement("所有人员请立即前往安全门", 4.0)
+		UIManager.show_announcement("15秒后实验体将被释放", 5.0)
+	var gate: Node = area.get_meta("gate")
 	var tw: Tween = create_tween()
-	tw.tween_property(hinge, "position:y", CORRIDOR_HEIGHT + 1.0, 1.5)
+	tw.tween_property(gate, "position:y", CORRIDOR_HEIGHT + 1.5, 1.5)
 	tw.set_trans(Tween.TRANS_QUAD)
 	tw.set_ease(Tween.EASE_IN_OUT)
 
-func _build_safe_zone() -> void:
-	# 安全区建在走廊右侧（出口门旁边），大房间亮灯
-	# 出口门在z=470左右的右侧，安全区从x=5.7到x=25.7，z=440到z=500
-	var room_left: float = CORRIDOR_WIDTH / 2 + ROOM_SIZE  # x=5.7
-	var room_right: float = room_left + 20.0  # x=25.7
-	var room_center_x: float = (room_left + room_right) / 2  # x=15.7
-	var room_z_start: float = 440.0
-	var room_z_end: float = 500.0
-	var room_center_z: float = (room_z_start + room_z_end) / 2  # z=470
-	var room_width: float = room_right - room_left  # 20米
-	var room_length: float = room_z_end - room_z_start  # 60米
-	# 地板
-	_make_floor(Vector3(room_center_x, -0.1, room_center_z), Vector3(room_width, 0.2, room_length))
-	# 天花板（高6米）
-	_make_ceiling(Vector3(room_center_x, 6.1, room_center_z), Vector3(room_width, 0.2, room_length))
-	# 右侧墙
-	_make_wall(Vector3(room_right, 3.0, room_center_z), Vector3(0.3, 6.0, room_length))
-	# 前墙（z=440）
-	_make_wall(Vector3(room_center_x, 3.0, room_z_start), Vector3(room_width, 6.0, 0.3))
-	# 后墙（z=500）
-	_make_wall(Vector3(room_center_x, 3.0, room_z_end), Vector3(room_width, 6.0, 0.3))
-	# 左侧墙（x=5.7），只在出口门位置(z=451)留2米宽的口
-	# 第一段：z=440到450
-	_make_wall(Vector3(room_left, 3.0, 445.0), Vector3(0.3, 6.0, 10.0))
-	# 第二段：z=452到500
-	_make_wall(Vector3(room_left, 3.0, 476.0), Vector3(0.3, 6.0, 48.0))
-	# 安全区门（在留口位置，z=451，朝向走廊）
-	var safe_door: StaticBody3D = StaticBody3D.new()
-	var sd_panel: MeshInstance3D = MeshInstance3D.new()
-	var sd_box: BoxMesh = BoxMesh.new()
-	sd_box.size = Vector3(0.15, 3.8, 1.9)
-	var sd_mat: StandardMaterial3D = StandardMaterial3D.new()
-	sd_mat.albedo_color = Color(0.2, 0.5, 0.25)
-	sd_mat.metallic = 0.6
-	sd_mat.roughness = 0.4
-	sd_mat.emission_enabled = true
-	sd_mat.emission = Color(0.05, 0.2, 0.08)
-	sd_mat.emission_energy_multiplier = 0.5
-	sd_box.material = sd_mat
-	sd_panel.mesh = sd_box
-	sd_panel.position = Vector3(0, 1.9, 0)
-	safe_door.add_child(sd_panel)
-	var sd_col: CollisionShape3D = CollisionShape3D.new()
-	var sd_colshape: BoxShape3D = BoxShape3D.new()
-	sd_colshape.size = Vector3(0.17, 3.8, 1.9)
-	sd_col.shape = sd_colshape
-	sd_col.position.y = 1.9
-	safe_door.add_child(sd_col)
-	safe_door.position = Vector3(room_left, 0, 451.0)
-	add_child(safe_door)
-	# 安全区灯光（亮的，4盏）
-	for i in range(4):
-		var lx: float = room_left + 4.0 + (i % 2) * 12.0
-		var lz: float = room_z_start + 15.0 + int(i / 2) * 30.0
-		var l: OmniLight3D = OmniLight3D.new()
-		l.light_color = Color(1.0, 0.98, 0.9)
-		l.light_energy = 3.0
-		l.omni_range = 15.0
-		l.position = Vector3(lx, 5.5, lz)
-		add_child(l)
-	# 安全区标识（绿色发光牌）
-	var sign: MeshInstance3D = MeshInstance3D.new()
-	var sb: BoxMesh = BoxMesh.new()
-	sb.size = Vector3(0.1, 1.0, 3.0)
-	var smat: StandardMaterial3D = StandardMaterial3D.new()
-	smat.albedo_color = Color(0.1, 0.8, 0.2)
-	smat.emission_enabled = true
-	smat.emission = Color(0.1, 1.0, 0.2)
-	smat.emission_energy_multiplier = 2.0
-	sb.material = smat
-	sign.mesh = sb
-	sign.position = Vector3(room_left + 1.0, 4.0, room_center_z)
-	add_child(sign)
+# ============================================================
+# 主走廊外墙（留门洞）
+# ============================================================
+func _build_main_walls() -> void:
+	_build_wall_side(-HALF_W)
+	_build_wall_side(HALF_W)
 
-func _make_floor(pos: Vector3, size: Vector3) -> void:
-	var floor: StaticBody3D = StaticBody3D.new()
-	var m: MeshInstance3D = MeshInstance3D.new()
-	var b: BoxMesh = BoxMesh.new()
-	b.size = size
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.2, 0.2, 0.22)
-	mat.roughness = 0.9
-	b.material = mat
-	m.mesh = b
-	floor.add_child(m)
-	var c: CollisionShape3D = CollisionShape3D.new()
-	var s: BoxShape3D = BoxShape3D.new()
-	s.size = size
-	c.shape = s
-	floor.add_child(c)
-	floor.position = pos
-	add_child(floor)
+func _build_wall_side(x: float) -> void:
+	var cursor: float = CONNECTION_ROOM_END
+	for dz in door_z_list:
+		var door_lo: float = dz - DOOR_WIDTH / 2.0
+		var door_hi: float = dz + DOOR_WIDTH / 2.0
+		if door_lo > cursor:
+			_make_solid(Vector3(x, CORRIDOR_HEIGHT / 2.0, (cursor + door_lo) / 2.0), Vector3(WALL_THICK, CORRIDOR_HEIGHT, door_lo - cursor), mat_wall)
+		cursor = door_hi
+	if MAIN_END > cursor:
+		_make_solid(Vector3(x, CORRIDOR_HEIGHT / 2.0, (cursor + MAIN_END) / 2.0), Vector3(WALL_THICK, CORRIDOR_HEIGHT, MAIN_END - cursor), mat_wall)
 
-func _make_ceiling(pos: Vector3, size: Vector3) -> void:
-	var m: MeshInstance3D = MeshInstance3D.new()
-	var b: BoxMesh = BoxMesh.new()
-	b.size = size
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.18, 0.18, 0.2)
-	b.material = mat
-	m.mesh = b
-	m.position = pos
-	add_child(m)
-
-func _make_wall(pos: Vector3, size: Vector3) -> void:
-	var wall: StaticBody3D = StaticBody3D.new()
-	var m: MeshInstance3D = MeshInstance3D.new()
-	var b: BoxMesh = BoxMesh.new()
-	b.size = size
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.28, 0.28, 0.32)
-	mat.roughness = 0.85
-	b.material = mat
-	m.mesh = b
-	wall.add_child(m)
-	var c: CollisionShape3D = CollisionShape3D.new()
-	var s: BoxShape3D = BoxShape3D.new()
-	s.size = size
-	c.shape = s
-	wall.add_child(c)
-	wall.position = pos
-	add_child(wall)
-
-func _build_doors_and_rooms() -> void:
-	var half_w: float = CORRIDOR_WIDTH / 2
-	var door_count: int = int((CORRIDOR_LENGTH - 40) / DOOR_SPACING)
+# ============================================================
+# 小房间 + 两侧门
+# ============================================================
+func _build_rooms_and_doors() -> void:
 	var idx: int = 0
-	for i in range(door_count):
-		var z_pos: float = 55.0 + i * DOOR_SPACING
-		if z_pos > CORRIDOR_LENGTH - 30:
-			break
-		var is_exit: bool = (i == door_count - 1)
-		# 左侧门（不是出口）
-		_make_door(z_pos, true, idx, false, half_w)
+	for k in range(door_z_list.size()):
+		var dz: float = door_z_list[k]
+		var is_exit_group: bool = (k == door_z_list.size() - 1)
+		_build_small_room(dz, true)
+		_build_one_door(dz, true, idx, false)
 		idx += 1
-		# 右侧门（最后一扇是出口）
-		_make_door(z_pos, false, idx, is_exit, half_w)
+		if is_exit_group:
+			_build_one_door(dz, false, idx, true)
+		else:
+			_build_small_room(dz, false)
+			_build_one_door(dz, false, idx, false)
 		idx += 1
 
-func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: float) -> void:
-	var door_x: float = -half_w if is_left else half_w
-	var is_locked: bool = not is_exit and (index % 3 == 0)
-	var has_monster: bool = not is_exit and not is_locked and (index % 5 != 2)
-	var has_health: bool = not is_exit and not is_locked and (index % 5 == 2)
-	# 所有门都建小房间，外观一致；出口门不建后墙，直接连通安全区
-	_build_small_room(z_pos, is_left, half_w, is_exit)
-	# 门的根节点
-	var door: StaticBody3D = StaticBody3D.new()
-	door.name = "Door_%d" % index
-	# 门框材质
-	var frame_mat: StandardMaterial3D = StandardMaterial3D.new()
-	frame_mat.albedo_color = Color(0.4, 0.43, 0.48)
-	frame_mat.metallic = 0.8
-	frame_mat.roughness = 0.35
-	# 门板材质（统一钢门颜色）
-	var panel_mat: StandardMaterial3D = StandardMaterial3D.new()
-	panel_mat.albedo_color = Color(0.55, 0.58, 0.62)
-	panel_mat.metallic = 0.7
-	panel_mat.roughness = 0.4
-	panel_mat.emission_enabled = true
-	panel_mat.emission = Color(0.15, 0.15, 0.18)
-	panel_mat.emission_energy_multiplier = 0.3
-	# 门框（上下左右四条）
-	var frame_thickness: float = 0.15
-	var frame_depth: float = 0.2
-	# 左门框
-	var frame_l: MeshInstance3D = MeshInstance3D.new()
-	var fl_box: BoxMesh = BoxMesh.new()
-	fl_box.size = Vector3(frame_depth, DOOR_HEIGHT, frame_thickness)
-	fl_box.material = frame_mat
-	frame_l.mesh = fl_box
-	frame_l.position = Vector3(0, DOOR_HEIGHT / 2, -DOOR_WIDTH / 2 - frame_thickness / 2)
-	door.add_child(frame_l)
-	# 右门框
-	var frame_r: MeshInstance3D = MeshInstance3D.new()
-	var fr_box: BoxMesh = BoxMesh.new()
-	fr_box.size = Vector3(frame_depth, DOOR_HEIGHT, frame_thickness)
-	fr_box.material = frame_mat
-	frame_r.mesh = fr_box
-	frame_r.position = Vector3(0, DOOR_HEIGHT / 2, DOOR_WIDTH / 2 + frame_thickness / 2)
-	door.add_child(frame_r)
-	# 上门框
-	var frame_t: MeshInstance3D = MeshInstance3D.new()
-	var ft_box: BoxMesh = BoxMesh.new()
-	ft_box.size = Vector3(frame_depth, frame_thickness, DOOR_WIDTH + frame_thickness * 2)
-	ft_box.material = frame_mat
-	frame_t.mesh = ft_box
-	frame_t.position = Vector3(0, DOOR_HEIGHT - frame_thickness / 2, 0)
-	door.add_child(frame_t)
-	# 门板容器（用于滑动开门）
-	var hinge: Node3D = Node3D.new()
-	hinge.name = "PanelContainer"
-	door.add_child(hinge)
-	# 门板
+func _build_small_room(dz: float, is_left: bool) -> void:
+	var dir_sign: float = -1.0 if is_left else 1.0
+	var room_center_x: float = dir_sign * (HALF_W + ROOM_DEPTH / 2.0)
+	var back_x: float = dir_sign * (HALF_W + ROOM_DEPTH)
+	var room_z_half: float = ROOM_DEPTH / 2.0
+	_make_solid(Vector3(back_x, CORRIDOR_HEIGHT / 2.0, dz), Vector3(WALL_THICK, CORRIDOR_HEIGHT, ROOM_DEPTH), mat_wall)
+	_make_solid(Vector3(room_center_x, CORRIDOR_HEIGHT / 2.0, dz - room_z_half), Vector3(ROOM_DEPTH, CORRIDOR_HEIGHT, WALL_THICK), mat_wall)
+	_make_solid(Vector3(room_center_x, CORRIDOR_HEIGHT / 2.0, dz + room_z_half), Vector3(ROOM_DEPTH, CORRIDOR_HEIGHT, WALL_THICK), mat_wall)
+
+# 单扇门：门框 StaticBody（固定）+ 门板 StaticBody（滑动，碰撞直接挂）
+func _build_one_door(dz: float, is_left: bool, idx: int, is_exit: bool) -> void:
+	var dir_sign: float = -1.0 if is_left else 1.0
+	var door_x: float = dir_sign * HALF_W
+	var door_type: String = "monster"
+	if is_exit:
+		door_type = "exit"
+	elif idx % 3 == 0:
+		door_type = "locked"
+	elif idx % 5 == 2:
+		door_type = "health"
+
+	# ---- 门框（固定 StaticBody）----
+	var frame_body: StaticBody3D = StaticBody3D.new()
+	frame_body.name = "DoorFrame_%d" % idx
+	var ft: float = 0.15
+	frame_body.add_child(_frame_piece(Vector3(0, DOOR_HEIGHT / 2.0, -DOOR_WIDTH / 2.0 - ft / 2.0), Vector3(0.2, DOOR_HEIGHT, ft)))
+	frame_body.add_child(_frame_piece(Vector3(0, DOOR_HEIGHT / 2.0, DOOR_WIDTH / 2.0 + ft / 2.0), Vector3(0.2, DOOR_HEIGHT, ft)))
+	frame_body.add_child(_frame_piece(Vector3(0, DOOR_HEIGHT - ft / 2.0, 0), Vector3(0.2, ft, DOOR_WIDTH + ft * 2.0)))
+	# 门上方指引灯
+	var dl: OmniLight3D = OmniLight3D.new()
+	dl.light_color = Color(0.6, 0.6, 0.7)
+	dl.light_energy = 0.7
+	dl.omni_range = 4.0
+	dl.position = Vector3(0, CORRIDOR_HEIGHT - 0.5, 0)
+	frame_body.add_child(dl)
+
+	# ---- 门板（可移动 StaticBody，碰撞直接挂）----
+	var panel_body: StaticBody3D = StaticBody3D.new()
+	panel_body.name = "DoorPanel_%d" % idx
 	var panel: MeshInstance3D = MeshInstance3D.new()
-	panel.name = "Panel"
-	var p_box: BoxMesh = BoxMesh.new()
-	p_box.size = Vector3(0.15, DOOR_HEIGHT - 0.2, DOOR_WIDTH - 0.1)
-	p_box.material = panel_mat
-	panel.mesh = p_box
-	panel.position = Vector3(0, DOOR_HEIGHT / 2, 0)
-	hinge.add_child(panel)
-	# 门板加强筋（横向三条）
+	var pbox: BoxMesh = BoxMesh.new()
+	pbox.size = Vector3(0.15, DOOR_HEIGHT - 0.2, DOOR_WIDTH - 0.1)
+	pbox.material = mat_panel
+	panel.mesh = pbox
+	panel.position = Vector3(0, DOOR_HEIGHT / 2.0, 0)
+	panel_body.add_child(panel)
 	for i in range(3):
 		var rib: MeshInstance3D = MeshInstance3D.new()
-		var rib_box: BoxMesh = BoxMesh.new()
-		rib_box.size = Vector3(0.02, 0.08, DOOR_WIDTH - 0.3)
-		rib_box.material = frame_mat
-		rib.mesh = rib_box
+		var rbox: BoxMesh = BoxMesh.new()
+		rbox.size = Vector3(0.04, 0.08, DOOR_WIDTH - 0.3)
+		rbox.material = mat_frame
+		rib.mesh = rbox
 		rib.position = Vector3(0, 1.0 + i * 1.2, 0)
-		hinge.add_child(rib)
-	# 门把手
-	var handle: MeshInstance3D = MeshInstance3D.new()
-	var h_box: BoxMesh = BoxMesh.new()
-	h_box.size = Vector3(0.15, 0.12, 0.04)
-	var h_mat: StandardMaterial3D = StandardMaterial3D.new()
-	h_mat.albedo_color = Color(0.7, 0.7, 0.75)
-	h_mat.metallic = 0.9
-	h_mat.roughness = 0.2
-	h_box.material = h_mat
-	handle.mesh = h_box
-	handle.position = Vector3(0.1, 1.5, 0.6)
-	hinge.add_child(handle)
-	# 背面门把手
-	var handle2: MeshInstance3D = MeshInstance3D.new()
-	var h2_box: BoxMesh = BoxMesh.new()
-	h2_box.size = Vector3(0.15, 0.12, 0.04)
-	h2_box.material = h_mat
-	handle2.mesh = h2_box
-	handle2.position = Vector3(-0.1, 1.5, 0.6)
-	hinge.add_child(handle2)
-	# 观察窗
+		panel_body.add_child(rib)
 	var window: MeshInstance3D = MeshInstance3D.new()
-	var w_box: BoxMesh = BoxMesh.new()
-	w_box.size = Vector3(0.02, 0.5, 0.6)
-	var w_mat: StandardMaterial3D = StandardMaterial3D.new()
-	w_mat.albedo_color = Color(0.2, 0.3, 0.4)
-	w_mat.emission_enabled = true
-	w_mat.emission = Color(0.1, 0.2, 0.3)
-	w_mat.emission_energy_multiplier = 0.5
-	w_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	w_mat.albedo_color = Color(0.2, 0.3, 0.4, 0.7)
-	w_box.material = w_mat
-	window.mesh = w_box
+	var wbox: BoxMesh = BoxMesh.new()
+	wbox.size = Vector3(0.04, 0.5, 0.6)
+	wbox.material = mat_window
+	window.mesh = wbox
 	window.position = Vector3(0, 2.8, 0)
-	hinge.add_child(window)
-	# 出口门指示灯（绿色小灯）
+	panel_body.add_child(window)
+	var hb: BoxMesh = BoxMesh.new()
+	hb.size = Vector3(0.05, 0.12, 0.15)
+	hb.material = mat_handle
+	var h1: MeshInstance3D = MeshInstance3D.new()
+	h1.mesh = hb
+	h1.position = Vector3(0.1, 1.5, 0.6)
+	panel_body.add_child(h1)
+	var h2: MeshInstance3D = MeshInstance3D.new()
+	h2.mesh = hb
+	h2.position = Vector3(-0.1, 1.5, 0.6)
+	panel_body.add_child(h2)
 	if is_exit:
-		var indicator: MeshInstance3D = MeshInstance3D.new()
-		var ind_box: BoxMesh = BoxMesh.new()
-		ind_box.size = Vector3(0.05, 0.15, 0.15)
-		var ind_mat: StandardMaterial3D = StandardMaterial3D.new()
-		ind_mat.albedo_color = Color(0.1, 1.0, 0.2)
-		ind_mat.emission_enabled = true
-		ind_mat.emission = Color(0.1, 1.0, 0.2)
-		ind_mat.emission_energy_multiplier = 2.0
-		ind_box.material = ind_mat
-		indicator.mesh = ind_box
-		indicator.position = Vector3(0.1, 3.5, 0.5)
-		hinge.add_child(indicator)
-		var indicator2: MeshInstance3D = MeshInstance3D.new()
-		var ind2_box: BoxMesh = BoxMesh.new()
-		ind2_box.size = Vector3(0.05, 0.15, 0.15)
-		ind2_box.material = ind_mat
-		indicator2.mesh = ind2_box
-		indicator2.position = Vector3(-0.1, 3.5, 0.5)
-		hinge.add_child(indicator2)
-	# 门的碰撞（跟随门板）
+		panel_body.add_child(_indicator(0.1))
+		panel_body.add_child(_indicator(-0.1))
+	# 门板碰撞（直接挂 panel_body，x 厚 0.6）
 	var col: CollisionShape3D = CollisionShape3D.new()
-	var col_shape: BoxShape3D = BoxShape3D.new()
-	col_shape.size = Vector3(0.17, DOOR_HEIGHT - 0.2, DOOR_WIDTH - 0.1)
-	col.shape = col_shape
-	col.position = Vector3(0, DOOR_HEIGHT / 2, 0)
-	hinge.add_child(col)
-	# 交互区域
+	var dshape: BoxShape3D = BoxShape3D.new()
+	dshape.size = Vector3(0.6, DOOR_HEIGHT - 0.2, DOOR_WIDTH - 0.1)
+	col.shape = dshape
+	col.position = Vector3(0, DOOR_HEIGHT / 2.0, 0)
+	panel_body.add_child(col)
+
+	# ---- 交互 Area（挂门框下，独立 CollisionObject）----
 	var area: Area3D = Area3D.new()
 	var ac: CollisionShape3D = CollisionShape3D.new()
 	var ashape: BoxShape3D = BoxShape3D.new()
 	ashape.size = Vector3(3.0, DOOR_HEIGHT, DOOR_WIDTH + 2.0)
 	ac.shape = ashape
-	ac.position.y = DOOR_HEIGHT / 2
+	ac.position.y = DOOR_HEIGHT / 2.0
 	area.add_child(ac)
-	area.set_meta("door_type", "exit" if is_exit else ("locked" if is_locked else "monster"))
-	area.set_meta("door_node", door)
-	area.set_meta("hinge", hinge)
-	area.set_meta("room_z", z_pos)
-	area.set_meta("room_is_left", is_left)
-	area.set_meta("has_monster", has_monster)
-	area.set_meta("has_health", has_health)
+	area.set_meta("kind", "door")
+	area.set_meta("door_type", door_type)
+	area.set_meta("panel_body", panel_body)
+	area.set_meta("door_z", dz)
+	area.set_meta("is_left", is_left)
+	area.set_meta("opening", false)
 	area.set_meta("spawned", false)
-	area.set_meta("is_opening", false)
-	area.body_entered.connect(func(body): _on_door_enter(body, area))
-	area.body_exited.connect(func(body): _on_door_exit(body))
-	door.add_child(area)
-	# 门上方小灯指引（微弱发光，让玩家知道这里有门）
-	var door_light: OmniLight3D = OmniLight3D.new()
-	door_light.light_color = Color(0.6, 0.6, 0.7)
-	door_light.light_energy = 0.8
-	door_light.omni_range = 4.0
-	door_light.position = Vector3(0, CORRIDOR_HEIGHT - 0.5, 0)
-	door.add_child(door_light)
-	door.position = Vector3(door_x, 0, z_pos)
-	add_child(door)
+	area.body_entered.connect(func(b): _on_door_enter(b, area))
+	area.body_exited.connect(func(b): _on_door_exit(b))
+	frame_body.add_child(area)
 
-func _build_small_room(z_pos: float, is_left: bool, half_w: float, no_back_wall: bool = false) -> void:
-	var room_x: float = 0.0
-	var back_x: float = 0.0
-	if is_left:
-		room_x = -half_w - ROOM_SIZE / 2
-		back_x = -half_w - ROOM_SIZE
-	else:
-		room_x = half_w + ROOM_SIZE / 2
-		back_x = half_w + ROOM_SIZE
-	# 房间地板
-	_make_floor(Vector3(room_x, -0.1, z_pos), Vector3(ROOM_SIZE, 0.2, ROOM_SIZE))
-	# 房间天花板
-	_make_ceiling(Vector3(room_x, CORRIDOR_HEIGHT + 0.1, z_pos), Vector3(ROOM_SIZE, 0.2, ROOM_SIZE))
-	# 后墙（出口门不建后墙，直接连通安全区）
-	if not no_back_wall:
-		_make_wall(Vector3(back_x, CORRIDOR_HEIGHT / 2, z_pos), Vector3(0.3, CORRIDOR_HEIGHT, ROOM_SIZE))
-	# 左侧墙（z-方向）
-	_make_wall(Vector3(room_x, CORRIDOR_HEIGHT / 2, z_pos - ROOM_SIZE / 2), Vector3(ROOM_SIZE, CORRIDOR_HEIGHT, 0.3))
-	# 右侧墙（z+方向）
-	_make_wall(Vector3(room_x, CORRIDOR_HEIGHT / 2, z_pos + ROOM_SIZE / 2), Vector3(ROOM_SIZE, CORRIDOR_HEIGHT, 0.3))
+	frame_body.position = Vector3(door_x, 0, dz)
+	panel_body.position = Vector3(door_x, 0, dz)
+	add_child(frame_body)
+	add_child(panel_body)
 
-var _door_prompt: bool = false
-var _cur_door: Area3D = null
+func _frame_piece(pos: Vector3, size: Vector3) -> MeshInstance3D:
+	var m: MeshInstance3D = MeshInstance3D.new()
+	var b: BoxMesh = BoxMesh.new()
+	b.size = size
+	b.material = mat_frame
+	m.mesh = b
+	m.position = pos
+	return m
+
+func _indicator(x: float) -> MeshInstance3D:
+	var m: MeshInstance3D = MeshInstance3D.new()
+	var b: BoxMesh = BoxMesh.new()
+	b.size = Vector3(0.05, 0.15, 0.15)
+	var imat: StandardMaterial3D = StandardMaterial3D.new()
+	imat.albedo_color = Color(0.1, 1.0, 0.2)
+	imat.emission_enabled = true
+	imat.emission = Color(0.1, 1.0, 0.2)
+	imat.emission_energy_multiplier = 2.0
+	b.material = imat
+	m.mesh = b
+	m.position = Vector3(x, 3.5, 0.5)
+	return m
 
 func _on_door_enter(body: Node, area: Area3D) -> void:
-	if body.is_in_group("player") and not _door_prompt:
-		_door_prompt = true
-		_cur_door = area
+	if body.is_in_group("player") and current_door_area == null:
+		current_door_area = area
 		var dt: String = area.get_meta("door_type")
 		if UIManager != null:
 			if dt == "exit":
@@ -539,297 +417,234 @@ func _on_door_enter(body: Node, area: Area3D) -> void:
 
 func _on_door_exit(body: Node) -> void:
 	if body.is_in_group("player"):
-		_door_prompt = false
-		_cur_door = null
+		current_door_area = null
 		if UIManager != null:
 			UIManager.hide_interaction_prompt()
 
-func _try_open_door(area: Area3D) -> void:
+func _use_door(area: Area3D) -> void:
 	var dt: String = area.get_meta("door_type")
-	var is_opening: bool = area.get_meta("is_opening")
-	if is_opening:
+	var opening: bool = area.get_meta("opening")
+	if opening:
 		return
 	if dt == "locked":
 		if UIManager != null:
 			UIManager.show_toast("门已锁死")
 		return
-	area.set_meta("is_opening", true)
-	var hinge: Node = area.get_meta("hinge")
-	var door: Node = area.get_meta("door_node")
-	# 开门动画：门板向一侧滑动收进墙里
-	# 门统一往右侧滑动收进墙里
+	area.set_meta("opening", true)
+	var panel_body: Node = area.get_meta("panel_body")
 	var tw: Tween = create_tween()
-	tw.tween_property(hinge, "position:z", DOOR_WIDTH + 0.3, 0.8)
+	tw.tween_property(panel_body, "position:z", panel_body.position.z + DOOR_WIDTH + 0.3, 0.8)
 	tw.set_trans(Tween.TRANS_QUAD)
 	tw.set_ease(Tween.EASE_IN_OUT)
-	# 出口门：开门2秒后自动关闭
 	if dt == "exit":
-		exit_door_open = true
 		if UIManager != null:
 			UIManager.show_announcement("安全门已打开 - 快进去！", 3.0)
-		# 2秒后自动关门
-		var close_timer: Timer = Timer.new()
-		close_timer.wait_time = 2.0
-		close_timer.one_shot = true
-		close_timer.timeout.connect(func():
+		var close_t: Timer = Timer.new()
+		close_t.wait_time = 2.0
+		close_t.one_shot = true
+		close_t.timeout.connect(func():
+			var door_x: float = panel_body.position.x
+			var door_z_orig: float = area.get_meta("door_z")
 			var tw2: Tween = create_tween()
-			tw2.tween_property(hinge, "position:z", 0.0, 0.6)
+			tw2.tween_property(panel_body, "position", Vector3(door_x, 0.0, door_z_orig), 0.6)
 			tw2.set_trans(Tween.TRANS_QUAD)
 			tw2.set_ease(Tween.EASE_IN_OUT)
-			area.set_meta("is_opening", false)
-			close_timer.queue_free()
+			area.set_meta("opening", false)
+			close_t.queue_free()
 		)
-		add_child(close_timer)
-		close_timer.start()
-		# 出口门直接连通安全区（小房间后墙已去掉）
+		add_child(close_t)
+		close_t.start()
 		return
-	# 普通门：开门后放怪
-	var has_m: bool = area.get_meta("has_monster")
-	var spawned: bool = area.get_meta("spawned")
-	if has_m and not spawned:
-		# 延迟0.5秒放怪（等门开一点）
-		var delay_timer: Timer = Timer.new()
-		delay_timer.wait_time = 0.5
-		delay_timer.one_shot = true
-		delay_timer.timeout.connect(func():
+	if dt == "monster":
+		var spawned: bool = area.get_meta("spawned")
+		if not spawned:
 			area.set_meta("spawned", true)
-			var z_pos: float = area.get_meta("room_z")
-			var is_left: bool = area.get_meta("room_is_left")
-			var half_w: float = CORRIDOR_WIDTH / 2
-			var sx: float = -half_w - ROOM_SIZE / 2 if is_left else half_w + ROOM_SIZE / 2
-			var m: Node = monster_scene.instantiate()
-			m.position = Vector3(sx, 1.0, z_pos)
-			add_child(m)
-			if UIManager != null:
-				UIManager.show_toast("房间里有怪物！")
-			delay_timer.queue_free()
-		)
-		add_child(delay_timer)
-		delay_timer.start()
-	# 医疗包门：开门后在房间里生成医疗包
-	var has_h: bool = area.get_meta("has_health")
-	if has_h:
-		var z_pos2: float = area.get_meta("room_z")
-		var is_left2: bool = area.get_meta("room_is_left")
-		var half_w2: float = CORRIDOR_WIDTH / 2
-		var hx: float = -half_w2 - ROOM_SIZE / 2 if is_left2 else half_w2 + ROOM_SIZE / 2
-		var hp: Node = health_scene.instantiate()
-		hp.position = Vector3(hx, 1.0, z_pos2)
+			var dz: float = area.get_meta("door_z")
+			var is_left: bool = area.get_meta("is_left")
+			var sign: float = -1.0 if is_left else 1.0
+			var sx: float = sign * (HALF_W + ROOM_DEPTH / 2.0)
+			var delay_t: Timer = Timer.new()
+			delay_t.wait_time = 0.5
+			delay_t.one_shot = true
+			delay_t.timeout.connect(func():
+				var m: Node = MONSTER_SCENE.instantiate()
+				m.position = Vector3(sx, 1.0, dz)
+				add_child(m)
+				if UIManager != null:
+					UIManager.show_toast("房间里有怪物！")
+				delay_t.queue_free()
+			)
+			add_child(delay_t)
+			delay_t.start()
+	elif dt == "health":
+		var dz2: float = area.get_meta("door_z")
+		var is_left2: bool = area.get_meta("is_left")
+		var sign2: float = -1.0 if is_left2 else 1.0
+		var hx: float = sign2 * (HALF_W + ROOM_DEPTH / 2.0)
+		var hp: Node = HEALTH_SCENE.instantiate()
+		hp.position = Vector3(hx, 1.0, dz2)
 		add_child(hp)
 
-func _build_obstacles() -> void:
-	for i in range(1, 16):
-		var z_pos: float = 35.0 + i * 28.0
-		if z_pos > CORRIDOR_LENGTH - 40:
-			break
-		var r: int = randi() % 3
-		if r == 0:
-			_make_box(Vector3(-1.5, 0, z_pos), 1.0)
-			_make_table(Vector3(1.5, 0, z_pos + 2.0))
-		elif r == 1:
-			_make_box(Vector3(0, 0, z_pos), 1.2)
-			_make_box(Vector3(-1.5, 0, z_pos + 1.5), 0.8)
-		else:
-			_make_table(Vector3(1.0, 0, z_pos))
+# ============================================================
+# 逃生走廊 + 安全中间层
+# ============================================================
+func _build_escape_and_hub() -> void:
+	var ec_start_x: float = HALF_W
+	var ec_end_x: float = ec_start_x + ESCAPE_LENGTH
+	var ec_center_x: float = (ec_start_x + ec_end_x) / 2.0
+	var ec_half_w: float = ESCAPE_WIDTH / 2.0
+	_make_solid(Vector3(ec_center_x, -0.1, EXIT_Z), Vector3(ESCAPE_LENGTH, 0.2, ESCAPE_WIDTH), mat_floor)
+	_make_solid(Vector3(ec_center_x, CORRIDOR_HEIGHT + 0.1, EXIT_Z), Vector3(ESCAPE_LENGTH, 0.2, ESCAPE_WIDTH), mat_ceiling)
+	_make_solid(Vector3(ec_center_x, CORRIDOR_HEIGHT / 2.0, EXIT_Z - ec_half_w), Vector3(ESCAPE_LENGTH, CORRIDOR_HEIGHT, WALL_THICK), mat_wall)
+	_make_solid(Vector3(ec_center_x, CORRIDOR_HEIGHT / 2.0, EXIT_Z + ec_half_w), Vector3(ESCAPE_LENGTH, CORRIDOR_HEIGHT, WALL_THICK), mat_wall)
+	for i in range(4):
+		var elx: float = ec_start_x + 7.0 + i * 12.0
+		var el: OmniLight3D = OmniLight3D.new()
+		el.light_color = Color(0.5, 0.9, 0.6)
+		el.light_energy = 1.3
+		el.omni_range = 8.0
+		el.position = Vector3(elx, CORRIDOR_HEIGHT - 0.5, EXIT_Z)
+		add_child(el)
+	# 安全中间层
+	var hub_start_x: float = ec_end_x
+	var hub_end_x: float = hub_start_x + HUB_SIZE
+	var hub_center_x: float = (hub_start_x + hub_end_x) / 2.0
+	var hub_half: float = HUB_SIZE / 2.0
+	var hub_start_z: float = EXIT_Z - hub_half
+	var hub_end_z: float = EXIT_Z + hub_half
+	_make_solid(Vector3(hub_center_x, -0.1, EXIT_Z), Vector3(HUB_SIZE, 0.2, HUB_SIZE), mat_floor)
+	_make_solid(Vector3(hub_center_x, HUB_HEIGHT + 0.1, EXIT_Z), Vector3(HUB_SIZE, 0.2, HUB_SIZE), mat_ceiling)
+	_make_solid(Vector3(hub_end_x, HUB_HEIGHT / 2.0, EXIT_Z), Vector3(WALL_THICK, HUB_HEIGHT, HUB_SIZE), mat_wall)
+	_make_solid(Vector3(hub_center_x, HUB_HEIGHT / 2.0, hub_start_z), Vector3(HUB_SIZE, HUB_HEIGHT, WALL_THICK), mat_wall)
+	_make_solid(Vector3(hub_center_x, HUB_HEIGHT / 2.0, hub_end_z), Vector3(HUB_SIZE, HUB_HEIGHT, WALL_THICK), mat_wall)
+	_make_solid(Vector3(hub_start_x, HUB_HEIGHT / 2.0, 446.25), Vector3(WALL_THICK, HUB_HEIGHT, 6.5), mat_wall)
+	_make_solid(Vector3(hub_start_x, HUB_HEIGHT / 2.0, 455.75), Vector3(WALL_THICK, HUB_HEIGHT, 6.5), mat_wall)
+	for i in range(4):
+		var lx: float = hub_start_x + 3.0 + (i % 2) * 8.0
+		var lz: float = EXIT_Z - 5.0 + int(i / 2) * 10.0
+		var l: OmniLight3D = OmniLight3D.new()
+		l.light_color = Color(1.0, 0.98, 0.9)
+		l.light_energy = 3.0
+		l.omni_range = 12.0
+		l.position = Vector3(lx, HUB_HEIGHT - 0.5, lz)
+		add_child(l)
+	var sign: MeshInstance3D = MeshInstance3D.new()
+	var sb: BoxMesh = BoxMesh.new()
+	sb.size = Vector3(0.1, 0.8, 3.0)
+	var smat: StandardMaterial3D = StandardMaterial3D.new()
+	smat.albedo_color = Color(0.1, 0.8, 0.2)
+	smat.emission_enabled = true
+	smat.emission = Color(0.1, 1.0, 0.2)
+	smat.emission_energy_multiplier = 2.0
+	sb.material = smat
+	sign.mesh = sb
+	sign.position = Vector3(hub_start_x + 1.5, 3.5, EXIT_Z)
+	add_child(sign)
 
-func _make_table(pos: Vector3) -> void:
-	var t: StaticBody3D = StaticBody3D.new()
-	var m: MeshInstance3D = MeshInstance3D.new()
-	var b: BoxMesh = BoxMesh.new()
-	b.size = Vector3(1.8, 0.1, 1.0)
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.4, 0.3, 0.2)
-	b.material = mat
-	m.mesh = b
-	m.position.y = 1.0
-	t.add_child(m)
-	var c: CollisionShape3D = CollisionShape3D.new()
-	var s: BoxShape3D = BoxShape3D.new()
-	s.size = Vector3(1.8, 1.0, 1.0)
-	c.shape = s
-	c.position.y = 0.5
-	t.add_child(c)
-	t.position = pos
-	add_child(t)
-
-func _make_box(pos: Vector3, sz: float) -> void:
-	var b: StaticBody3D = StaticBody3D.new()
-	var m: MeshInstance3D = MeshInstance3D.new()
-	var bm: BoxMesh = BoxMesh.new()
-	bm.size = Vector3(sz, sz, sz)
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.5, 0.45, 0.35)
-	bm.material = mat
-	m.mesh = bm
-	m.position.y = sz / 2
-	b.add_child(m)
-	var c: CollisionShape3D = CollisionShape3D.new()
-	var s: BoxShape3D = BoxShape3D.new()
-	s.size = Vector3(sz, sz, sz)
-	c.shape = s
-	c.position.y = sz / 2
-	b.add_child(c)
-	b.position = pos
-	add_child(b)
-
-func _build_button() -> void:
-	var btn: StaticBody3D = StaticBody3D.new()
-	btn.name = "TriggerButton"
-	var m: MeshInstance3D = MeshInstance3D.new()
-	var b: BoxMesh = BoxMesh.new()
-	b.size = Vector3(0.8, 0.25, 0.8)
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.9, 0.15, 0.15)
-	mat.emission_enabled = true
-	mat.emission = Color(1.0, 0.1, 0.1)
-	mat.emission_energy_multiplier = 2.0
-	b.material = mat
-	m.mesh = b
-	m.position.y = 1.1
-	btn.add_child(m)
-	var c: CollisionShape3D = CollisionShape3D.new()
-	var s: BoxShape3D = BoxShape3D.new()
-	s.size = Vector3(1.2, 1.2, 1.2)
-	c.shape = s
-	c.position.y = 0.6
-	btn.add_child(c)
-	var area: Area3D = Area3D.new()
-	var ac: CollisionShape3D = CollisionShape3D.new()
-	var ashape: SphereShape3D = SphereShape3D.new()
-	ashape.radius = 2.5
-	ac.shape = ashape
-	area.add_child(ac)
-	area.body_entered.connect(_on_btn_enter)
-	area.body_exited.connect(_on_btn_exit)
-	btn.add_child(area)
-	btn.position = Vector3(0, 0, 45.0)
-	add_child(btn)
-
-var _btn_prompt: bool = false
-var _cur_big_door: Area3D = null
-
-func _on_btn_enter(body: Node) -> void:
-	if body.is_in_group("player") and not button_pressed and not _btn_prompt:
-		_btn_prompt = true
-		if UIManager != null:
-			UIManager.show_interaction_prompt("按E - 启动测试程序")
-
-func _on_btn_exit(body: Node) -> void:
-	if body.is_in_group("player"):
-		_btn_prompt = false
-		if UIManager != null:
-			UIManager.hide_interaction_prompt()
-
-func _build_ceiling_trap() -> void:
-	ceiling_trap = MeshInstance3D.new()
-	var b: BoxMesh = BoxMesh.new()
-	b.size = Vector3(4.0, 0.2, 4.0)
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.3, 0.3, 0.35)
-	b.material = mat
-	ceiling_trap.mesh = b
-	ceiling_trap.position = Vector3(0, CORRIDOR_HEIGHT - 0.1, 15.0)
-	add_child(ceiling_trap)
-
-func _build_alarm_lights() -> void:
-	for i in range(15):
-		var z: float = 20.0 + i * 32.0
-		if z > CORRIDOR_LENGTH - 20:
-			break
+# ============================================================
+# 警报灯系统
+# ============================================================
+func build_alarm_system() -> void:
+	var we: WorldEnvironment = WorldEnvironment.new()
+	var env: Environment = Environment.new()
+	env.ambient_light_color = Color(0.08, 0.08, 0.1)
+	env.ambient_light_energy = 0.12
+	we.environment = env
+	add_child(we)
+	var z: float = 25.0
+	while z < MAIN_END - 10.0:
 		var ll: OmniLight3D = OmniLight3D.new()
 		ll.light_color = Color(1.0, 0.1, 0.1)
 		ll.light_energy = 3.0
 		ll.omni_range = 10.0
-		ll.position = Vector3(-CORRIDOR_WIDTH / 2 + 0.5, CORRIDOR_HEIGHT - 0.4, z)
-		ll.visible = (i % 2 == 0)
+		ll.position = Vector3(-HALF_W + 0.5, CORRIDOR_HEIGHT - 0.4, z)
 		add_child(ll)
 		alarm_lights.append(ll)
 		var lr: OmniLight3D = OmniLight3D.new()
 		lr.light_color = Color(1.0, 0.1, 0.1)
 		lr.light_energy = 3.0
 		lr.omni_range = 10.0
-		lr.position = Vector3(CORRIDOR_WIDTH / 2 - 0.5, CORRIDOR_HEIGHT - 0.4, z)
-		lr.visible = (i % 2 == 1)
+		lr.position = Vector3(HALF_W - 0.5, CORRIDOR_HEIGHT - 0.4, z)
 		add_child(lr)
 		alarm_lights.append(lr)
-	var env: WorldEnvironment = WorldEnvironment.new()
-	var env_res: Environment = Environment.new()
-	env_res.ambient_light_color = Color(0.08, 0.08, 0.1)
-	env_res.ambient_light_energy = 0.12
-	env.environment = env_res
-	add_child(env)
+		_build_floor_light(-2.5, z)
+		_build_floor_light(2.5, z)
+		z += 30.0
 
-func _build_floor_lights() -> void:
-	# 地板警示灯：每隔一段距离一个小的红色发光方块，照亮环境
-	for i in range(25):
-		var z: float = 15.0 + i * 20.0
-		if z > CORRIDOR_LENGTH - 15:
-			break
-		# 左侧地板灯
-		var fl: MeshInstance3D = MeshInstance3D.new()
-		var fb: BoxMesh = BoxMesh.new()
-		fb.size = Vector3(0.3, 0.05, 0.3)
-		var fmat: StandardMaterial3D = StandardMaterial3D.new()
-		fmat.albedo_color = Color(1.0, 0.3, 0.1)
-		fmat.emission_enabled = true
-		fmat.emission = Color(1.0, 0.2, 0.05)
-		fmat.emission_energy_multiplier = 3.0
-		fb.material = fmat
-		fl.mesh = fb
-		fl.position = Vector3(-2.5, 0.03, z)
-		add_child(fl)
-		# 右侧地板灯
-		var fr: MeshInstance3D = MeshInstance3D.new()
-		var frb: BoxMesh = BoxMesh.new()
-		frb.size = Vector3(0.3, 0.05, 0.3)
-		frb.material = fmat
-		fr.mesh = frb
-		fr.position = Vector3(2.5, 0.03, z)
-		add_child(fr)
+func _build_floor_light(x: float, z: float) -> void:
+	var m: MeshInstance3D = MeshInstance3D.new()
+	var b: BoxMesh = BoxMesh.new()
+	b.size = Vector3(0.3, 0.05, 0.3)
+	var fm: StandardMaterial3D = StandardMaterial3D.new()
+	fm.albedo_color = Color(1.0, 0.3, 0.1)
+	fm.emission_enabled = true
+	fm.emission = Color(1.0, 0.2, 0.05)
+	fm.emission_energy_multiplier = 3.0
+	b.material = fm
+	m.mesh = b
+	m.position = Vector3(x, 0.03, z + 10.0)
+	add_child(m)
 
+# ============================================================
+# 导航
+# ============================================================
 func _build_navigation() -> void:
 	var nav: NavigationRegion3D = NavigationRegion3D.new()
 	var nm: NavigationMesh = NavigationMesh.new()
 	nm.agent_radius = 0.6
-	nm.agent_height = 2.2
+	nm.agent_height = 2.0
+	nm.agent_max_climb = 0.5
 	nm.cell_size = 0.3
+	nm.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 	nav.navigation_mesh = nm
 	add_child(nav)
-	nav.bake_navigation_mesh(true)
+	nav.bake_navigation_mesh(false)
 
+# ============================================================
+# 每帧
+# ============================================================
 func _process(delta: float) -> void:
-	# 警报灯：左闪→右闪→全黑→循环
 	alarm_timer += delta
 	var phase: int = int(alarm_timer / 0.6) % 3
 	for i in range(alarm_lights.size()):
-		if alarm_lights[i] != null and is_instance_valid(alarm_lights[i]):
-			if phase == 0:
-				# 左闪
-				alarm_lights[i].visible = (i % 2 == 0)
-			elif phase == 1:
-				# 右闪
-				alarm_lights[i].visible = (i % 2 == 1)
-			else:
-				# 全黑
-				alarm_lights[i].visible = false
+		var l: OmniLight3D = alarm_lights[i]
+		if l == null or not is_instance_valid(l):
+			continue
+		if phase == 0:
+			l.visible = (i % 2 == 0)
+		elif phase == 1:
+			l.visible = (i % 2 == 1)
+		else:
+			l.visible = false
 	if Input.is_action_just_pressed("interact"):
-		if _door_prompt and _cur_door != null:
-			_try_open_door(_cur_door)
-		if _btn_prompt and _cur_big_door != null and not button_pressed:
-			_open_big_door(_cur_big_door)
-	if button_pressed and countdown_timer > 0:
-		countdown_timer -= delta
-		if countdown_timer <= 0 and not ceiling_open:
-			_spawn_chaser()
+		if current_door_area != null:
+			_use_door(current_door_area)
+		elif current_gate_area != null:
+			_start_test(current_gate_area)
+	if test_started and countdown > 0.0:
+		countdown -= delta
+		if countdown <= 0.0 and not chaser_released:
+			_release_chaser()
+	_check_hub_reached()
 
-func _spawn_chaser() -> void:
-	ceiling_open = true
+func _release_chaser() -> void:
+	chaser_released = true
 	if ceiling_trap != null:
 		var tw: Tween = create_tween()
-		tw.tween_property(ceiling_trap, "position:y", CORRIDOR_HEIGHT + 3.0, 1.5)
-	if chaser_scene != null:
-		chaser = chaser_scene.instantiate()
-		chaser.position = Vector3(0, CORRIDOR_HEIGHT - 1.0, 10.0)
-		add_child(chaser)
+		tw.tween_property(ceiling_trap, "position:y", CORRIDOR_HEIGHT + 3.0, 1.2)
+	chaser = CHASER_SCENE.instantiate()
+	chaser.position = Vector3(0, 2.0, 10.0)
+	add_child(chaser)
 	if UIManager != null:
 		UIManager.show_announcement("实验体已释放 - 快跑！！！", 5.0)
+
+func _check_hub_reached() -> void:
+	if hub_reached:
+		return
+	var player: Node = get_tree().get_first_node_in_group("player")
+	if player == null:
+		return
+	if player.global_position.x > HALF_W + ESCAPE_LENGTH - 1.0:
+		hub_reached = true
+		if UIManager != null:
+			UIManager.show_announcement("已抵达安全区 - 暂时安全", 5.0)
