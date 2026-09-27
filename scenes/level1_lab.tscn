@@ -561,12 +561,3 @@ light_energy = 1.5
 omni_range = 15.0
 position = Vector3(0, 5, 0)
 groups = ["emergency_light"]
-
-[node name="TaskHint" type="Label3D" parent="."]
-text = "目标：修复3个发电机 → 搜索研究员尸体获得门禁卡 → 打开安全门逃离"
-font_size = 24
-outline_size = 6
-outline_modulate = Color(0, 0, 0, 0.9)
-billboard = 2
-no_depth_test = true
-position = Vector3(0, 8, -55)
