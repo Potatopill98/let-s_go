@@ -1,0 +1,14 @@
+﻿[gd_scene load_steps=2 format=3 uid="uid://searchable_corpse_001"]
+
+[ext_resource type="Script" path="res://modules/interaction/searchable.gd" id="1"]
+
+[node name="ResearcherCorpse" type="StaticBody3D"]
+script = ExtResource("1")
+searchable_id = "searchable_researcher"
+searchable_name = "研究员尸体"
+search_prompt = "按E搜索研究员尸体"
+search_time = 2.0
+guaranteed_loot = "task_keycard_lab"
+loot_table = PackedStringArray(["con_medkit", "con_pistol_ammo"])
+search_color = Color(0.9, 0.9, 0.95, 1)
+model_type = "corpse"
