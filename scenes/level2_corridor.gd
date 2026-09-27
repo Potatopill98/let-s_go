@@ -210,7 +210,7 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 		rib_box.size = Vector3(0.02, 0.08, DOOR_WIDTH - 0.3)
 		rib_box.material = frame_mat
 		rib.mesh = rib_box
-		rib.position = Vector3(0.05, 1.0 + i * 1.2, 0)
+		rib.position = Vector3(0, 1.0 + i * 1.2, 0)
 		hinge.add_child(rib)
 	# 门把手
 	var handle: MeshInstance3D = MeshInstance3D.new()
@@ -222,8 +222,16 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	h_mat.roughness = 0.2
 	h_box.material = h_mat
 	handle.mesh = h_box
-	handle.position = Vector3(0.08, 1.5, 0.6)
+	handle.position = Vector3(0.1, 1.5, 0.6)
 	hinge.add_child(handle)
+	# 背面门把手
+	var handle2: MeshInstance3D = MeshInstance3D.new()
+	var h2_box: BoxMesh = BoxMesh.new()
+	h2_box.size = Vector3(0.15, 0.12, 0.04)
+	h2_box.material = h_mat
+	handle2.mesh = h2_box
+	handle2.position = Vector3(-0.1, 1.5, 0.6)
+	hinge.add_child(handle2)
 	# 观察窗
 	var window: MeshInstance3D = MeshInstance3D.new()
 	var w_box: BoxMesh = BoxMesh.new()
@@ -237,7 +245,7 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 	w_mat.albedo_color = Color(0.2, 0.3, 0.4, 0.7)
 	w_box.material = w_mat
 	window.mesh = w_box
-	window.position = Vector3(0.05, 2.8, 0)
+	window.position = Vector3(0, 2.8, 0)
 	hinge.add_child(window)
 	# 出口门指示灯（绿色小灯）
 	if is_exit:
@@ -251,8 +259,15 @@ func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: 
 		ind_mat.emission_energy_multiplier = 2.0
 		ind_box.material = ind_mat
 		indicator.mesh = ind_box
-		indicator.position = Vector3(0.06, 3.5, 0.5)
+		indicator.position = Vector3(0.1, 3.5, 0.5)
 		hinge.add_child(indicator)
+		var indicator2: MeshInstance3D = MeshInstance3D.new()
+		var ind2_box: BoxMesh = BoxMesh.new()
+		ind2_box.size = Vector3(0.05, 0.15, 0.15)
+		ind2_box.material = ind_mat
+		indicator2.mesh = ind2_box
+		indicator2.position = Vector3(-0.1, 3.5, 0.5)
+		hinge.add_child(indicator2)
 	# 门的碰撞（跟随门板）
 	var col: CollisionShape3D = CollisionShape3D.new()
 	var col_shape: BoxShape3D = BoxShape3D.new()
