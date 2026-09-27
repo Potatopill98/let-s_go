@@ -44,7 +44,8 @@ func _build_structure() -> void:
 	_make_floor(Vector3(0, -0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 0.2, CORRIDOR_LENGTH))
 	# 天花板（只有通道宽度）
 	_make_ceiling(Vector3(0, CORRIDOR_HEIGHT + 0.1, CORRIDOR_LENGTH / 2), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, 0.2, CORRIDOR_LENGTH))
-	# 尽头由安全区大房间的后墙封死(z=590)
+	# 尽头墙（封死走廊正前方，玩家不能一直往前走）
+	_make_wall(Vector3(0, CORRIDOR_HEIGHT / 2, CORRIDOR_LENGTH), Vector3(CORRIDOR_WIDTH + ROOM_SIZE * 2 + 4.0, CORRIDOR_HEIGHT, 0.3))
 	# 入口由连接室处理
 	# 左右外墙（分段，留门洞）
 	var door_count: int = int((CORRIDOR_LENGTH - 40) / DOOR_SPACING)
@@ -196,32 +197,44 @@ func _open_big_door(area: Area3D) -> void:
 	tw.set_ease(Tween.EASE_IN_OUT)
 
 func _build_safe_zone() -> void:
-	# 出口后面的安全区：通道+大房间，亮着灯
-	var half_w: float = CORRIDOR_WIDTH / 2
-	# 安全区通道（z=500到z=530）
-	_make_floor(Vector3(0, -0.1, 515.0), Vector3(CORRIDOR_WIDTH, 0.2, 30.0))
-	_make_ceiling(Vector3(0, CORRIDOR_HEIGHT + 0.1, 515.0), Vector3(CORRIDOR_WIDTH, 0.2, 30.0))
-	_make_wall(Vector3(-half_w, CORRIDOR_HEIGHT / 2, 515.0), Vector3(0.3, CORRIDOR_HEIGHT, 30.0))
-	_make_wall(Vector3(half_w, CORRIDOR_HEIGHT / 2, 515.0), Vector3(0.3, CORRIDOR_HEIGHT, 30.0))
-	# 大房间（z=530到z=590，宽20米）
-	var room_half: float = 10.0
-	_make_floor(Vector3(0, -0.1, 560.0), Vector3(room_half * 2, 0.2, 60.0))
-	_make_ceiling(Vector3(0, 6.1, 560.0), Vector3(room_half * 2, 0.2, 60.0))
-	_make_wall(Vector3(-room_half, 3.0, 560.0), Vector3(0.3, 6.0, 60.0))
-	_make_wall(Vector3(room_half, 3.0, 560.0), Vector3(0.3, 6.0, 60.0))
-	_make_wall(Vector3(0, 3.0, 590.0), Vector3(room_half * 2, 6.0, 0.3))
-	# 安全区灯光（亮的）
+	# 安全区建在走廊右侧（出口门旁边），大房间亮灯
+	# 出口门在z=470左右的右侧，安全区从x=5.7到x=25.7，z=440到z=500
+	var room_left: float = CORRIDOR_WIDTH / 2 + ROOM_SIZE  # x=5.7
+	var room_right: float = room_left + 20.0  # x=25.7
+	var room_center_x: float = (room_left + room_right) / 2  # x=15.7
+	var room_z_start: float = 440.0
+	var room_z_end: float = 500.0
+	var room_center_z: float = (room_z_start + room_z_end) / 2  # z=470
+	var room_width: float = room_right - room_left  # 20米
+	var room_length: float = room_z_end - room_z_start  # 60米
+	# 地板
+	_make_floor(Vector3(room_center_x, -0.1, room_center_z), Vector3(room_width, 0.2, room_length))
+	# 天花板（高6米）
+	_make_ceiling(Vector3(room_center_x, 6.1, room_center_z), Vector3(room_width, 0.2, room_length))
+	# 右侧墙
+	_make_wall(Vector3(room_right, 3.0, room_center_z), Vector3(0.3, 6.0, room_length))
+	# 前墙（z=440）
+	_make_wall(Vector3(room_center_x, 3.0, room_z_start), Vector3(room_width, 6.0, 0.3))
+	# 后墙（z=500）
+	_make_wall(Vector3(room_center_x, 3.0, room_z_end), Vector3(room_width, 6.0, 0.3))
+	# 左侧墙（x=5.7），在出口门小房间位置留口（z=459到481，对应小房间2.2米+余量）
+	# 左侧墙分两段：z=440到458，z=482到500
+	_make_wall(Vector3(room_left, 3.0, 449.0), Vector3(0.3, 6.0, 18.0))
+	_make_wall(Vector3(room_left, 3.0, 491.0), Vector3(0.3, 6.0, 18.0))
+	# 安全区灯光（亮的，4盏）
 	for i in range(4):
+		var lx: float = room_left + 4.0 + (i % 2) * 12.0
+		var lz: float = room_z_start + 15.0 + int(i / 2) * 30.0
 		var l: OmniLight3D = OmniLight3D.new()
 		l.light_color = Color(1.0, 0.98, 0.9)
 		l.light_energy = 3.0
 		l.omni_range = 15.0
-		l.position = Vector3(0, 5.5, 510.0 + i * 20.0)
+		l.position = Vector3(lx, 5.5, lz)
 		add_child(l)
-	# 安全区标识
+	# 安全区标识（绿色发光牌）
 	var sign: MeshInstance3D = MeshInstance3D.new()
 	var sb: BoxMesh = BoxMesh.new()
-	sb.size = Vector3(3.0, 1.0, 0.1)
+	sb.size = Vector3(0.1, 1.0, 3.0)
 	var smat: StandardMaterial3D = StandardMaterial3D.new()
 	smat.albedo_color = Color(0.1, 0.8, 0.2)
 	smat.emission_enabled = true
@@ -229,7 +242,7 @@ func _build_safe_zone() -> void:
 	smat.emission_energy_multiplier = 2.0
 	sb.material = smat
 	sign.mesh = sb
-	sign.position = Vector3(0, 4.0, 540.0)
+	sign.position = Vector3(room_left + 1.0, 4.0, room_center_z)
 	add_child(sign)
 
 func _make_floor(pos: Vector3, size: Vector3) -> void:
@@ -290,11 +303,11 @@ func _build_doors_and_rooms() -> void:
 		if z_pos > CORRIDOR_LENGTH - 30:
 			break
 		var is_exit: bool = (i == door_count - 1)
-		# 左侧门
-		_make_door(z_pos, true, idx, is_exit, half_w)
+		# 左侧门（不是出口）
+		_make_door(z_pos, true, idx, false, half_w)
 		idx += 1
-		# 右侧门（不是出口）
-		_make_door(z_pos, false, idx, false, half_w)
+		# 右侧门（最后一扇是出口）
+		_make_door(z_pos, false, idx, is_exit, half_w)
 		idx += 1
 
 func _make_door(z_pos: float, is_left: bool, index: int, is_exit: bool, half_w: float) -> void:
@@ -560,7 +573,7 @@ func _try_open_door(area: Area3D) -> void:
 				if UIManager != null:
 					UIManager.show_announcement("已进入安全区！", 3.0)
 				# 传送到安全区通道
-				body.global_position = Vector3(0, 1.0, 515.0)
+				body.global_position = Vector3(15.7, 1.0, 470.0)
 		)
 		add_child(teleport)
 		return
