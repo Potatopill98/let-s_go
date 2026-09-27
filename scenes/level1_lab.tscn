@@ -509,19 +509,36 @@ position = Vector3(-35, 0.5, 35)
 position = Vector3(0, 0, 58)
 
 [node name="Monster1" parent="." instance=ExtResource("2_monster")]
-position = Vector3(-15, 1, 10)
+position = Vector3(-25, 1, -25)
+use_fov_detection = true
+view_angle = 120.0
+view_range = 15.0
 
 [node name="Monster2" parent="." instance=ExtResource("2_monster")]
-position = Vector3(15, 1, -15)
+position = Vector3(-25, 1, 0)
+use_fov_detection = true
+view_angle = 120.0
+view_range = 15.0
 
 [node name="Monster3" parent="." instance=ExtResource("7_sprinter")]
-position = Vector3(0, 1, 20)
+position = Vector3(-25, 1, 25)
+use_fov_detection = true
+view_angle = 140.0
+view_range = 18.0
 
 [node name="Monster4" parent="." instance=ExtResource("2_monster")]
-position = Vector3(-35, 1, 25)
+position = Vector3(25, 1, -25)
+rotation = Vector3(0, 3.14159, 0)
+use_fov_detection = true
+view_angle = 120.0
+view_range = 15.0
 
 [node name="Monster5" parent="." instance=ExtResource("8_berserker")]
-position = Vector3(35, 1, 25)
+position = Vector3(25, 1, 25)
+rotation = Vector3(0, 3.14159, 0)
+use_fov_detection = true
+view_angle = 100.0
+view_range = 12.0
 
 [node name="AlarmLight1" type="OmniLight3D" parent="."]
 light_color = Color(1, 0.1, 0.1, 1)

@@ -1,4 +1,4 @@
-﻿extends CharacterBody3D
+extends CharacterBody3D
 class_name BaseMonster
 
 # ============================================================
@@ -16,6 +16,13 @@ class_name BaseMonster
 @export var max_health: float = 30.0
 @export var hit_stun_time: float = 0.35
 @export var knockback_reduce: float = 0.25
+@export var use_fov_detection: bool = false  # 是否使用扇形视野检测（牢房怪物用）
+@export var view_angle: float = 120.0  # 视野角度（度）
+@export var view_range: float = 12.0  # 视野距离
+@export var patrol_in_cell: bool = false  # 是否在牢房内巡逻待机
+var is_alerted: bool = false  # 是否已警觉（检测到玩家后开始追击）
+var alert_timer: float = 0.0  # 失去目标后保持警觉的时间
+var home_position: Vector3 = Vector3.ZERO  # 初始位置（牢房位置）
 
 # State
 var current_health: float = 30.0
@@ -35,6 +42,7 @@ func _ready() -> void:
 	current_health = max_health
 	add_to_group("monster")
 	last_pos = global_position
+	home_position = global_position
 	_build_hp_bar()
 
 ## 头顶血条（Label3D billboard，参考霓虹竞技场实现）
@@ -80,7 +88,36 @@ func _physics_process(delta: float) -> void:
 		hit_stun_timer -= delta
 		move_and_slide()
 		return
-	var target: Player = find_nearest_player()
+	# 警觉计时器
+	if is_alerted and alert_timer > 0.0:
+		alert_timer -= delta
+		if alert_timer <= 0.0:
+			is_alerted = false
+
+	var target: Player = null
+	if use_fov_detection and not is_alerted:
+		# 扇形视野检测模式：未警觉时只检测视野内的玩家
+		target = find_player_in_fov()
+		if target != null:
+			is_alerted = true
+			alert_timer = 8.0  # 检测到后保持8秒警觉
+	else:
+		# 普通模式或已警觉：用原来的范围检测
+		target = find_nearest_player()
+		if target == null and is_alerted:
+			# 失去目标但保持警觉，回牢房方向
+			var to_home: Vector3 = home_position - global_position
+			to_home.y = 0.0
+			if to_home.length() > 1.0:
+				var dir_home: Vector3 = to_home.normalized()
+				velocity.x = dir_home.x * move_speed * 0.5
+				velocity.z = dir_home.z * move_speed * 0.5
+				rotation.y = atan2(-dir_home.x, -dir_home.z)
+			else:
+				velocity.x = 0.0
+				velocity.z = 0.0
+			move_and_slide()
+			return
 	if target == null:
 		velocity.x = 0.0
 		velocity.z = 0.0
@@ -131,9 +168,43 @@ func find_nearest_player() -> Player:
 			nearest = p
 	return nearest
 
+## 扇形视野检测：只检测面前view_angle度、view_range米内的玩家
+func find_player_in_fov() -> Player:
+	var players: Array = get_tree().get_nodes_in_group("player")
+	var forward: Vector3 = -global_transform.basis.z
+	forward.y = 0.0
+	forward = forward.normalized()
+	for node in players:
+		if not is_instance_valid(node):
+			continue
+		var p: Player = node as Player
+		if p == null or p.current_health <= 0.0:
+			continue
+		var to_player: Vector3 = p.global_position - global_position
+		to_player.y = 0.0
+		var dist: float = to_player.length()
+		if dist > view_range or dist < 0.1:
+			continue
+		var dir_to_player: Vector3 = to_player.normalized()
+		var dot: float = forward.dot(dir_to_player)
+		var angle_deg: float = rad_to_deg(acos(clamp(dot, -1.0, 1.0)))
+		if angle_deg <= view_angle * 0.5:
+			# 可选：射线检测遮挡
+			var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+			var from: Vector3 = global_position + Vector3(0, 1.0, 0)
+			var to: Vector3 = p.global_position + Vector3(0, 1.0, 0)
+			var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(from, to)
+			query.exclude = [get_rid()]
+			var result: Dictionary = space_state.intersect_ray(query)
+			if result.is_empty() or (result.has("collider") and result["collider"] == p):
+				return p
+	return null
+
 func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	if is_dead:
 		return
+	is_alerted = true  # 被攻击时触发警觉
+	alert_timer = 10.0
 	current_health -= amount
 	_update_hp_bar()
 	var kb_force: float = knockback.length() * (1.0 - knockback_reduce)
