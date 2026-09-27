@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://modules/monster/berserker.tscn" id="8_berserker"]
 [ext_resource type="PackedScene" path="res://modules/item/flashlight.tscn" id="9_flashlight"]
 [ext_resource type="Script" path="res://modules/level/navigation_region.gd" id="10_nav"]
+[ext_resource type="Script" path="res://scenes/level1_lab.gd" id="11_levelscript"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMat"]
 albedo_color = Color(0.2, 0.2, 0.22, 1)
@@ -114,6 +115,7 @@ ambient_light_color = Color(0.15, 0.15, 0.18, 1)
 ambient_light_energy = 0.3
 
 [node name="Level1" type="Node3D"]
+script = ExtResource("11_levelscript")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 light_energy = 0.15

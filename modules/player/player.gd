@@ -121,7 +121,8 @@ func _physics_process(delta: float) -> void:
 	if hit_stun_timer > 0.0:
 		hit_stun_timer -= delta
 	# Update UI health
-	UIManager.update_health(current_health, max_health)
+	if UIManager != null and UIManager.has_method("update_health"):
+		UIManager.update_health(current_health, max_health)
 	# Update held item UI
 	update_held_item_ui()
 	# Attack check - left click
@@ -217,7 +218,8 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	current_health -= actual_damage
 	velocity += knockback
 	hit_stun_timer = hit_stun_duration
-	UIManager.flash_damage()
+	if UIManager != null:
+		UIManager.flash_damage()
 	if current_health <= 0.0:
 		current_health = 0.0
 
@@ -319,6 +321,8 @@ func is_holding_weapon() -> bool:
 	return current_held_item.has_method("set_owner_player")
 
 func update_held_item_ui() -> void:
+	if UIManager == null:
+		return
 	if current_held_item == null:
 		UIManager.update_item_ui("空手")
 		UIManager.set_crosshair_visible(false)
@@ -365,6 +369,8 @@ func _on_inventory_changed() -> void:
 	update_inventory_ui()
 
 func update_inventory_ui() -> void:
+	if UIManager == null:
+		return
 	if inventory == null:
 		return
 	# Update UI with inventory data
@@ -435,6 +441,8 @@ func _on_equipment_changed(slot: int, item_id: String) -> void:
 	update_equipment_ui()
 
 func update_equipment_ui() -> void:
+	if UIManager == null:
+		return
 	if equipment == null:
 		return
 	var equip_list: Array = equipment.get_equipment_list()

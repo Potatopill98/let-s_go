@@ -40,6 +40,14 @@ var inventory_labels: Array = []
 var toast_label: Label = null
 var toast_timer: float = 0.0
 
+# Announcement (广播公告)
+var announcement_panel: Panel = null
+var announcement_label: Label = null
+var announcement_queue: Array = []
+var announcement_timer: float = 0.0
+var announcement_fade_timer: float = 0.0
+var announcement_active: bool = false
+
 # Equipment UI
 var equipment_panel: Panel = null
 var equipment_labels: Array = []
@@ -58,6 +66,7 @@ func _ready() -> void:
 	_create_controls_hint()
 	_create_inventory_ui()
 	_create_toast_ui()
+	_create_announcement_ui()
 	_create_equipment_ui()
 
 # ============================================================
@@ -382,7 +391,60 @@ func _process(delta: float) -> void:
 			toast_label.modulate.a = toast_timer / 0.5
 	else:
 		toast_label.modulate.a = 0
+	# Announcement system
+	_update_announcement(delta)
 
+
+# ============================================================
+# Announcement System (广播公告)
+# ============================================================
+func _create_announcement_ui() -> void:
+	announcement_panel = Panel.new()
+	announcement_panel.anchor_left = 0.5
+	announcement_panel.anchor_top = 0.0
+	announcement_panel.anchor_right = 0.5
+	announcement_panel.anchor_bottom = 0.0
+	announcement_panel.offset_left = -400
+	announcement_panel.offset_top = 60
+	announcement_panel.offset_right = 400
+	announcement_panel.offset_bottom = 130
+	announcement_panel.modulate.a = 0.0
+	announcement_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(announcement_panel)
+	announcement_label = Label.new()
+	announcement_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	announcement_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	announcement_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	announcement_label.add_theme_font_size_override("font_size", 28)
+	announcement_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	announcement_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	announcement_label.add_theme_constant_override("outline_size", 8)
+	announcement_panel.add_child(announcement_label)
+
+func show_announcement(text: String, duration: float = 4.0) -> void:
+	announcement_queue.append({"text": text, "duration": duration})
+	if not announcement_active:
+		_play_next_announcement()
+
+func _play_next_announcement() -> void:
+	if announcement_queue.is_empty():
+		announcement_active = false
+		announcement_panel.modulate.a = 0.0
+		return
+	announcement_active = true
+	var msg: Dictionary = announcement_queue.pop_front()
+	announcement_label.text = msg.text
+	announcement_timer = msg.duration
+	announcement_fade_timer = 0.0
+	announcement_panel.modulate.a = 0.9
+
+func _update_announcement(delta: float) -> void:
+	if not announcement_active:
+		return
+	if announcement_timer > 0:
+		announcement_timer -= delta
+		if announcement_timer <= 0:
+			_play_next_announcement()
 # ============================================================
 # Inventory UI
 # ============================================================
