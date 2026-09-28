@@ -58,6 +58,14 @@ var equipment: Node = null
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
+@onready var left_leg_pivot: Node3D = $LeftLegPivot
+@onready var right_leg_pivot: Node3D = $RightLegPivot
+@onready var left_arm_pivot: Node3D = $Head/LeftArmPivot
+@onready var right_arm: MeshInstance3D = $Head/RightArm
+var walk_cycle: float = 0.0
+var walk_anim_speed: float = 10.0
+var walk_leg_amp: float = 0.5
+var walk_arm_amp: float = 0.35
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -170,6 +178,31 @@ func _physics_process(delta: float) -> void:
 		else:
 			current_move_speed = walk_speed
 	move_and_slide()
+	_update_walk_animation(delta)
+
+func _update_walk_animation(delta: float) -> void:
+	if is_downed or is_dead:
+		return
+	var horizontal_speed: float = Vector2(velocity.x, velocity.z).length()
+	var is_moving: bool = horizontal_speed > 0.5
+	if is_moving:
+		var speed_factor: float = clampf(horizontal_speed / walk_speed, 0.5, 2.0)
+		walk_cycle += delta * walk_anim_speed * speed_factor
+		var leg_swing: float = sin(walk_cycle) * walk_leg_amp
+		var arm_swing: float = sin(walk_cycle + PI) * walk_arm_amp
+		left_leg_pivot.rotation.x = leg_swing
+		right_leg_pivot.rotation.x = -leg_swing
+		left_arm_pivot.rotation.x = arm_swing
+		# 右手臂只在空手时摆动, 拿武器时不摆
+		if current_held_item == null:
+			right_arm.rotation.x = 0.5 + (-arm_swing)
+	else:
+		walk_cycle = 0.0
+		left_leg_pivot.rotation.x = lerp(left_leg_pivot.rotation.x, 0.0, delta * 10.0)
+		right_leg_pivot.rotation.x = lerp(right_leg_pivot.rotation.x, 0.0, delta * 10.0)
+		left_arm_pivot.rotation.x = lerp(left_arm_pivot.rotation.x, 0.0, delta * 10.0)
+		if current_held_item == null:
+			right_arm.rotation.x = lerp(right_arm.rotation.x, 0.5, delta * 10.0)
 
 func handle_attack() -> void:
 	if is_downed or is_dead:

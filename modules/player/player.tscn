@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://player_module_001"]
+[gd_scene load_steps=13 format=3 uid="uid://player_module_001"]
 
 [ext_resource type="Script" path="res://modules/player/player.gd" id="1"]
 
@@ -21,41 +21,31 @@ radius = 0.09
 height = 0.12
 material = SubResource("ArmMat")
 
-[sub_resource type="StandardMaterial3D" id="TorsoMat"]
-albedo_color = Color(0.15, 0.16, 0.2, 1)
+[sub_resource type="StandardMaterial3D" id="BodyMat"]
+albedo_color = Color(0.2, 0.22, 0.28, 1)
 roughness = 0.85
-metallic = 0.05
 
-[sub_resource type="StandardMaterial3D" id="ShirtMat"]
-albedo_color = Color(0.35, 0.35, 0.4, 1)
-roughness = 0.9
-
-[sub_resource type="StandardMaterial3D" id="PantsMat"]
-albedo_color = Color(0.1, 0.12, 0.22, 1)
+[sub_resource type="StandardMaterial3D" id="LegMat"]
+albedo_color = Color(0.12, 0.14, 0.22, 1)
 roughness = 0.8
 
-[sub_resource type="StandardMaterial3D" id="ShoeMat"]
+[sub_resource type="StandardMaterial3D" id="FootMat"]
 albedo_color = Color(0.08, 0.08, 0.1, 1)
 roughness = 0.7
 
-[sub_resource type="CapsuleMesh" id="TorsoMesh"]
-radius = 0.26
+[sub_resource type="BoxMesh" id="BodyMesh"]
+size = Vector3(0.45, 0.65, 0.28)
+material = SubResource("BodyMat")
+
+[sub_resource type="CylinderMesh" id="LegMeshV2"]
+top_radius = 0.08
+bottom_radius = 0.07
 height = 0.6
-material = SubResource("TorsoMat")
+material = SubResource("LegMat")
 
-[sub_resource type="BoxMesh" id="ChestMesh"]
-size = Vector3(0.4, 0.25, 0.22)
-material = SubResource("ShirtMat")
-
-[sub_resource type="CylinderMesh" id="LegMesh"]
-top_radius = 0.1
-bottom_radius = 0.08
-height = 0.55
-material = SubResource("PantsMat")
-
-[sub_resource type="BoxMesh" id="ShoeMesh"]
-size = Vector3(0.16, 0.09, 0.28)
-material = SubResource("ShoeMat")
+[sub_resource type="BoxMesh" id="FootMeshV2"]
+size = Vector3(0.14, 0.08, 0.25)
+material = SubResource("FootMat")
 
 [node name="Player" type="CharacterBody3D"]
 script = ExtResource("1")
@@ -64,29 +54,31 @@ script = ExtResource("1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("PlayerCol")
 
-[node name="Torso" type="MeshInstance3D" parent="."]
-mesh = SubResource("TorsoMesh")
-position = Vector3(0, 0.82, 0)
+[node name="Body" type="MeshInstance3D" parent="."]
+mesh = SubResource("BodyMesh")
+position = Vector3(0, 0.85, 0)
 
-[node name="Chest" type="MeshInstance3D" parent="Torso"]
-mesh = SubResource("ChestMesh")
-position = Vector3(0, 0.08, 0.04)
+[node name="LeftLegPivot" type="Node3D" parent="."]
+position = Vector3(-0.12, 0.55, 0)
 
-[node name="LeftLeg" type="MeshInstance3D" parent="."]
-mesh = SubResource("LegMesh")
-position = Vector3(-0.14, 0.28, 0)
+[node name="LeftLeg" type="MeshInstance3D" parent="LeftLegPivot"]
+mesh = SubResource("LegMeshV2")
+position = Vector3(0, -0.3, 0)
 
-[node name="RightLeg" type="MeshInstance3D" parent="."]
-mesh = SubResource("LegMesh")
-position = Vector3(0.14, 0.28, 0)
+[node name="LeftFoot" type="MeshInstance3D" parent="LeftLegPivot"]
+mesh = SubResource("FootMeshV2")
+position = Vector3(0, -0.6, 0.06)
 
-[node name="LeftShoe" type="MeshInstance3D" parent="."]
-mesh = SubResource("ShoeMesh")
-position = Vector3(-0.14, 0.045, 0.07)
+[node name="RightLegPivot" type="Node3D" parent="."]
+position = Vector3(0.12, 0.55, 0)
 
-[node name="RightShoe" type="MeshInstance3D" parent="."]
-mesh = SubResource("ShoeMesh")
-position = Vector3(0.14, 0.045, 0.07)
+[node name="RightLeg" type="MeshInstance3D" parent="RightLegPivot"]
+mesh = SubResource("LegMeshV2")
+position = Vector3(0, -0.3, 0)
+
+[node name="RightFoot" type="MeshInstance3D" parent="RightLegPivot"]
+mesh = SubResource("FootMeshV2")
+position = Vector3(0, -0.6, 0.06)
 
 [node name="Head" type="Node3D" parent="."]
 position.y = 1.6
@@ -96,6 +88,15 @@ position.y = 1.6
 ; 预留武器挂点，后续武器模块直接挂载，不改动玩家结构
 [node name="WeaponMount" type="Node3D" parent="Head"]
 position = Vector3(0.3, -0.3, -0.5)
+; 第一人称左手臂
+[node name="LeftArmPivot" type="Node3D" parent="Head"]
+position = Vector3(-0.35, -0.1, -0.2)
+
+[node name="LeftArm" type="MeshInstance3D" parent="Head/LeftArmPivot"]
+mesh = SubResource("ForearmMesh")
+transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, -0.2, 0)
+rotation.x = -0.3
+
 ; 第一人称右手臂模型
 [node name="RightArm" type="MeshInstance3D" parent="Head"]
 mesh = SubResource("ForearmMesh")
