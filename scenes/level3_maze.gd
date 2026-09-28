@@ -275,11 +275,12 @@ func _spawn_flashlights() -> void:
 	var flash_scene: PackedScene = load("res://modules/item/flashlight.tscn")
 	if flash_scene == null:
 		return
+	var flash_offsets: Array = [Vector2(1.5, 0), Vector2(1.5, 1.0), Vector2(-1.5, 0), Vector2(-1.5, 1.0)]
 	for i in range(player_count):
 		var flash: Node3D = flash_scene.instantiate()
-		# 出生点附近随机位置, 避免重叠
-		var fx: float = 2.0 + randf() * 6.0
-		var fz: float = 2.0 + randf() * 6.0
+		var fidx: int = i % flash_offsets.size()
+		var fx: float = CELL_SIZE / 2.0 + flash_offsets[fidx].x
+		var fz: float = CELL_SIZE / 2.0 + flash_offsets[fidx].y
 		flash.position = Vector3(fx, 0.5, fz)
 		add_child(flash)
 func _build_entry_tunnel() -> void:
@@ -563,8 +564,13 @@ func _spawn_map() -> void:
 		_spawn_single_map(i)
 
 func _spawn_single_map(index: int) -> void:
-	var mx: float = 2.5 + randf() * 4.0
-	var my: float = 2.5 + randf() * 4.0
+	# 固定在出生点周围, 确保在通道里
+	var spawn_x: float = CELL_SIZE / 2.0
+	var spawn_z: float = CELL_SIZE / 2.0
+	var offsets: Array = [Vector2(0, 1.5), Vector2(1.2, 1.5), Vector2(-1.2, 1.5), Vector2(0, 2.5)]
+	var idx: int = index % offsets.size()
+	var mx: float = spawn_x + offsets[idx].x
+	var my: float = spawn_z + offsets[idx].y
 	var map_area: Area3D = Area3D.new()
 	map_area.name = "MazeMap_" + str(index)
 	var map_mi: MeshInstance3D = MeshInstance3D.new()
