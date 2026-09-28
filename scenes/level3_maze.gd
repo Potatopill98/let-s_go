@@ -230,6 +230,25 @@ func _spawn_player() -> void:
 	player.position = Vector3(CELL_SIZE / 2.0, 1.0, CELL_SIZE / 2.0)
 	player.name = "Player"
 	add_child(player)
+	# 出生点光源, 让玩家看清周围
+	var spawn_light: OmniLight3D = OmniLight3D.new()
+	spawn_light.light_color = Color(0.9, 0.95, 1.0)
+	spawn_light.light_energy = 2.5
+	spawn_light.omni_range = 10.0
+	spawn_light.position = Vector3(CELL_SIZE / 2.0, 2.5, CELL_SIZE / 2.0)
+	add_child(spawn_light)
+	# 出生点发光灯管
+	var spawn_tube: MeshInstance3D = MeshInstance3D.new()
+	var tube_box: BoxMesh = BoxMesh.new()
+	tube_box.size = Vector3(1.5, 0.1, 0.1)
+	var tube_mat: StandardMaterial3D = StandardMaterial3D.new()
+	tube_mat.emission_enabled = true
+	tube_mat.emission = Color(0.9, 0.95, 1.0)
+	tube_mat.emission_energy_multiplier = 3.0
+	tube_box.material = tube_mat
+	spawn_tube.mesh = tube_box
+	spawn_tube.position = Vector3(CELL_SIZE / 2.0, WALL_HEIGHT - 0.3, CELL_SIZE / 2.0)
+	add_child(spawn_tube)
 
 
 func _spawn_flashlights() -> void:
@@ -408,8 +427,8 @@ func _build_guidance_markers() -> void:
 # Pickable map - 可拾取迷宫地图
 # ============================================================
 func _spawn_map() -> void:
-	var mx: int = randi() % (MAZE_W - 6) + 3
-	var my: int = randi() % (MAZE_H - 6) + 3
+	var mx: float = 3.0 + randf() * 3.0
+	var my: float = 3.0 + randf() * 3.0
 	var map_area: Area3D = Area3D.new()
 	map_area.name = "MazeMap"
 	var map_mi: MeshInstance3D = MeshInstance3D.new()
@@ -429,7 +448,7 @@ func _spawn_map() -> void:
 	map_shape.size = Vector3(1.5, 1.5, 1.5)
 	map_cs.shape = map_shape
 	map_area.add_child(map_cs)
-	map_area.position = Vector3(mx * CELL_SIZE + CELL_SIZE / 2.0, 0, my * CELL_SIZE + CELL_SIZE / 2.0)
+	map_area.position = Vector3(mx, 0, my)
 	map_area.body_entered.connect(_on_map_entered)
 	add_child(map_area)
 	var map_light: OmniLight3D = OmniLight3D.new()
