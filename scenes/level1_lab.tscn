@@ -525,7 +525,7 @@ position = Vector3(30, 0.5, 10)
 position = Vector3(-35, 0.5, 35)
 
 [node name="SecurityDoor" parent="." instance=ExtResource("5_door")]
-position = Vector3(0, 0, 58)
+position = Vector3(0, 0, 60)
 
 [node name="Monster1" parent="." instance=ExtResource("2_monster")]
 position = Vector3(-25, 1, -25)
