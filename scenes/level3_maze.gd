@@ -17,6 +17,9 @@ var maze_cells: Array = []
 var walls: Array = []
 var key_picked: bool = false
 var elevator_unlocked: bool = false
+var key_pos: Vector3 = Vector3.ZERO
+var elevator_pos: Vector3 = Vector3.ZERO
+var map_picked: bool = false
 
 func _ready() -> void:
 	_generate_maze()
@@ -28,6 +31,8 @@ func _ready() -> void:
 	_spawn_flashlights()
 	_spawn_key()
 	_spawn_elevator()
+	_build_guidance_markers()
+	_spawn_map()
 	_spawn_wall_crawlers()
 	if UIManager != null:
 		UIManager.show_announcement("地下实验区 - 找到钥匙卡, 前往电梯撤离", 5.0)
@@ -267,15 +272,16 @@ func _spawn_key() -> void:
 	key_shape.size = Vector3(1.5, 1.5, 1.5)
 	key_cs.shape = key_shape
 	key_area.add_child(key_cs)
-	key_area.position = Vector3(kx * CELL_SIZE + CELL_SIZE / 2.0, 0, ky * CELL_SIZE + CELL_SIZE / 2.0)
+	key_pos = Vector3(kx * CELL_SIZE + CELL_SIZE / 2.0, 0, ky * CELL_SIZE + CELL_SIZE / 2.0)
+	key_area.position = key_pos
 	key_area.body_entered.connect(_on_key_entered)
 	add_child(key_area)
-	# 钥匙旁边放个小灯方便找
+	# 钥匙旁边放个强光灯方便找
 	var key_light: OmniLight3D = OmniLight3D.new()
 	key_light.light_color = Color(1.0, 0.9, 0.3)
-	key_light.light_energy = 1.5
-	key_light.omni_range = 4.0
-	key_light.position = Vector3(0, 1.0, 0)
+	key_light.light_energy = 3.5
+	key_light.omni_range = 9.0
+	key_light.position = Vector3(0, 1.2, 0)
 	key_area.add_child(key_light)
 
 func _on_key_entered(body: Node) -> void:
@@ -317,10 +323,11 @@ func _spawn_elevator() -> void:
 	door_mi.position = Vector3(ex, WALL_HEIGHT / 2.0, ez - CELL_SIZE / 2.0)
 	add_child(door_mi)
 	# 电梯指示灯
+	elevator_pos = Vector3(ex, 0, ez)
 	var elev_light: OmniLight3D = OmniLight3D.new()
 	elev_light.light_color = Color(0.2, 1.0, 0.3)
-	elev_light.light_energy = 2.0
-	elev_light.omni_range = 6.0
+	elev_light.light_energy = 4.0
+	elev_light.omni_range = 11.0
 	elev_light.position = Vector3(ex, WALL_HEIGHT - 0.5, ez)
 	add_child(elev_light)
 	# 发光箭头指示
@@ -364,3 +371,121 @@ func _spawn_wall_crawlers() -> void:
 		var crawler: Node3D = crawler_scene.instantiate()
 		crawler.position = Vector3(pos.x * CELL_SIZE + CELL_SIZE / 2.0, 1.0, pos.y * CELL_SIZE + CELL_SIZE / 2.0)
 		add_child(crawler)
+
+# ============================================================
+# Guidance markers - 地上指示灯指引
+# 离钥匙近=黄色亮, 离电梯近=绿色亮, 远=暗红微弱
+# ============================================================
+func _build_guidance_markers() -> void:
+	var max_dist: float = MAZE_W * CELL_SIZE * 0.7
+	for x in range(MAZE_W):
+		for y in range(MAZE_H):
+			var cx: float = x * CELL_SIZE + CELL_SIZE / 2.0
+			var cy: float = y * CELL_SIZE + CELL_SIZE / 2.0
+			var cell_pos: Vector3 = Vector3(cx, 0, cy)
+			var dist_key: float = cell_pos.distance_to(key_pos)
+			var dist_elev: float = cell_pos.distance_to(elevator_pos)
+			var target_dist: float = dist_key
+			var target_color: Color = Color(1.0, 0.85, 0.2)
+			if dist_elev < dist_key:
+				target_dist = dist_elev
+				target_color = Color(0.2, 1.0, 0.35)
+			var brightness: float = clamp(1.0 - target_dist / max_dist, 0.04, 1.0)
+			var marker: MeshInstance3D = MeshInstance3D.new()
+			var box: BoxMesh = BoxMesh.new()
+			box.size = Vector3(0.3, 0.04, 0.3)
+			var mat: StandardMaterial3D = StandardMaterial3D.new()
+			mat.emission_enabled = true
+			mat.emission = target_color
+			mat.emission_energy_multiplier = brightness * 2.5
+			mat.albedo_color = Color(0, 0, 0)
+			box.material = mat
+			marker.mesh = box
+			marker.position = Vector3(cx, 0.03, cy)
+			add_child(marker)
+
+# ============================================================
+# Pickable map - 可拾取迷宫地图
+# ============================================================
+func _spawn_map() -> void:
+	var mx: int = randi() % (MAZE_W - 6) + 3
+	var my: int = randi() % (MAZE_H - 6) + 3
+	var map_area: Area3D = Area3D.new()
+	map_area.name = "MazeMap"
+	var map_mi: MeshInstance3D = MeshInstance3D.new()
+	var map_box: BoxMesh = BoxMesh.new()
+	map_box.size = Vector3(0.6, 0.04, 0.8)
+	var map_mat: StandardMaterial3D = StandardMaterial3D.new()
+	map_mat.albedo_color = Color(0.75, 0.65, 0.4)
+	map_mat.emission_enabled = true
+	map_mat.emission = Color(0.8, 0.7, 0.35)
+	map_mat.emission_energy_multiplier = 1.5
+	map_box.material = map_mat
+	map_mi.mesh = map_box
+	map_mi.position.y = 0.3
+	map_area.add_child(map_mi)
+	var map_cs: CollisionShape3D = CollisionShape3D.new()
+	var map_shape: BoxShape3D = BoxShape3D.new()
+	map_shape.size = Vector3(1.5, 1.5, 1.5)
+	map_cs.shape = map_shape
+	map_area.add_child(map_cs)
+	map_area.position = Vector3(mx * CELL_SIZE + CELL_SIZE / 2.0, 0, my * CELL_SIZE + CELL_SIZE / 2.0)
+	map_area.body_entered.connect(_on_map_entered)
+	add_child(map_area)
+	var map_light: OmniLight3D = OmniLight3D.new()
+	map_light.light_color = Color(0.9, 0.8, 0.4)
+	map_light.light_energy = 2.0
+	map_light.omni_range = 5.0
+	map_light.position = Vector3(0, 1.0, 0)
+	map_area.add_child(map_light)
+
+func _on_map_entered(body: Node) -> void:
+	if body.is_in_group("player") and not map_picked:
+		map_picked = true
+		_render_maze_map(body)
+		if UIManager != null:
+			UIManager.show_toast("获得迷宫地图! 按M查看")
+			UIManager.show_announcement("地图已获取", 3.0)
+		var map_node: Node = get_node_or_null("MazeMap")
+		if map_node != null:
+			map_node.queue_free()
+
+func _render_maze_map(player: Node) -> void:
+	var cell_px: int = 16
+	var img_w: int = MAZE_W * cell_px + 4
+	var img_h: int = MAZE_H * cell_px + 4
+	var img: Image = Image.create(img_w, img_h, false, Image.FORMAT_RGB8)
+	img.fill(Color(0.05, 0.05, 0.08))
+	# 画迷宫墙和通道
+	for x in range(MAZE_W):
+		for y in range(MAZE_H):
+			var cell: Dictionary = maze_cells[x][y]
+			var px: int = x * cell_px + 2
+			var py: int = y * cell_px + 2
+			# 通道底色
+			img.fill_rect(Rect2i(px, py, cell_px, cell_px), Color(0.15, 0.15, 0.18))
+			# 画墙
+			if cell.walls[0]:
+				img.fill_rect(Rect2i(px, py, cell_px, 2), Color(0.6, 0.6, 0.65))
+			if cell.walls[1]:
+				img.fill_rect(Rect2i(px + cell_px - 2, py, 2, cell_px), Color(0.6, 0.6, 0.65))
+			if cell.walls[2] and y == MAZE_H - 1:
+				img.fill_rect(Rect2i(px, py + cell_px - 2, cell_px, 2), Color(0.6, 0.6, 0.65))
+			if cell.walls[3] and x == 0:
+				img.fill_rect(Rect2i(px, py, 2, cell_px), Color(0.6, 0.6, 0.65))
+	# 标记钥匙(黄点)
+	if not key_picked:
+		var kx: int = int(key_pos.x / CELL_SIZE) * cell_px + 2 + cell_px / 2
+		var ky: int = int(key_pos.z / CELL_SIZE) * cell_px + 2 + cell_px / 2
+		img.fill_rect(Rect2i(kx - 3, ky - 3, 6, 6), Color(1.0, 0.9, 0.2))
+	# 标记电梯(绿点)
+	var ex: int = int(elevator_pos.x / CELL_SIZE) * cell_px + 2 + cell_px / 2
+	var ey: int = int(elevator_pos.z / CELL_SIZE) * cell_px + 2 + cell_px / 2
+	img.fill_rect(Rect2i(ex - 3, ey - 3, 6, 6), Color(0.2, 1.0, 0.3))
+	# 标记玩家(红点)
+	var ppx: int = int(player.global_position.x / CELL_SIZE) * cell_px + 2 + cell_px / 2
+	var ppy: int = int(player.global_position.z / CELL_SIZE) * cell_px + 2 + cell_px / 2
+	img.fill_rect(Rect2i(ppx - 4, ppy - 4, 8, 8), Color(1.0, 0.2, 0.2))
+	var texture: ImageTexture = ImageTexture.create_from_image(img)
+	if UIManager != null:
+		UIManager.set_maze_map(texture)

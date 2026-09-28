@@ -52,6 +52,12 @@ var announcement_active: bool = false
 var equipment_panel: Panel = null
 var equipment_labels: Array = []
 
+# Maze map UI
+var map_panel: Panel = null
+var map_texture_rect: TextureRect = null
+var map_visible: bool = false
+var map_has_data: bool = false
+
 @export var message_duration: float = 3.0
 
 func _ready() -> void:
@@ -68,6 +74,7 @@ func _ready() -> void:
 	_create_toast_ui()
 	_create_announcement_ui()
 	_create_equipment_ui()
+	_create_map_ui()
 
 # ============================================================
 # Damage overlay (red vignette when hurt)
@@ -399,6 +406,10 @@ func _process(delta: float) -> void:
 		toast_label.modulate.a = 0
 	# Announcement system
 	_update_announcement(delta)
+	# Maze map toggle
+	if Input.is_action_just_pressed("map_toggle") and map_has_data:
+		map_visible = not map_visible
+		map_panel.visible = map_visible
 
 
 # ============================================================
@@ -634,3 +645,59 @@ func update_equipment(equip_list: Array) -> void:
 		else:
 			equipment_labels[i].text = "无"
 			equipment_labels[i].add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+# ============================================================
+# Maze Map UI
+# ============================================================
+func _create_map_ui() -> void:
+	map_panel = Panel.new()
+	map_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	map_panel.modulate = Color(0, 0, 0, 0.85)
+	map_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_panel.visible = false
+	add_child(map_panel)
+	# 标题
+	var title: Label = Label.new()
+	title.text = "迷宫地图 (按M关闭)"
+	title.anchor_left = 0.5
+	title.anchor_right = 0.5
+	title.offset_left = -150
+	title.offset_top = 30
+	title.offset_right = 150
+	title.offset_bottom = 60
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color(0.5, 0.85, 1.0, 1))
+	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	title.add_theme_constant_override("outline_size", 4)
+	map_panel.add_child(title)
+	# 地图纹理显示
+	map_texture_rect = TextureRect.new()
+	map_texture_rect.anchor_left = 0.5
+	map_texture_rect.anchor_top = 0.5
+	map_texture_rect.anchor_right = 0.5
+	map_texture_rect.anchor_bottom = 0.5
+	map_texture_rect.offset_left = -300
+	map_texture_rect.offset_top = -280
+	map_texture_rect.offset_right = 300
+	map_texture_rect.offset_bottom = 320
+	map_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	map_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	map_panel.add_child(map_texture_rect)
+	# 图例
+	var legend: Label = Label.new()
+	legend.text = "红点=你  黄点=钥匙  绿点=电梯"
+	legend.anchor_left = 0.5
+	legend.anchor_right = 0.5
+	legend.offset_left = -200
+	legend.offset_top = 560
+	legend.offset_right = 200
+	legend.offset_bottom = 590
+	legend.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	legend.add_theme_font_size_override("font_size", 18)
+	legend.add_theme_color_override("font_color", Color(0.5, 0.85, 1.0, 1))
+	map_panel.add_child(legend)
+
+func set_maze_map(texture: Texture2D) -> void:
+	if map_texture_rect != null:
+		map_texture_rect.texture = texture
+		map_has_data = true
