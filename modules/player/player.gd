@@ -64,6 +64,7 @@ var equipment: Node = null
 @onready var right_arm: MeshInstance3D = $Head/RightArm
 var walk_cycle: float = 0.0
 var walk_anim_speed: float = 10.0
+var _last_step_cycle: float = 0.0
 var walk_leg_amp: float = 0.5
 var walk_arm_amp: float = 0.35
 
@@ -172,6 +173,8 @@ func _physics_process(delta: float) -> void:
 		# Jump
 		if Input.is_key_pressed(KEY_SPACE) and is_on_floor():
 			velocity.y = jump_velocity
+			if AudioManager != null:
+				AudioManager.play_sfx("jump", 0.5)
 		# Run
 		if Input.is_key_pressed(KEY_SHIFT):
 			current_move_speed = run_speed
@@ -188,6 +191,11 @@ func _update_walk_animation(delta: float) -> void:
 	if is_moving:
 		var speed_factor: float = clampf(horizontal_speed / walk_speed, 0.5, 2.0)
 		walk_cycle += delta * walk_anim_speed * speed_factor
+		# 每步播放脚步声 (walk_cycle每经过PI走一步)
+		if int(walk_cycle / PI) > int(_last_step_cycle / PI):
+			if AudioManager != null:
+				AudioManager.play_sfx("footstep", 0.4)
+		_last_step_cycle = walk_cycle
 		var leg_swing: float = sin(walk_cycle) * walk_leg_amp
 		var arm_swing: float = sin(walk_cycle + PI) * walk_arm_amp
 		left_leg_pivot.rotation.x = leg_swing
@@ -220,6 +228,8 @@ func handle_attack() -> void:
 
 func start_dodge() -> void:
 	is_dodging = true
+	if AudioManager != null:
+		AudioManager.play_sfx("whoosh", 0.7)
 	dodge_timer = dodge_duration
 	dodge_cd_timer = dodge_cooldown
 	var input_dir: Vector2 = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
@@ -231,6 +241,8 @@ func start_dodge() -> void:
 
 func start_punch() -> void:
 	punch_cd_timer = punch_cooldown
+	if AudioManager != null:
+		AudioManager.play_sfx("punch_swing", 0.6)
 	var monsters: Array = get_tree().get_nodes_in_group("monster")
 	var hit_monster: Node = null
 	var min_dist: float = 3.0
@@ -258,6 +270,8 @@ func start_punch() -> void:
 			knockback_dir = knockback_dir.normalized()
 		var knockback: Vector3 = knockback_dir * 10.0
 		hit_monster.take_damage(punch_damage, knockback)
+		if AudioManager != null:
+			AudioManager.play_sfx("punch_hit", 0.8)
 
 func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	if is_dead:
@@ -278,11 +292,15 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	hit_stun_timer = hit_stun_duration
 	if UIManager != null:
 		UIManager.flash_damage()
+	if AudioManager != null:
+		AudioManager.play_sfx("player_hurt", 0.8)
 	if current_health <= 0.0:
 		_enter_downed()
 
 func _enter_downed() -> void:
 	is_downed = true
+	if AudioManager != null:
+		AudioManager.play_sfx("body_fall", 0.9)
 	current_health = 0.0
 	downed_bleed_timer = 100.0
 	velocity = Vector3.ZERO
@@ -359,6 +377,8 @@ func pick_up_item(item: Node) -> void:
 		held_item_scene_path = item.scene_file_path
 	if item.has_method("pick_up"):
 		item.pick_up(self)
+	if AudioManager != null:
+		AudioManager.play_sfx("item_pickup", 0.7)
 	# Attach to weapon mount
 	var mount: Node3D = get_node("Head/WeaponMount") as Node3D
 	if mount != null:
@@ -374,6 +394,8 @@ func pick_up_item(item: Node) -> void:
 func drop_held_item() -> void:
 	if current_held_item == null:
 		return
+	if AudioManager != null:
+		AudioManager.play_sfx("item_pickup", 0.5, 0.8)
 	var item: Node = current_held_item
 	var item_path: String = held_item_scene_path
 	# Get drop position in front of player, use player's Y so it lands on current floor

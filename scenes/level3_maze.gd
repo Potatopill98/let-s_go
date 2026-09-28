@@ -25,6 +25,8 @@ var victory_panel: Control = null
 var map_inside_area: Area3D = null
 
 func _ready() -> void:
+	if AudioManager != null:
+		AudioManager.play_music("bass_hum", 0.4, 2.0)
 	_generate_maze()
 	_build_floor()
 	_build_ceiling()
@@ -464,6 +466,9 @@ func _on_elevator_entered(body: Node) -> void:
 			UIManager.show_toast("电梯未解锁, 需要找到钥匙卡")
 
 func _show_victory() -> void:
+	if AudioManager != null:
+		AudioManager.play_sfx("elevator", 0.8)
+		AudioManager.play_sfx("unlock", 0.6)
 	# 显示撤离成功结束画面
 	victory_panel = Control.new()
 	victory_panel.set_anchors_preset(Control.PRESET_FULL_RECT)

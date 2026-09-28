@@ -110,6 +110,8 @@ func _physics_process(delta: float) -> void:
 		if target != null:
 			is_alerted = true
 			alert_timer = 8.0  # 检测到后保持8秒警觉
+			if AudioManager != null:
+				AudioManager.play_sfx_3d("monster_growl", global_position, 0.6, 1.0, 15.0)
 	else:
 		# 普通模式或已警觉：用原来的范围检测
 		target = find_nearest_player()
@@ -224,6 +226,8 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 	is_alerted = true  # 被攻击时触发警觉
 	alert_timer = 10.0
 	current_health -= amount
+	if AudioManager != null:
+		AudioManager.play_sfx_3d("beast_roar", global_position, 0.5, 1.2, 12.0)
 	_update_hp_bar()
 	var kb_force: float = knockback.length() * (1.0 - knockback_reduce)
 	var kb_dir: Vector3 = knockback.normalized()
@@ -235,6 +239,8 @@ func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO) -> void:
 
 func die() -> void:
 	is_dead = true
+	if AudioManager != null:
+		AudioManager.play_sfx_3d("monster_roar", global_position, 0.7, 0.8, 15.0)
 	mesh.scale = Vector3(1.3, 0.1, 1.3)
 	# Safely remove HP label
 	if hp_label != null and is_instance_valid(hp_label):

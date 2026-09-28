@@ -1,4 +1,4 @@
-﻿extends Node3D
+extends Node3D
 class_name RangedWeapon
 
 # ============================================================
@@ -200,12 +200,16 @@ func attack() -> void:
 	if not can_attack():
 		return
 	if current_ammo <= 0:
+		if AudioManager != null:
+			AudioManager.play_sfx("gun_empty", 0.6)
 		reload()
 		return
 	attack_timer = attack_cooldown
 	current_ammo -= 1
 	recoil_time = recoil_duration
 	trigger_muzzle_flash()
+	if AudioManager != null:
+		AudioManager.play_sfx("gunshot", 0.7)
 	if owner_player == null:
 		return
 	var camera: Camera3D = owner_player.get_node("Head/Camera3D") as Camera3D
@@ -239,6 +243,8 @@ func reload() -> void:
 	is_reloading = true
 	reload_timer = reload_time
 	UIManager.show_message("Reloading...")
+	if AudioManager != null:
+		AudioManager.play_sfx("reload", 0.6)
 
 func trigger_muzzle_flash() -> void:
 	muzzle_flash_timer = 0.06

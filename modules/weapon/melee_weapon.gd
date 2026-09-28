@@ -1,4 +1,4 @@
-﻿extends Node3D
+extends Node3D
 class_name MeleeWeapon
 
 # 武器属性
@@ -52,6 +52,8 @@ func can_attack() -> bool:
 	return attack_timer <= 0.0 and owner_player != null
 
 func attack() -> void:
+	if AudioManager != null:
+		AudioManager.play_sfx("swing_air", 0.5)
 	if not can_attack():
 		return
 	attack_timer = attack_cooldown

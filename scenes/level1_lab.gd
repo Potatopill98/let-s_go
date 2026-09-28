@@ -6,6 +6,8 @@ extends Node3D
 var broadcast_timer: Timer = null
 
 func _ready() -> void:
+	if AudioManager != null:
+		AudioManager.play_music("ambience_lab", 0.4, 2.0)
 	# 延迟2秒后开始广播
 	broadcast_timer = Timer.new()
 	broadcast_timer.wait_time = 2.0

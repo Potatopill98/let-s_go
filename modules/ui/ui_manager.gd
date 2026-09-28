@@ -79,6 +79,7 @@ func _ready() -> void:
 	_create_announcement_ui()
 	_create_equipment_ui()
 	_create_map_ui()
+	_create_settings_ui()
 
 # ============================================================
 # Damage overlay (red vignette when hurt)
@@ -730,3 +731,112 @@ func set_maze_map(texture: Texture2D, cell_size: float = 4.0, maze_w: int = 20, 
 		map_cell_size = cell_size
 		map_maze_w = maze_w
 		map_maze_h = maze_h
+# ============================================================
+# Settings UI (音量设置)
+# ============================================================
+var settings_panel: Control = null
+var settings_open: bool = false
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		toggle_settings()
+
+func toggle_settings() -> void:
+	settings_open = not settings_open
+	if settings_panel != null:
+		settings_panel.visible = settings_open
+		if settings_open:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			get_tree().paused = true
+		else:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			get_tree().paused = false
+
+func _create_settings_ui() -> void:
+	settings_panel = Control.new()
+	settings_panel.name = "SettingsPanel"
+	settings_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	settings_panel.visible = false
+	settings_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(settings_panel)
+	# 半透明背景
+	var bg: ColorRect = ColorRect.new()
+	bg.color = Color(0.05, 0.05, 0.08, 0.85)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	settings_panel.add_child(bg)
+	# 标题
+	var title: Label = Label.new()
+	title.text = "设置"
+	title.anchor_left = 0.5
+	title.anchor_right = 0.5
+	title.offset_left = -100
+	title.offset_top = 60
+	title.offset_right = 100
+	title.offset_bottom = 100
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 42)
+	title.add_theme_color_override("font_color", Color(0.4, 0.8, 1.0, 1))
+	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	title.add_theme_constant_override("outline_size", 5)
+	settings_panel.add_child(title)
+	# 音量滑条
+	var volumes: Array = [
+		["主音量", "master_volume", 0.8],
+		["音效", "sfx_volume", 0.7],
+		["音乐", "music_volume", 0.3],
+		["语音", "voice_volume", 0.8],
+		["环境", "ambient_volume", 0.5]
+	]
+	var y: int = 140
+	for vol in volumes:
+		var label: Label = Label.new()
+		label.text = vol[0]
+		label.anchor_left = 0.5
+		label.anchor_right = 0.5
+		label.offset_left = -200
+		label.offset_top = y
+		label.offset_right = -60
+		label.offset_bottom = y + 30
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		label.add_theme_font_size_override("font_size", 22)
+		label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0, 1))
+		settings_panel.add_child(label)
+		var slider: HSlider = HSlider.new()
+		slider.name = vol[1]
+		slider.anchor_left = 0.5
+		slider.anchor_right = 0.5
+		slider.offset_left = -50
+		slider.offset_top = y
+		slider.offset_right = 200
+		slider.offset_bottom = y + 30
+		slider.min_value = 0.0
+		slider.max_value = 1.0
+		slider.step = 0.05
+		slider.value = vol[2]
+		slider.add_theme_font_size_override("font_size", 16)
+		var vol_name: String = vol[1]
+		slider.value_changed.connect(func(v): _on_volume_changed(vol_name, v))
+		settings_panel.add_child(slider)
+		y += 50
+	# 关闭按钮
+	var close_btn: Button = Button.new()
+	close_btn.text = "关闭 (ESC)"
+	close_btn.anchor_left = 0.5
+	close_btn.anchor_right = 0.5
+	close_btn.offset_left = -80
+	close_btn.offset_top = y + 20
+	close_btn.offset_right = 80
+	close_btn.offset_bottom = y + 60
+	close_btn.add_theme_font_size_override("font_size", 20)
+	close_btn.pressed.connect(toggle_settings)
+	settings_panel.add_child(close_btn)
+
+func _on_volume_changed(vol_name: String, value: float) -> void:
+	if AudioManager == null:
+		return
+	match vol_name:
+		"master_volume": AudioManager.set_master_volume(value)
+		"sfx_volume": AudioManager.set_sfx_volume(value)
+		"music_volume": AudioManager.set_music_volume(value)
+		"voice_volume": AudioManager.set_voice_volume(value)
+		"ambient_volume": AudioManager.set_ambient_volume(value)

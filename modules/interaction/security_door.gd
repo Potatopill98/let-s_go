@@ -160,6 +160,9 @@ func try_open() -> void:
 		return
 	# 开门
 	is_opening = true
+	if AudioManager != null:
+		AudioManager.play_sfx_3d("door_open", global_position, 0.8, 1.0, 20.0)
+		AudioManager.play_sfx("unlock", 0.5)
 	if status_light != null:
 		status_light.light_color = Color(0.2, 1, 0.3)  # 绿色=已开
 	if UIManager != null:

@@ -22,6 +22,7 @@ UIManager="*res://modules/ui/ui_manager.gd"
 ItemManager="*res://modules/item/item_manager.gd"
 SaveManager="*res://modules/system/save_manager.gd"
 PowerManager="*res://modules/system/power_manager.gd"
+AudioManager="*res://modules/system/audio_manager.gd"
 
 [display]
 

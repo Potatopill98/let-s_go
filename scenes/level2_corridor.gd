@@ -62,6 +62,8 @@ var mat_handle: StandardMaterial3D
 var mat_window: StandardMaterial3D
 
 func _ready() -> void:
+	if AudioManager != null:
+		AudioManager.play_music("horror_sweep", 0.35, 2.0)
 	randomize()
 	_init_materials()
 	_build_door_z_list()
@@ -231,6 +233,9 @@ func _start_test(area: Area3D) -> void:
 	test_started = true
 	countdown = 60.0
 	warning_shown = false
+	if AudioManager != null:
+		AudioManager.play_sfx("button_click", 0.8)
+		AudioManager.play_sfx("alarm_breach", 0.6)
 	current_gate_area = null
 	if UIManager != null:
 		UIManager.hide_interaction_prompt()
@@ -761,6 +766,8 @@ func _process(delta: float) -> void:
 	if test_started and countdown > 0.0:
 		countdown -= delta
 		if countdown <= 20.0 and not warning_shown:
+			if AudioManager != null:
+				AudioManager.play_sfx("alarm_breach", 0.7)
 			warning_shown = true
 			if UIManager != null:
 				UIManager.show_announcement("温馨提示：请快速前往安全房间，实验体即将释放", 4.0)
@@ -770,6 +777,9 @@ func _process(delta: float) -> void:
 
 func _release_chaser() -> void:
 	chaser_released = true
+	if AudioManager != null:
+		AudioManager.play_sfx("metal_collapse", 0.9)
+		AudioManager.play_sfx("boss_roar", 0.8)
 	if ceiling_trap != null:
 		var tw: Tween = create_tween()
 		tw.tween_property(ceiling_trap, "position:y", CORRIDOR_HEIGHT + 3.0, 1.2)

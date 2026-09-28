@@ -125,6 +125,9 @@ func start_repair() -> void:
 
 func _finish_repair() -> void:
 	is_repaired = true
+	if AudioManager != null:
+		AudioManager.play_sfx_3d("machine_activation", global_position, 0.8, 1.0, 15.0)
+		AudioManager.play_sfx("confirmation", 0.6)
 	is_being_repaired = false
 	repair_progress = 1.0
 	if UIManager != null:

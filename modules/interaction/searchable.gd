@@ -120,6 +120,9 @@ func _finish_search() -> void:
 	if Input.is_key_pressed(KEY_E):
 		pass
 	is_searched = true
+	if AudioManager != null:
+		AudioManager.play_sfx("item_pickup", 0.7)
+		AudioManager.play_sfx("notification", 0.5)
 	is_being_searched = false
 	search_progress = 1.0
 	if UIManager != null:
