@@ -709,16 +709,18 @@ func _create_map_ui() -> void:
 	map_panel.add_child(player_dot)
 	# 图例
 	var legend: Label = Label.new()
-	legend.text = "红点=你  黄点=钥匙  绿点=电梯"
-	legend.anchor_left = 0.5
-	legend.anchor_right = 0.5
-	legend.offset_left = -200
-	legend.offset_top = 560
-	legend.offset_right = 200
-	legend.offset_bottom = 590
-	legend.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	legend.add_theme_font_size_override("font_size", 18)
+	legend.text = "红点 = 你的位置\n黄点 = 钥匙\n绿点 = 电梯出口\n\n按 M 关闭地图"
+	legend.anchor_left = 1.0
+	legend.anchor_right = 1.0
+	legend.offset_left = -220
+	legend.offset_top = 200
+	legend.offset_right = -20
+	legend.offset_bottom = 320
+	legend.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	legend.add_theme_font_size_override("font_size", 20)
 	legend.add_theme_color_override("font_color", Color(0.5, 0.85, 1.0, 1))
+	legend.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	legend.add_theme_constant_override("outline_size", 4)
 	map_panel.add_child(legend)
 
 func set_maze_map(texture: Texture2D, cell_size: float = 4.0, maze_w: int = 20, maze_h: int = 20) -> void:

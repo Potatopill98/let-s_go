@@ -22,6 +22,7 @@ var elevator_pos: Vector3 = Vector3.ZERO
 var map_picked: bool = false
 var elevator_triggered: bool = false
 var victory_panel: Control = null
+var map_inside_area: Area3D = null
 
 func _ready() -> void:
 	_generate_maze()
@@ -30,6 +31,7 @@ func _ready() -> void:
 	_build_walls()
 	_build_lighting()
 	_spawn_player()
+	_build_entry_tunnel()
 	_spawn_flashlights()
 	_spawn_key()
 	_spawn_elevator()
@@ -268,6 +270,53 @@ func _spawn_flashlights() -> void:
 		var fz: float = 2.0 + randf() * 6.0
 		flash.position = Vector3(fx, 0.5, fz)
 		add_child(flash)
+func _build_entry_tunnel() -> void:
+	# 出生点上方的隧道(从第二关掉下来的通道)
+	var tx: float = CELL_SIZE / 2.0
+	var tz: float = CELL_SIZE / 2.0
+	var tunnel_h: float = 8.0
+	var tunnel_w: float = 3.0
+	var tunnel_mat: StandardMaterial3D = StandardMaterial3D.new()
+	tunnel_mat.albedo_color = Color(0.25, 0.25, 0.3)
+	tunnel_mat.metallic = 0.7
+	tunnel_mat.roughness = 0.5
+	# 隧道四壁
+	for sx in [-tunnel_w/2.0, tunnel_w/2.0]:
+		var wall: MeshInstance3D = MeshInstance3D.new()
+		var wb: BoxMesh = BoxMesh.new()
+		wb.size = Vector3(0.2, tunnel_h, tunnel_w)
+		wb.material = tunnel_mat
+		wall.mesh = wb
+		wall.position = Vector3(tx + sx, WALL_HEIGHT + tunnel_h/2.0, tz)
+		add_child(wall)
+	for sz in [-tunnel_w/2.0, tunnel_w/2.0]:
+		var wall2: MeshInstance3D = MeshInstance3D.new()
+		var wb2: BoxMesh = BoxMesh.new()
+		wb2.size = Vector3(tunnel_w, tunnel_h, 0.2)
+		wb2.material = tunnel_mat
+		wall2.mesh = wb2
+		wall2.position = Vector3(tx, WALL_HEIGHT + tunnel_h/2.0, tz + sz)
+		add_child(wall2)
+	# 梯子(一侧)
+	for i in range(8):
+		var rung: MeshInstance3D = MeshInstance3D.new()
+		var rb: BoxMesh = BoxMesh.new()
+		rb.size = Vector3(0.1, 0.05, 1.5)
+		var rung_mat: StandardMaterial3D = StandardMaterial3D.new()
+		rung_mat.albedo_color = Color(0.5, 0.5, 0.55)
+		rung_mat.metallic = 0.9
+		rb.material = rung_mat
+		rung.mesh = rb
+		rung.position = Vector3(tx - tunnel_w/2.0 + 0.15, WALL_HEIGHT + 0.5 + i * 0.9, tz)
+		add_child(rung)
+	# 隧道顶部灯
+	var tunnel_light: OmniLight3D = OmniLight3D.new()
+	tunnel_light.light_color = Color(0.8, 0.85, 1.0)
+	tunnel_light.light_energy = 1.5
+	tunnel_light.omni_range = 5.0
+	tunnel_light.position = Vector3(tx, WALL_HEIGHT + tunnel_h - 1.0, tz)
+	add_child(tunnel_light)
+
 func _spawn_key() -> void:
 	# 钥匙放在迷宫中间偏远处
 	var kx: int = MAZE_W / 2 + randi() % 5 - 2
@@ -498,7 +547,8 @@ func _spawn_single_map(index: int) -> void:
 	map_cs.shape = map_shape
 	map_area.add_child(map_cs)
 	map_area.position = Vector3(mx, 0, my)
-	map_area.body_entered.connect(func(body): _on_map_entered(body, map_area))
+	map_area.body_entered.connect(func(body): _on_map_body_enter(body, map_area))
+	map_area.body_exited.connect(func(body): _on_map_body_exit(body, map_area))
 	add_child(map_area)
 	var map_light: OmniLight3D = OmniLight3D.new()
 	map_light.light_color = Color(0.9, 0.8, 0.4)
@@ -507,14 +557,31 @@ func _spawn_single_map(index: int) -> void:
 	map_light.position = Vector3(0, 1.0, 0)
 	map_area.add_child(map_light)
 
-func _on_map_entered(body: Node, map_area: Area3D) -> void:
+func _on_map_body_enter(body: Node, map_area: Area3D) -> void:
 	if body.is_in_group("player") and not map_picked:
-		map_picked = true
-		_render_maze_map(body)
+		map_inside_area = map_area
 		if UIManager != null:
-			UIManager.show_toast("获得迷宫地图! 按M查看")
-			UIManager.show_announcement("地图已获取", 3.0)
-		map_area.queue_free()
+			UIManager.show_interaction_prompt("按E拾取迷宫地图")
+
+func _on_map_body_exit(body: Node, map_area: Area3D) -> void:
+	if body.is_in_group("player") and map_inside_area == map_area:
+		map_inside_area = null
+		if UIManager != null:
+			UIManager.hide_interaction_prompt()
+
+func _process(delta: float) -> void:
+	if map_inside_area != null and Input.is_action_just_pressed("interact") and not map_picked:
+		var player: Node = get_tree().get_first_node_in_group("player")
+		if player != null:
+			map_picked = true
+			_render_maze_map(player)
+			if UIManager != null:
+				UIManager.show_toast("获得迷宫地图! 按M查看")
+				UIManager.show_announcement("地图已获取", 3.0)
+				UIManager.hide_interaction_prompt()
+			var area: Area3D = map_inside_area
+			map_inside_area = null
+			area.queue_free()
 
 func _render_maze_map(player: Node) -> void:
 	var cell_px: int = 16

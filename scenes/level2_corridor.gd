@@ -46,6 +46,7 @@ var current_door_area: Area3D = null
 var current_gate_area: Area3D = null
 var door_z_list: Array = []
 var hub_reached: bool = false
+var well_inside: bool = false
 
 # ---- 材质 ----
 var mat_floor: StandardMaterial3D
@@ -542,6 +543,66 @@ func _build_escape_and_hub() -> void:
 	sign.mesh = sb
 	sign.position = Vector3(hub_start_x + 1.5, 3.5, EXIT_Z)
 	add_child(sign)
+	# 井口(hub右下角)
+	var well_x: float = hub_end_x - 3.0
+	var well_z: float = hub_end_z - 3.0
+	# 井口黑洞
+	var well_hole: MeshInstance3D = MeshInstance3D.new()
+	var hole_box: BoxMesh = BoxMesh.new()
+	hole_box.size = Vector3(2.5, 0.1, 2.5)
+	var hole_mat: StandardMaterial3D = StandardMaterial3D.new()
+	hole_mat.albedo_color = Color(0, 0, 0)
+	hole_box.material = hole_mat
+	well_hole.mesh = hole_box
+	well_hole.position = Vector3(well_x, 0.05, well_z)
+	add_child(well_hole)
+	# 井沿
+	var well_ring: MeshInstance3D = MeshInstance3D.new()
+	var ring_box: BoxMesh = BoxMesh.new()
+	ring_box.size = Vector3(3.0, 0.3, 3.0)
+	var ring_mat: StandardMaterial3D = StandardMaterial3D.new()
+	ring_mat.albedo_color = Color(0.3, 0.3, 0.35)
+	ring_mat.metallic = 0.8
+	ring_box.material = ring_mat
+	well_ring.mesh = ring_box
+	well_ring.position = Vector3(well_x, 0.1, well_z)
+	add_child(well_ring)
+	# 井壁(垂直向下)
+	for sx in [-1.4, 1.4]:
+		var wall: MeshInstance3D = MeshInstance3D.new()
+		var wb: BoxMesh = BoxMesh.new()
+		wb.size = Vector3(0.2, 4.0, 2.8)
+		wb.material = ring_mat
+		wall.mesh = wb
+		wall.position = Vector3(well_x + sx, -2.0, well_z)
+		add_child(wall)
+	for sz in [-1.4, 1.4]:
+		var wall2: MeshInstance3D = MeshInstance3D.new()
+		var wb2: BoxMesh = BoxMesh.new()
+		wb2.size = Vector3(2.8, 4.0, 0.2)
+		wb2.material = ring_mat
+		wall2.mesh = wb2
+		wall2.position = Vector3(well_x, -2.0, well_z + sz)
+		add_child(wall2)
+	# 井口交互区域
+	var well_area: Area3D = Area3D.new()
+	well_area.name = "WellToLevel3"
+	var well_cs: CollisionShape3D = CollisionShape3D.new()
+	var well_shape: BoxShape3D = BoxShape3D.new()
+	well_shape.size = Vector3(2.5, 3.0, 2.5)
+	well_cs.shape = well_shape
+	well_area.add_child(well_cs)
+	well_area.position = Vector3(well_x, 1.0, well_z)
+	well_area.body_entered.connect(func(body): _on_well_enter(body))
+	well_area.body_exited.connect(func(body): _on_well_exit(body))
+	add_child(well_area)
+	# 井口指示灯
+	var well_light: OmniLight3D = OmniLight3D.new()
+	well_light.light_color = Color(0.3, 0.6, 1.0)
+	well_light.light_energy = 2.0
+	well_light.omni_range = 6.0
+	well_light.position = Vector3(well_x, 2.5, well_z)
+	add_child(well_light)
 
 # ============================================================
 # 警报灯系统
@@ -643,7 +704,9 @@ func _process(delta: float) -> void:
 		else:
 			l.visible = false
 	if Input.is_action_just_pressed("interact"):
-		if current_door_area != null:
+		if well_inside:
+			get_tree().change_scene_to_file("res://scenes/level3_maze.tscn")
+		elif current_door_area != null:
 			_use_door(current_door_area)
 		elif current_gate_area != null:
 			_start_test(current_gate_area)
@@ -667,6 +730,18 @@ func _release_chaser() -> void:
 	add_child(chaser)
 	if UIManager != null:
 		UIManager.show_announcement("实验体已释放！立即撤离！", 5.0)
+
+func _on_well_enter(body: Node) -> void:
+	if body.is_in_group("player") and hub_reached:
+		well_inside = true
+		if UIManager != null:
+			UIManager.show_interaction_prompt("按E - 下井前往地下实验区")
+
+func _on_well_exit(body: Node) -> void:
+	if body.is_in_group("player"):
+		well_inside = false
+		if UIManager != null:
+			UIManager.hide_interaction_prompt()
 
 func _check_hub_reached() -> void:
 	if hub_reached:
