@@ -21,6 +21,7 @@ var key_pos: Vector3 = Vector3.ZERO
 var elevator_pos: Vector3 = Vector3.ZERO
 var map_picked: bool = false
 var elevator_triggered: bool = false
+var victory_panel: Control = null
 
 func _ready() -> void:
 	_generate_maze()
@@ -368,16 +369,52 @@ func _on_elevator_entered(body: Node) -> void:
 		return
 	elevator_triggered = true
 	if elevator_unlocked:
-		if UIManager != null:
-			UIManager.show_announcement("电梯到达, 撤离成功!", 3.0)
-		get_tree().create_timer(2.5).timeout.connect(_do_quit)
+		_show_victory()
 	else:
 		elevator_triggered = false
 		if UIManager != null:
 			UIManager.show_toast("电梯未解锁, 需要找到钥匙卡")
 
-func _do_quit() -> void:
-	get_tree().quit()
+func _show_victory() -> void:
+	# 显示撤离成功结束画面
+	victory_panel = Control.new()
+	victory_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	victory_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(victory_panel)
+	var bg: ColorRect = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0, 0, 0, 0.85)
+	victory_panel.add_child(bg)
+	var title: Label = Label.new()
+	title.text = "撤离成功!"
+	title.anchor_left = 0.5
+	title.anchor_right = 0.5
+	title.offset_left = -300
+	title.offset_top = -60
+	title.offset_right = 300
+	title.offset_bottom = 0
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 64)
+	title.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4, 1))
+	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	title.add_theme_constant_override("outline_size", 8)
+	victory_panel.add_child(title)
+	var subtitle: Label = Label.new()
+	subtitle.text = "你成功逃出了地下实验区\n按 ESC 退出游戏"
+	subtitle.anchor_left = 0.5
+	subtitle.anchor_right = 0.5
+	subtitle.offset_left = -300
+	subtitle.offset_top = 20
+	subtitle.offset_right = 300
+	subtitle.offset_bottom = 100
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_font_size_override("font_size", 28)
+	subtitle.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0, 1))
+	subtitle.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	subtitle.add_theme_constant_override("outline_size", 5)
+	victory_panel.add_child(subtitle)
+	if UIManager != null:
+		UIManager.show_announcement("撤离成功!", 3.0)
 
 func _spawn_wall_crawlers() -> void:
 	# 贴墙怪物: 放在迷宫中几个位置, 贴在墙上
