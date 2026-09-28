@@ -60,10 +60,10 @@ size = Vector3(120, 6, 2)
 
 [sub_resource type="BoxMesh" id="WallMeshSouthHalf"]
 material = SubResource("WallMat")
-size = Vector3(57, 6, 2)
+size = Vector3(58, 6, 2)
 
 [sub_resource type="BoxShape3D" id="WallColSouthHalf"]
-size = Vector3(57, 6, 2)
+size = Vector3(58, 6, 2)
 
 [sub_resource type="BoxMesh" id="CellWallMesh"]
 material = SubResource("CellMat")
@@ -154,7 +154,7 @@ mesh = SubResource("WallMesh2")
 shape = SubResource("WallCol2")
 
 [node name="WallSouthLeft" type="StaticBody3D" parent="."]
-position = Vector3(-31.5, 3, 60)
+position = Vector3(-31, 3, 60)
 
 [node name="Mesh" type="MeshInstance3D" parent="WallSouthLeft"]
 mesh = SubResource("WallMeshSouthHalf")
@@ -163,7 +163,7 @@ mesh = SubResource("WallMeshSouthHalf")
 shape = SubResource("WallColSouthHalf")
 
 [node name="WallSouthRight" type="StaticBody3D" parent="."]
-position = Vector3(31.5, 3, 60)
+position = Vector3(31, 3, 60)
 
 [node name="Mesh" type="MeshInstance3D" parent="WallSouthRight"]
 mesh = SubResource("WallMeshSouthHalf")
