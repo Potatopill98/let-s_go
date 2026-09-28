@@ -13,7 +13,7 @@ config_version=5
 [application]
 
 config/name="Lab Escape 3D Co-op Demo"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/level1_lab.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]
