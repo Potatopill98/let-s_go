@@ -97,7 +97,7 @@ func _create_health_ui() -> void:
 	health_panel.anchor_top = 1.0
 	health_panel.anchor_right = 0.0
 	health_panel.anchor_bottom = 1.0
-	health_panel.modulate = Color(0, 0, 0, 0.7)
+	health_panel.modulate = Color(0.05, 0.08, 0.15, 0.85)
 	add_child(health_panel)
 	# Health bar
 	health_bar = ProgressBar.new()
@@ -115,7 +115,7 @@ func _create_health_ui() -> void:
 	health_label.offset_left = 10.0
 	health_label.offset_top = 8.0
 	health_label.add_theme_font_size_override("font_size", 20)
-	health_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	health_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4, 1))
 	health_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	health_label.add_theme_constant_override("outline_size", 4)
 	health_panel.add_child(health_label)
@@ -133,7 +133,7 @@ func _create_item_ui() -> void:
 	item_panel.anchor_top = 1.0
 	item_panel.anchor_right = 1.0
 	item_panel.anchor_bottom = 1.0
-	item_panel.modulate = Color(0, 0, 0, 0.7)
+	item_panel.modulate = Color(0.05, 0.08, 0.15, 0.85)
 	add_child(item_panel)
 	# Item name
 	item_name_label = Label.new()
@@ -141,7 +141,7 @@ func _create_item_ui() -> void:
 	item_name_label.offset_left = 10.0
 	item_name_label.offset_top = 8.0
 	item_name_label.add_theme_font_size_override("font_size", 20)
-	item_name_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	item_name_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.3, 1))
 	item_name_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	item_name_label.add_theme_constant_override("outline_size", 4)
 	item_panel.add_child(item_name_label)
@@ -171,7 +171,7 @@ func _create_crosshair() -> void:
 	add_child(crosshair)
 	# Horizontal line
 	var h_line: ColorRect = ColorRect.new()
-	h_line.color = Color(1, 1, 1, 0.9)
+	h_line.color = Color(0.4, 0.9, 1.0, 0.95)
 	h_line.offset_left = -10.0
 	h_line.offset_top = -1.0
 	h_line.offset_right = 10.0
@@ -179,7 +179,7 @@ func _create_crosshair() -> void:
 	crosshair.add_child(h_line)
 	# Vertical line
 	var v_line: ColorRect = ColorRect.new()
-	v_line.color = Color(1, 1, 1, 0.9)
+	v_line.color = Color(0.4, 0.9, 1.0, 0.95)
 	v_line.offset_left = -1.0
 	v_line.offset_top = -10.0
 	v_line.offset_right = 1.0
@@ -206,7 +206,7 @@ func _create_interaction_ui() -> void:
 	interaction_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	interaction_prompt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	interaction_prompt.add_theme_font_size_override("font_size", 40)
-	interaction_prompt.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	interaction_prompt.add_theme_color_override("font_color", Color(1.0, 0.95, 0.4, 1))
 	interaction_prompt.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1))
 	interaction_prompt.add_theme_constant_override("shadow_offset_x", 2)
 	interaction_prompt.add_theme_constant_override("shadow_offset_y", 2)
@@ -224,7 +224,7 @@ func _create_progress_ui() -> void:
 	prog_panel.offset_top = 200.0
 	prog_panel.offset_right = 200.0
 	prog_panel.offset_bottom = 270.0
-	prog_panel.modulate = Color(0, 0, 0, 0.8)
+	prog_panel.modulate = Color(0.05, 0.1, 0.18, 0.9)
 	prog_panel.visible = false
 	prog_panel.name = "ProgressPanel"
 	add_child(prog_panel)
@@ -237,7 +237,7 @@ func _create_progress_ui() -> void:
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	progress_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress_label.add_theme_font_size_override("font_size", 20)
-	progress_label.add_theme_color_override("font_color", Color(0.7, 1, 0.7, 1))
+	progress_label.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0, 1))
 	prog_panel.add_child(progress_label)
 	# Progress bar
 	progress_bar = ProgressBar.new()
@@ -292,7 +292,7 @@ func _create_controls_hint() -> void:
 	controls_hint.position = Vector2(10, 10)
 	controls_hint.text = "WASD移动 | Shift奔跑 | 空格跳跃 | Q闪避 | 左键攻击 | E交互 | G丢弃 | R换弹 | ESC释放鼠标"
 	controls_hint.add_theme_font_size_override("font_size", 16)
-	controls_hint.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	controls_hint.add_theme_color_override("font_color", Color(0.5, 0.85, 1.0, 1))
 	controls_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	controls_hint.add_theme_constant_override("outline_size", 4)
 	add_child(controls_hint)
@@ -326,7 +326,7 @@ func show_message(text: String) -> void:
 	var msg_label: Label = Label.new()
 	msg_label.text = text
 	msg_label.add_theme_font_size_override("font_size", 17)
-	msg_label.modulate = Color(1, 1, 1, 1)
+	msg_label.modulate = Color(0.5, 0.85, 1.0, 1)
 	msg_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1))
 	message_container.add_child(msg_label)
 	var timer: Timer = Timer.new()
@@ -424,7 +424,7 @@ func _create_announcement_ui() -> void:
 	announcement_label.add_theme_font_size_override("font_size", 28)
 	announcement_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
 	announcement_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
-	announcement_label.add_theme_constant_override("outline_size", 8)
+	announcement_label.add_theme_constant_override("outline_size", 10)
 	announcement_panel.add_child(announcement_label)
 
 func show_announcement(text: String, duration: float = 4.0) -> void:
@@ -461,7 +461,7 @@ func _create_inventory_ui() -> void:
 	inventory_panel.offset_top = 20
 	inventory_panel.offset_right = -20
 	inventory_panel.offset_bottom = 200
-	inventory_panel.modulate.a = 0.85
+	inventory_panel.modulate = Color(0.05, 0.08, 0.15, 0.85)
 	add_child(inventory_panel)
 
 	var vb: VBoxContainer = VBoxContainer.new()
@@ -475,7 +475,7 @@ func _create_inventory_ui() -> void:
 	var title: Label = Label.new()
 	title.text = "背包"
 	title.add_theme_font_size_override("font_size", 14)
-	title.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	title.add_theme_color_override("font_color", Color(0.5, 0.85, 1.0, 1))
 	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	title.add_theme_constant_override("outline_size", 3)
 	vb.add_child(title)
@@ -484,7 +484,7 @@ func _create_inventory_ui() -> void:
 	var task_label: Label = Label.new()
 	task_label.text = "任务道具:"
 	task_label.add_theme_font_size_override("font_size", 12)
-	task_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	task_label.add_theme_color_override("font_color", Color(0.5, 0.85, 1.0, 1))
 	task_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	task_label.add_theme_constant_override("outline_size", 3)
 	vb.add_child(task_label)
@@ -562,7 +562,7 @@ func _create_toast_ui() -> void:
 	toast_label.offset_top = 80
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	toast_label.add_theme_font_size_override("font_size", 16)
-	toast_label.add_theme_color_override("font_color", Color(1, 1, 1))
+	toast_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.3))
 	toast_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	toast_label.add_theme_constant_override("outline_size", 4)
 	toast_label.modulate.a = 0
@@ -585,7 +585,7 @@ func _create_equipment_ui() -> void:
 	equipment_panel.offset_top = 20
 	equipment_panel.offset_right = 180
 	equipment_panel.offset_bottom = 100
-	equipment_panel.modulate.a = 0.85
+	equipment_panel.modulate = Color(0.05, 0.08, 0.15, 0.85)
 	add_child(equipment_panel)
 
 	var vb: VBoxContainer = VBoxContainer.new()
@@ -599,7 +599,7 @@ func _create_equipment_ui() -> void:
 	var title: Label = Label.new()
 	title.text = "装备"
 	title.add_theme_font_size_override("font_size", 14)
-	title.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	title.add_theme_color_override("font_color", Color(0.5, 0.85, 1.0, 1))
 	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	title.add_theme_constant_override("outline_size", 3)
 	vb.add_child(title)
