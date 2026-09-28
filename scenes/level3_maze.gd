@@ -427,10 +427,17 @@ func _build_guidance_markers() -> void:
 # Pickable map - 可拾取迷宫地图
 # ============================================================
 func _spawn_map() -> void:
-	var mx: float = 3.0 + randf() * 3.0
-	var my: float = 3.0 + randf() * 3.0
+	var player_count: int = get_tree().get_nodes_in_group("player").size()
+	if player_count <= 0:
+		player_count = 1
+	for i in range(player_count):
+		_spawn_single_map(i)
+
+func _spawn_single_map(index: int) -> void:
+	var mx: float = 2.5 + randf() * 4.0
+	var my: float = 2.5 + randf() * 4.0
 	var map_area: Area3D = Area3D.new()
-	map_area.name = "MazeMap"
+	map_area.name = "MazeMap_" + str(index)
 	var map_mi: MeshInstance3D = MeshInstance3D.new()
 	var map_box: BoxMesh = BoxMesh.new()
 	map_box.size = Vector3(0.6, 0.04, 0.8)
@@ -449,7 +456,7 @@ func _spawn_map() -> void:
 	map_cs.shape = map_shape
 	map_area.add_child(map_cs)
 	map_area.position = Vector3(mx, 0, my)
-	map_area.body_entered.connect(_on_map_entered)
+	map_area.body_entered.connect(func(body): _on_map_entered(body, map_area))
 	add_child(map_area)
 	var map_light: OmniLight3D = OmniLight3D.new()
 	map_light.light_color = Color(0.9, 0.8, 0.4)
@@ -458,16 +465,14 @@ func _spawn_map() -> void:
 	map_light.position = Vector3(0, 1.0, 0)
 	map_area.add_child(map_light)
 
-func _on_map_entered(body: Node) -> void:
+func _on_map_entered(body: Node, map_area: Area3D) -> void:
 	if body.is_in_group("player") and not map_picked:
 		map_picked = true
 		_render_maze_map(body)
 		if UIManager != null:
 			UIManager.show_toast("获得迷宫地图! 按M查看")
 			UIManager.show_announcement("地图已获取", 3.0)
-		var map_node: Node = get_node_or_null("MazeMap")
-		if map_node != null:
-			map_node.queue_free()
+		map_area.queue_free()
 
 func _render_maze_map(player: Node) -> void:
 	var cell_px: int = 16
@@ -507,4 +512,4 @@ func _render_maze_map(player: Node) -> void:
 	img.fill_rect(Rect2i(ppx - 4, ppy - 4, 8, 8), Color(1.0, 0.2, 0.2))
 	var texture: ImageTexture = ImageTexture.create_from_image(img)
 	if UIManager != null:
-		UIManager.set_maze_map(texture)
+		UIManager.set_maze_map(texture, CELL_SIZE, MAZE_W, MAZE_H)

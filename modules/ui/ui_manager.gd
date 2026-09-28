@@ -57,6 +57,10 @@ var map_panel: Control = null
 var map_texture_rect: TextureRect = null
 var map_visible: bool = false
 var map_has_data: bool = false
+var map_cell_size: float = 4.0
+var map_maze_w: int = 20
+var map_maze_h: int = 20
+var player_dot: ColorRect = null
 
 @export var message_duration: float = 3.0
 
@@ -410,6 +414,15 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("map_toggle") and map_has_data:
 		map_visible = not map_visible
 		map_panel.visible = map_visible
+	# 实时更新玩家红点
+	if map_visible and map_has_data and player_dot != null:
+		var player: Node = get_tree().get_first_node_in_group("player")
+		if player != null:
+			var cell_px: float = float(map_texture_rect.size.x) / float(map_maze_w)
+			var px: float = float(player.global_position.x / map_cell_size) * cell_px
+			var py: float = float(player.global_position.z / map_cell_size) * cell_px
+			var rect_pos: Vector2 = map_texture_rect.position + Vector2(px - 5, py - 5)
+			player_dot.position = rect_pos
 
 
 # ============================================================
@@ -688,6 +701,12 @@ func _create_map_ui() -> void:
 	map_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	map_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	map_panel.add_child(map_texture_rect)
+	# 玩家红点(实时更新位置)
+	player_dot = ColorRect.new()
+	player_dot.color = Color(1.0, 0.2, 0.2, 1)
+	player_dot.size = Vector2(10, 10)
+	player_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_panel.add_child(player_dot)
 	# 图例
 	var legend: Label = Label.new()
 	legend.text = "红点=你  黄点=钥匙  绿点=电梯"
@@ -702,7 +721,10 @@ func _create_map_ui() -> void:
 	legend.add_theme_color_override("font_color", Color(0.5, 0.85, 1.0, 1))
 	map_panel.add_child(legend)
 
-func set_maze_map(texture: Texture2D) -> void:
+func set_maze_map(texture: Texture2D, cell_size: float = 4.0, maze_w: int = 20, maze_h: int = 20) -> void:
 	if map_texture_rect != null:
 		map_texture_rect.texture = texture
 		map_has_data = true
+		map_cell_size = cell_size
+		map_maze_w = maze_w
+		map_maze_h = maze_h
