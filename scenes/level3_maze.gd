@@ -181,22 +181,22 @@ func _build_lighting() -> void:
 	var env: WorldEnvironment = WorldEnvironment.new()
 	var env_res: Environment = Environment.new()
 	env_res.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env_res.ambient_light_color = Color(0.02, 0.02, 0.03)
-	env_res.ambient_light_energy = 0.3
+	env_res.ambient_light_color = Color(0.1, 0.1, 0.12)
+	env_res.ambient_light_energy = 0.9
 	env_res.background_mode = Environment.BG_COLOR
 	env_res.background_color = Color(0, 0, 0)
-	env_res.tonemap_exposure = 0.7
+	env_res.tonemap_exposure = 1.0
 	env.environment = env_res
 	add_child(env)
 	# 应急灯: 迷宫中随机放一些红色闪烁灯
-	var light_count: int = 15
+	var light_count: int = 28
 	for i in range(light_count):
 		var lx: int = randi() % MAZE_W
 		var ly: int = randi() % MAZE_H
 		var light: OmniLight3D = OmniLight3D.new()
 		light.light_color = Color(1.0, 0.2, 0.15)
-		light.light_energy = 0.8
-		light.omni_range = 5.0
+		light.light_energy = 1.4
+		light.omni_range = 7.0
 		light.position = Vector3(lx * CELL_SIZE + CELL_SIZE / 2.0, WALL_HEIGHT - 0.3, ly * CELL_SIZE + CELL_SIZE / 2.0)
 		light.script = null
 		add_child(light)
