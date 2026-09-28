@@ -20,6 +20,7 @@ var elevator_unlocked: bool = false
 var key_pos: Vector3 = Vector3.ZERO
 var elevator_pos: Vector3 = Vector3.ZERO
 var map_picked: bool = false
+var elevator_triggered: bool = false
 
 func _ready() -> void:
 	_generate_maze()
@@ -363,16 +364,20 @@ func _spawn_elevator() -> void:
 	add_child(arrow)
 
 func _on_elevator_entered(body: Node) -> void:
-	if body.is_in_group("player"):
-		if elevator_unlocked:
-			if UIManager != null:
-				UIManager.show_announcement("电梯到达, 撤离成功!", 4.0)
-			get_tree().create_timer(2.0).timeout.connect(func():
-				get_tree().quit()
-			)
-		else:
-			if UIManager != null:
-				UIManager.show_toast("电梯未解锁, 需要找到钥匙卡")
+	if not body.is_in_group("player") or elevator_triggered:
+		return
+	elevator_triggered = true
+	if elevator_unlocked:
+		if UIManager != null:
+			UIManager.show_announcement("电梯到达, 撤离成功!", 3.0)
+		get_tree().create_timer(2.5).timeout.connect(_do_quit)
+	else:
+		elevator_triggered = false
+		if UIManager != null:
+			UIManager.show_toast("电梯未解锁, 需要找到钥匙卡")
+
+func _do_quit() -> void:
+	get_tree().quit()
 
 func _spawn_wall_crawlers() -> void:
 	# 贴墙怪物: 放在迷宫中几个位置, 贴在墙上
@@ -506,10 +511,6 @@ func _render_maze_map(player: Node) -> void:
 	var ex: int = int(elevator_pos.x / CELL_SIZE) * cell_px + 2 + cell_px / 2
 	var ey: int = int(elevator_pos.z / CELL_SIZE) * cell_px + 2 + cell_px / 2
 	img.fill_rect(Rect2i(ex - 3, ey - 3, 6, 6), Color(0.2, 1.0, 0.3))
-	# 标记玩家(红点)
-	var ppx: int = int(player.global_position.x / CELL_SIZE) * cell_px + 2 + cell_px / 2
-	var ppy: int = int(player.global_position.z / CELL_SIZE) * cell_px + 2 + cell_px / 2
-	img.fill_rect(Rect2i(ppx - 4, ppy - 4, 8, 8), Color(1.0, 0.2, 0.2))
 	var texture: ImageTexture = ImageTexture.create_from_image(img)
 	if UIManager != null:
 		UIManager.set_maze_map(texture, CELL_SIZE, MAZE_W, MAZE_H)
