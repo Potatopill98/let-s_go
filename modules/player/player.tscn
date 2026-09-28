@@ -39,22 +39,22 @@ albedo_color = Color(0.08, 0.08, 0.1, 1)
 roughness = 0.7
 
 [sub_resource type="CapsuleMesh" id="TorsoMesh"]
-radius = 0.32
-height = 0.85
+radius = 0.26
+height = 0.6
 material = SubResource("TorsoMat")
 
 [sub_resource type="BoxMesh" id="ChestMesh"]
-size = Vector3(0.5, 0.35, 0.28)
+size = Vector3(0.4, 0.25, 0.22)
 material = SubResource("ShirtMat")
 
 [sub_resource type="CylinderMesh" id="LegMesh"]
-top_radius = 0.11
-bottom_radius = 0.09
-height = 0.7
+top_radius = 0.1
+bottom_radius = 0.08
+height = 0.55
 material = SubResource("PantsMat")
 
 [sub_resource type="BoxMesh" id="ShoeMesh"]
-size = Vector3(0.18, 0.1, 0.32)
+size = Vector3(0.16, 0.09, 0.28)
 material = SubResource("ShoeMat")
 
 [node name="Player" type="CharacterBody3D"]
@@ -66,27 +66,27 @@ shape = SubResource("PlayerCol")
 
 [node name="Torso" type="MeshInstance3D" parent="."]
 mesh = SubResource("TorsoMesh")
-position = Vector3(0, 0.95, 0)
+position = Vector3(0, 0.82, 0)
 
 [node name="Chest" type="MeshInstance3D" parent="Torso"]
 mesh = SubResource("ChestMesh")
-position = Vector3(0, 0.15, 0.05)
+position = Vector3(0, 0.08, 0.04)
 
 [node name="LeftLeg" type="MeshInstance3D" parent="."]
 mesh = SubResource("LegMesh")
-position = Vector3(-0.17, 0.35, 0)
+position = Vector3(-0.14, 0.28, 0)
 
 [node name="RightLeg" type="MeshInstance3D" parent="."]
 mesh = SubResource("LegMesh")
-position = Vector3(0.17, 0.35, 0)
+position = Vector3(0.14, 0.28, 0)
 
 [node name="LeftShoe" type="MeshInstance3D" parent="."]
 mesh = SubResource("ShoeMesh")
-position = Vector3(-0.17, 0.05, 0.08)
+position = Vector3(-0.14, 0.045, 0.07)
 
 [node name="RightShoe" type="MeshInstance3D" parent="."]
 mesh = SubResource("ShoeMesh")
-position = Vector3(0.17, 0.05, 0.08)
+position = Vector3(0.14, 0.045, 0.07)
 
 [node name="Head" type="Node3D" parent="."]
 position.y = 1.6
