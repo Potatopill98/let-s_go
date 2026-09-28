@@ -133,16 +133,28 @@ func _build_floor() -> void:
 	add_child(floor_col)
 
 func _build_ceiling() -> void:
-	var ceil_mi: MeshInstance3D = MeshInstance3D.new()
-	var ceil_box: BoxMesh = BoxMesh.new()
-	ceil_box.size = Vector3(MAZE_W * CELL_SIZE + 2, 0.2, MAZE_H * CELL_SIZE + 2)
 	var ceil_mat: StandardMaterial3D = StandardMaterial3D.new()
 	ceil_mat.albedo_color = Color(0.08, 0.08, 0.1)
 	ceil_mat.roughness = 0.95
-	ceil_box.material = ceil_mat
-	ceil_mi.mesh = ceil_box
-	ceil_mi.position = Vector3(MAZE_W * CELL_SIZE / 2.0, WALL_HEIGHT + 0.1, MAZE_H * CELL_SIZE / 2.0)
-	add_child(ceil_mi)
+	var total_w: float = MAZE_W * CELL_SIZE + 2
+	var total_h: float = MAZE_H * CELL_SIZE + 2
+	var hole_size: float = 5.0
+	# 右半部分(洞右边)
+	var c1: MeshInstance3D = MeshInstance3D.new()
+	var b1: BoxMesh = BoxMesh.new()
+	b1.size = Vector3(total_w - hole_size, 0.2, total_h)
+	b1.material = ceil_mat
+	c1.mesh = b1
+	c1.position = Vector3(hole_size + (total_w - hole_size) / 2.0 - 1, WALL_HEIGHT + 0.1, total_h / 2.0 - 1)
+	add_child(c1)
+	# 左下部分(洞下方)
+	var c2: MeshInstance3D = MeshInstance3D.new()
+	var b2: BoxMesh = BoxMesh.new()
+	b2.size = Vector3(hole_size, 0.2, total_h - hole_size)
+	b2.material = ceil_mat
+	c2.mesh = b2
+	c2.position = Vector3(hole_size / 2.0 - 1, WALL_HEIGHT + 0.1, hole_size + (total_h - hole_size) / 2.0 - 1)
+	add_child(c2)
 
 func _build_walls() -> void:
 	var wall_mat: StandardMaterial3D = StandardMaterial3D.new()
@@ -231,7 +243,7 @@ func _spawn_player() -> void:
 	if player_scene == null:
 		return
 	var player: CharacterBody3D = player_scene.instantiate()
-	player.position = Vector3(CELL_SIZE / 2.0, 1.0, CELL_SIZE / 2.0)
+	player.position = Vector3(CELL_SIZE / 2.0, 100.0, CELL_SIZE / 2.0)
 	player.name = "Player"
 	add_child(player)
 	# 出生点光源, 让玩家看清周围
@@ -271,51 +283,77 @@ func _spawn_flashlights() -> void:
 		flash.position = Vector3(fx, 0.5, fz)
 		add_child(flash)
 func _build_entry_tunnel() -> void:
-	# 出生点上方的隧道(从第二关掉下来的通道)
+	# 出生点上方的隧道(100米高, 从第二关掉下来的通道)
 	var tx: float = CELL_SIZE / 2.0
 	var tz: float = CELL_SIZE / 2.0
-	var tunnel_h: float = 8.0
-	var tunnel_w: float = 3.0
+	var tunnel_h: float = 100.0
+	var tunnel_w: float = 3.5
 	var tunnel_mat: StandardMaterial3D = StandardMaterial3D.new()
-	tunnel_mat.albedo_color = Color(0.25, 0.25, 0.3)
+	tunnel_mat.albedo_color = Color(0.2, 0.2, 0.25)
 	tunnel_mat.metallic = 0.7
-	tunnel_mat.roughness = 0.5
-	# 隧道四壁
+	tunnel_mat.roughness = 0.6
+	# 隧道四壁(带碰撞)
 	for sx in [-tunnel_w/2.0, tunnel_w/2.0]:
+		var wall_body: StaticBody3D = StaticBody3D.new()
 		var wall: MeshInstance3D = MeshInstance3D.new()
 		var wb: BoxMesh = BoxMesh.new()
 		wb.size = Vector3(0.2, tunnel_h, tunnel_w)
 		wb.material = tunnel_mat
 		wall.mesh = wb
-		wall.position = Vector3(tx + sx, WALL_HEIGHT + tunnel_h/2.0, tz)
-		add_child(wall)
+		wall_body.add_child(wall)
+		var wcs: CollisionShape3D = CollisionShape3D.new()
+		var ws: BoxShape3D = BoxShape3D.new()
+		ws.size = Vector3(0.2, tunnel_h, tunnel_w)
+		wcs.shape = ws
+		wall_body.add_child(wcs)
+		wall_body.position = Vector3(tx + sx, WALL_HEIGHT + tunnel_h/2.0, tz)
+		add_child(wall_body)
 	for sz in [-tunnel_w/2.0, tunnel_w/2.0]:
+		var wall_body2: StaticBody3D = StaticBody3D.new()
 		var wall2: MeshInstance3D = MeshInstance3D.new()
 		var wb2: BoxMesh = BoxMesh.new()
 		wb2.size = Vector3(tunnel_w, tunnel_h, 0.2)
 		wb2.material = tunnel_mat
 		wall2.mesh = wb2
-		wall2.position = Vector3(tx, WALL_HEIGHT + tunnel_h/2.0, tz + sz)
-		add_child(wall2)
-	# 梯子(一侧)
-	for i in range(8):
+		wall_body2.add_child(wall2)
+		var wcs2: CollisionShape3D = CollisionShape3D.new()
+		var ws2: BoxShape3D = BoxShape3D.new()
+		ws2.size = Vector3(tunnel_w, tunnel_h, 0.2)
+		wcs2.shape = ws2
+		wall_body2.add_child(wcs2)
+		wall_body2.position = Vector3(tx, WALL_HEIGHT + tunnel_h/2.0, tz + sz)
+		add_child(wall_body2)
+	# 梯子(一侧, 每2米一根)
+	for i in range(50):
 		var rung: MeshInstance3D = MeshInstance3D.new()
 		var rb: BoxMesh = BoxMesh.new()
-		rb.size = Vector3(0.1, 0.05, 1.5)
+		rb.size = Vector3(0.1, 0.05, 1.8)
 		var rung_mat: StandardMaterial3D = StandardMaterial3D.new()
 		rung_mat.albedo_color = Color(0.5, 0.5, 0.55)
 		rung_mat.metallic = 0.9
 		rb.material = rung_mat
 		rung.mesh = rb
-		rung.position = Vector3(tx - tunnel_w/2.0 + 0.15, WALL_HEIGHT + 0.5 + i * 0.9, tz)
+		rung.position = Vector3(tx - tunnel_w/2.0 + 0.15, WALL_HEIGHT + 1.0 + i * 2.0, tz)
 		add_child(rung)
-	# 隧道顶部灯
-	var tunnel_light: OmniLight3D = OmniLight3D.new()
-	tunnel_light.light_color = Color(0.8, 0.85, 1.0)
-	tunnel_light.light_energy = 1.5
-	tunnel_light.omni_range = 5.0
-	tunnel_light.position = Vector3(tx, WALL_HEIGHT + tunnel_h - 1.0, tz)
-	add_child(tunnel_light)
+	# 隧道顶部入口框
+	var top_frame: MeshInstance3D = MeshInstance3D.new()
+	var tf_box: BoxMesh = BoxMesh.new()
+	tf_box.size = Vector3(tunnel_w + 0.6, 0.4, tunnel_w + 0.6)
+	var tf_mat: StandardMaterial3D = StandardMaterial3D.new()
+	tf_mat.albedo_color = Color(0.4, 0.4, 0.45)
+	tf_mat.metallic = 0.8
+	tf_box.material = tf_mat
+	top_frame.mesh = tf_box
+	top_frame.position = Vector3(tx, WALL_HEIGHT + tunnel_h + 0.2, tz)
+	add_child(top_frame)
+	# 隧道内每隔20米一盏灯
+	for i in range(5):
+		var tunnel_light: OmniLight3D = OmniLight3D.new()
+		tunnel_light.light_color = Color(0.7, 0.8, 1.0)
+		tunnel_light.light_energy = 1.2
+		tunnel_light.omni_range = 8.0
+		tunnel_light.position = Vector3(tx, WALL_HEIGHT + 10.0 + i * 20.0, tz)
+		add_child(tunnel_light)
 
 func _spawn_key() -> void:
 	# 钥匙放在迷宫中间偏远处

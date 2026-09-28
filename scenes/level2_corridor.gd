@@ -47,6 +47,10 @@ var current_gate_area: Area3D = null
 var door_z_list: Array = []
 var hub_reached: bool = false
 var well_inside: bool = false
+var well_area: Area3D = null
+var well_opened: bool = false
+var button_inside: bool = false
+var button_pressed: bool = false
 
 # ---- 材质 ----
 var mat_floor: StandardMaterial3D
@@ -543,9 +547,13 @@ func _build_escape_and_hub() -> void:
 	sign.mesh = sb
 	sign.position = Vector3(hub_start_x + 1.5, 3.5, EXIT_Z)
 	add_child(sign)
-	# 井口(hub右下角)
+	# 井口(hub右下角) - 默认隐藏, 按按钮后出现
 	var well_x: float = hub_end_x - 3.0
 	var well_z: float = hub_end_z - 3.0
+	var well_group: Node3D = Node3D.new()
+	well_group.name = "WellGroup"
+	well_group.visible = false
+	add_child(well_group)
 	# 井口黑洞
 	var well_hole: MeshInstance3D = MeshInstance3D.new()
 	var hole_box: BoxMesh = BoxMesh.new()
@@ -555,7 +563,7 @@ func _build_escape_and_hub() -> void:
 	hole_box.material = hole_mat
 	well_hole.mesh = hole_box
 	well_hole.position = Vector3(well_x, 0.05, well_z)
-	add_child(well_hole)
+	well_group.add_child(well_hole)
 	# 井沿
 	var well_ring: MeshInstance3D = MeshInstance3D.new()
 	var ring_box: BoxMesh = BoxMesh.new()
@@ -566,7 +574,7 @@ func _build_escape_and_hub() -> void:
 	ring_box.material = ring_mat
 	well_ring.mesh = ring_box
 	well_ring.position = Vector3(well_x, 0.1, well_z)
-	add_child(well_ring)
+	well_group.add_child(well_ring)
 	# 井壁(垂直向下)
 	for sx in [-1.4, 1.4]:
 		var wall: MeshInstance3D = MeshInstance3D.new()
@@ -575,7 +583,7 @@ func _build_escape_and_hub() -> void:
 		wb.material = ring_mat
 		wall.mesh = wb
 		wall.position = Vector3(well_x + sx, -2.0, well_z)
-		add_child(wall)
+		well_group.add_child(wall)
 	for sz in [-1.4, 1.4]:
 		var wall2: MeshInstance3D = MeshInstance3D.new()
 		var wb2: BoxMesh = BoxMesh.new()
@@ -583,9 +591,9 @@ func _build_escape_and_hub() -> void:
 		wb2.material = ring_mat
 		wall2.mesh = wb2
 		wall2.position = Vector3(well_x, -2.0, well_z + sz)
-		add_child(wall2)
-	# 井口交互区域
-	var well_area: Area3D = Area3D.new()
+		well_group.add_child(wall2)
+	# 井口交互区域(默认隐藏)
+	well_area = Area3D.new()
 	well_area.name = "WellToLevel3"
 	var well_cs: CollisionShape3D = CollisionShape3D.new()
 	var well_shape: BoxShape3D = BoxShape3D.new()
@@ -593,8 +601,9 @@ func _build_escape_and_hub() -> void:
 	well_cs.shape = well_shape
 	well_area.add_child(well_cs)
 	well_area.position = Vector3(well_x, 1.0, well_z)
-	well_area.body_entered.connect(func(body): _on_well_enter(body))
-	well_area.body_exited.connect(func(body): _on_well_exit(body))
+	well_area.body_entered.connect(_on_well_enter)
+	well_area.visible = false
+	well_area.monitoring = false
 	add_child(well_area)
 	# 井口指示灯
 	var well_light: OmniLight3D = OmniLight3D.new()
@@ -602,7 +611,46 @@ func _build_escape_and_hub() -> void:
 	well_light.light_energy = 2.0
 	well_light.omni_range = 6.0
 	well_light.position = Vector3(well_x, 2.5, well_z)
-	add_child(well_light)
+	well_group.add_child(well_light)
+	# 开启井口的按钮(安全房左墙)
+	var btn_x: float = hub_start_x + 2.0
+	var btn_z: float = EXIT_Z - 5.0
+	var btn_base: MeshInstance3D = MeshInstance3D.new()
+	var bb: BoxMesh = BoxMesh.new()
+	bb.size = Vector3(0.15, 0.8, 0.5)
+	var bmat: StandardMaterial3D = StandardMaterial3D.new()
+	bmat.albedo_color = Color(0.3, 0.3, 0.35)
+	bmat.metallic = 0.8
+	bb.material = bmat
+	btn_base.mesh = bb
+	btn_base.position = Vector3(btn_x, 1.5, btn_z)
+	add_child(btn_base)
+	var btn_top: MeshInstance3D = MeshInstance3D.new()
+	var bt: CylinderMesh = CylinderMesh.new()
+	bt.top_radius = 0.15
+	bt.bottom_radius = 0.15
+	bt.height = 0.12
+	var btmat: StandardMaterial3D = StandardMaterial3D.new()
+	btmat.albedo_color = Color(0.8, 0.1, 0.1)
+	btmat.emission_enabled = true
+	btmat.emission = Color(1.0, 0.2, 0.15)
+	btmat.emission_energy_multiplier = 2.0
+	bt.material = btmat
+	btn_top.mesh = bt
+	btn_top.rotation.x = deg_to_rad(90)
+	btn_top.position = Vector3(btn_x + 0.1, 1.8, btn_z)
+	add_child(btn_top)
+	var btn_area: Area3D = Area3D.new()
+	btn_area.name = "WellButton"
+	var btn_cs: CollisionShape3D = CollisionShape3D.new()
+	var btn_shape: BoxShape3D = BoxShape3D.new()
+	btn_shape.size = Vector3(2.0, 2.5, 2.0)
+	btn_cs.shape = btn_shape
+	btn_area.add_child(btn_cs)
+	btn_area.position = Vector3(btn_x + 0.5, 1.5, btn_z)
+	btn_area.body_entered.connect(_on_button_enter)
+	btn_area.body_exited.connect(_on_button_exit)
+	add_child(btn_area)
 
 # ============================================================
 # 警报灯系统
@@ -704,8 +752,8 @@ func _process(delta: float) -> void:
 		else:
 			l.visible = false
 	if Input.is_action_just_pressed("interact"):
-		if well_inside:
-			get_tree().change_scene_to_file("res://scenes/level3_maze.tscn")
+		if button_inside and not button_pressed:
+			_open_well()
 		elif current_door_area != null:
 			_use_door(current_door_area)
 		elif current_gate_area != null:
@@ -731,17 +779,37 @@ func _release_chaser() -> void:
 	if UIManager != null:
 		UIManager.show_announcement("实验体已释放！立即撤离！", 5.0)
 
-func _on_well_enter(body: Node) -> void:
-	if body.is_in_group("player") and hub_reached:
-		well_inside = true
+func _on_button_enter(body: Node) -> void:
+	if body.is_in_group("player") and hub_reached and not button_pressed:
+		button_inside = true
 		if UIManager != null:
-			UIManager.show_interaction_prompt("按E - 下井前往地下实验区")
+			UIManager.show_interaction_prompt("按E - 开启地下通道")
 
-func _on_well_exit(body: Node) -> void:
+func _on_button_exit(body: Node) -> void:
 	if body.is_in_group("player"):
-		well_inside = false
+		button_inside = false
 		if UIManager != null:
 			UIManager.hide_interaction_prompt()
+
+func _open_well() -> void:
+	button_pressed = true
+	well_opened = true
+	var wg: Node = get_node_or_null("WellGroup")
+	if wg != null:
+		wg.visible = true
+	if well_area != null:
+		well_area.visible = true
+		well_area.monitoring = true
+	if UIManager != null:
+		UIManager.show_toast("地下通道已开启! 跳进去!")
+		UIManager.show_announcement("地下通道已开启 - 跳入洞口前往地下实验区", 4.0)
+
+func _on_well_enter(body: Node) -> void:
+	if body.is_in_group("player") and well_opened:
+		# 玩家跳进洞, 自动传送到第三关
+		if UIManager != null:
+			UIManager.hide_interaction_prompt()
+		get_tree().change_scene_to_file("res://scenes/level3_maze.tscn")
 
 func _check_hub_reached() -> void:
 	if hub_reached:
