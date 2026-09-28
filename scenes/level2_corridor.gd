@@ -38,6 +38,7 @@ var chaser: Node = null
 var test_started: bool = false
 var countdown: float = 0.0
 var chaser_released: bool = false
+var warning_shown: bool = false
 var ceiling_trap: MeshInstance3D = null
 var alarm_lights: Array = []
 var alarm_timer: float = 0.0
@@ -223,14 +224,15 @@ func _start_test(area: Area3D) -> void:
 	if test_started:
 		return
 	test_started = true
-	countdown = 15.0
+	countdown = 60.0
+	warning_shown = false
 	current_gate_area = null
 	if UIManager != null:
 		UIManager.hide_interaction_prompt()
 		UIManager.show_announcement("测试程序已启动", 3.0)
-		UIManager.show_announcement("警告：实验体收容协议解除", 3.5)
-		UIManager.show_announcement("所有人员请立即前往安全门", 4.0)
-		UIManager.show_announcement("15秒后实验体将被释放", 5.0)
+		UIManager.show_announcement("警告：检测到异常生物信号", 3.5)
+		UIManager.show_announcement("收容协议正在解除...", 3.5)
+		UIManager.show_announcement("所有人员请立即前往安全区域", 4.0)
 	var gate: Node = area.get_meta("gate")
 	var tw: Tween = create_tween()
 	tw.tween_property(gate, "position:y", CORRIDOR_HEIGHT + 1.5, 1.5)
@@ -647,6 +649,10 @@ func _process(delta: float) -> void:
 			_start_test(current_gate_area)
 	if test_started and countdown > 0.0:
 		countdown -= delta
+		if countdown <= 20.0 and not warning_shown:
+			warning_shown = true
+			if UIManager != null:
+				UIManager.show_announcement("温馨提示：请快速前往安全房间，实验体即将释放", 4.0)
 		if countdown <= 0.0 and not chaser_released:
 			_release_chaser()
 	_check_hub_reached()
@@ -660,7 +666,7 @@ func _release_chaser() -> void:
 	chaser.position = Vector3(0, 2.0, 10.0)
 	add_child(chaser)
 	if UIManager != null:
-		UIManager.show_announcement("实验体已释放 - 快跑！！！", 5.0)
+		UIManager.show_announcement("实验体已释放！立即撤离！", 5.0)
 
 func _check_hub_reached() -> void:
 	if hub_reached:
