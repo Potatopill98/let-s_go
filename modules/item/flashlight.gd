@@ -1,9 +1,10 @@
 extends Area3D
 
 # ============================================================
-# Flashlight Tool
-# 手持时提供聚光照明，地上时发光方便找到
-# 只能拿一个东西，需要和队友配合
+# Flashlight Tool - 逃生游戏风格手电筒
+# 手持时：锥形光束向前照亮（跟随视角），无全向圆光
+# 地上时：微弱发光方便找到
+# 参考 Escape the Backrooms 等逃生游戏
 # ============================================================
 
 var item_name: String = "手电筒"
@@ -15,9 +16,10 @@ var is_held: bool = false
 var holder: Node = null
 
 var player_in_range: bool = false
-var flash_light: OmniLight3D = null
 var light_spot: SpotLight3D = null
+var ground_glow: OmniLight3D = null
 var _model_built: bool = false
+var _mesh_nodes: Array = []
 
 func _ready() -> void:
 	add_to_group("holdable")
@@ -45,29 +47,34 @@ func _on_body_exited(body: Node) -> void:
 			UIManager.hide_interaction_prompt()
 
 func _ensure_lights() -> void:
-	if flash_light == null:
-		flash_light = OmniLight3D.new()
-		flash_light.light_color = Color(0.9, 0.95, 1.0)
-		flash_light.omni_range = 6.0
-		flash_light.position.y = 0.3
-		add_child(flash_light)
 	if light_spot == null:
 		light_spot = SpotLight3D.new()
-		light_spot.light_color = Color(1.0, 0.98, 0.9)
-		light_spot.spot_range = 15.0
-		light_spot.spot_angle = 35.0
-		light_spot.spot_attenuation = 1.2
-		light_spot.rotation.x = deg_to_rad(-90)
-		light_spot.position = Vector3(0, 0.2, -0.2)
+		light_spot.light_color = Color(1.0, 0.97, 0.88)
+		light_spot.spot_range = 14.0
+		light_spot.spot_angle = 32.0
+		light_spot.spot_attenuation = 1.3
+		light_spot.rotation.x = 0.0
+		light_spot.position = Vector3(0, 0.12, -0.45)
 		add_child(light_spot)
+	if ground_glow == null:
+		ground_glow = OmniLight3D.new()
+		ground_glow.light_color = Color(1.0, 0.97, 0.85)
+		ground_glow.omni_range = 2.5
+		ground_glow.position.y = 0.3
+		add_child(ground_glow)
+
+func _set_meshes_visible(vis: bool) -> void:
+	for m in _mesh_nodes:
+		if is_instance_valid(m):
+			m.visible = vis
 
 func pick_up(player: Node) -> void:
 	is_held = true
 	holder = player
-	visible = false
 	_ensure_lights()
-	flash_light.light_energy = 1.5
-	light_spot.light_energy = 2.5
+	_set_meshes_visible(false)
+	light_spot.light_energy = 2.8
+	ground_glow.light_energy = 0.0
 	if has_node("CollisionShape3D"):
 		$CollisionShape3D.disabled = true
 
@@ -75,10 +82,10 @@ func drop(drop_position: Vector3) -> void:
 	is_held = false
 	holder = null
 	global_position = drop_position
-	visible = true
 	_ensure_lights()
-	flash_light.light_energy = 2.0
-	light_spot.light_energy = 0.5
+	_set_meshes_visible(true)
+	light_spot.light_energy = 0.2
+	ground_glow.light_energy = 1.2
 	if has_node("CollisionShape3D"):
 		$CollisionShape3D.disabled = false
 
@@ -88,12 +95,12 @@ func _build_flashlight_model() -> void:
 	_model_built = true
 	_ensure_lights()
 	if is_held:
-		flash_light.light_energy = 1.5
-		light_spot.light_energy = 2.5
+		light_spot.light_energy = 2.8
+		ground_glow.light_energy = 0.0
 	else:
-		flash_light.light_energy = 2.0
-		light_spot.light_energy = 0.5
-	# 手电筒主体（圆柱形）- 放大到和扳手差不多大小
+		light_spot.light_energy = 0.2
+		ground_glow.light_energy = 1.2
+	# 手电筒主体（圆柱形）
 	var body: MeshInstance3D = MeshInstance3D.new()
 	var body_mesh: CylinderMesh = CylinderMesh.new()
 	body_mesh.top_radius = 0.08
@@ -107,6 +114,7 @@ func _build_flashlight_model() -> void:
 	body.mesh = body_mesh
 	body.rotation.x = deg_to_rad(90)
 	add_child(body)
+	_mesh_nodes.append(body)
 	# 灯头（稍大的圆柱）
 	var head: MeshInstance3D = MeshInstance3D.new()
 	var head_mesh: CylinderMesh = CylinderMesh.new()
@@ -122,6 +130,7 @@ func _build_flashlight_model() -> void:
 	head.rotation.x = deg_to_rad(90)
 	head.position.z = -0.3
 	add_child(head)
+	_mesh_nodes.append(head)
 	# 灯头玻璃（发光）
 	var glass: MeshInstance3D = MeshInstance3D.new()
 	var glass_mesh: CylinderMesh = CylinderMesh.new()
@@ -138,6 +147,7 @@ func _build_flashlight_model() -> void:
 	glass.rotation.x = deg_to_rad(90)
 	glass.position.z = -0.38
 	add_child(glass)
+	_mesh_nodes.append(glass)
 	# 开关按钮
 	var btn: MeshInstance3D = MeshInstance3D.new()
 	var btn_mesh: BoxMesh = BoxMesh.new()
@@ -148,6 +158,7 @@ func _build_flashlight_model() -> void:
 	btn.mesh = btn_mesh
 	btn.position = Vector3(0, 0.1, 0.05)
 	add_child(btn)
+	_mesh_nodes.append(btn)
 	# 碰撞
 	var col: CollisionShape3D = CollisionShape3D.new()
 	var col_shape: BoxShape3D = BoxShape3D.new()

@@ -1,4 +1,4 @@
-﻿extends StaticBody3D
+extends StaticBody3D
 class_name SecurityDoor
 ## 安全门
 ## 需要电力恢复 + 门禁卡才能打开
@@ -62,6 +62,48 @@ func _build_visual() -> void:
 	status_light.omni_range = 6.0
 	status_light.position = Vector3(0, 3.5, 0.5)
 	add_child(status_light)
+	# 安全出口标志牌（绿色发光，门上方）
+	var sign: MeshInstance3D = MeshInstance3D.new()
+	var sign_box: BoxMesh = BoxMesh.new()
+	sign_box.size = Vector3(1.4, 0.45, 0.06)
+	var sign_mat: StandardMaterial3D = StandardMaterial3D.new()
+	sign_mat.albedo_color = Color(0.05, 0.5, 0.15)
+	sign_mat.emission_enabled = true
+	sign_mat.emission = Color(0.1, 0.8, 0.2)
+	sign_mat.emission_energy_multiplier = 2.5
+	sign_box.material = sign_mat
+	sign.mesh = sign_box
+	sign.position = Vector3(0, 4.6, 0.5)
+	add_child(sign)
+	# 标志牌上的箭头（指向门外+z方向）
+	var arrow: MeshInstance3D = MeshInstance3D.new()
+	var arrow_box: BoxMesh = BoxMesh.new()
+	arrow_box.size = Vector3(0.5, 0.08, 0.25)
+	var arrow_mat: StandardMaterial3D = StandardMaterial3D.new()
+	arrow_mat.albedo_color = Color(1, 1, 1)
+	arrow_mat.emission_enabled = true
+	arrow_mat.emission = Color(0.8, 1.0, 0.85)
+	arrow_mat.emission_energy_multiplier = 1.5
+	arrow_box.material = arrow_mat
+	arrow.mesh = arrow_box
+	arrow.position = Vector3(0, 4.6, 0.56)
+	add_child(arrow)
+	# 箭头头部（三角形用小盒代替）
+	var arrow_head: MeshInstance3D = MeshInstance3D.new()
+	var ah_box: BoxMesh = BoxMesh.new()
+	ah_box.size = Vector3(0.25, 0.2, 0.15)
+	ah_box.material = arrow_mat
+	arrow_head.mesh = ah_box
+	arrow_head.position = Vector3(0, 4.6, 0.72)
+	add_child(arrow_head)
+	# 门两侧指示灯
+	for sx in [-2.2, 2.2]:
+		var side_light: OmniLight3D = OmniLight3D.new()
+		side_light.light_color = Color(0.2, 0.8, 0.3)
+		side_light.light_energy = 0.8
+		side_light.omni_range = 3.0
+		side_light.position = Vector3(sx, 3.8, 0.5)
+		add_child(side_light)
 	# 碰撞
 	collision_shape = CollisionShape3D.new()
 	var shape: BoxShape3D = BoxShape3D.new()
