@@ -25,6 +25,7 @@ func _ready() -> void:
 	_build_walls()
 	_build_lighting()
 	_spawn_player()
+	_spawn_flashlights()
 	_spawn_key()
 	_spawn_elevator()
 	_spawn_wall_crawlers()
@@ -225,6 +226,22 @@ func _spawn_player() -> void:
 	player.name = "Player"
 	add_child(player)
 
+
+func _spawn_flashlights() -> void:
+	# 根据玩家数量在出生点附近生成手电筒
+	var player_count: int = get_tree().get_nodes_in_group("player").size()
+	if player_count <= 0:
+		player_count = 1
+	var flash_scene: PackedScene = load("res://modules/item/flashlight.tscn")
+	if flash_scene == null:
+		return
+	for i in range(player_count):
+		var flash: Node3D = flash_scene.instantiate()
+		# 出生点附近随机位置, 避免重叠
+		var fx: float = 2.0 + randf() * 6.0
+		var fz: float = 2.0 + randf() * 6.0
+		flash.position = Vector3(fx, 0.5, fz)
+		add_child(flash)
 func _spawn_key() -> void:
 	# 钥匙放在迷宫中间偏远处
 	var kx: int = MAZE_W / 2 + randi() % 5 - 2
