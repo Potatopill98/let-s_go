@@ -152,3 +152,32 @@
 - Godot 4.7.2 --check-only 0 错误
 - 39 个音效全部导入成功
 - 三关 BGM 自动切换（实验室→恐怖→低频）
+## v0.10 - 联机系统框架（P0核心）
+### NetworkManager（autoload）
+- 支持双模式：P2P主机 + 专用服务器（--server参数启动）
+- ENetMultiplayerPeer，默认端口5678，最大4人
+- 玩家注册/准备状态/聊天/游戏开始 全套RPC
+- 断线检测、连接失败处理
+- 专用服务器模式自动进入第一关，无头运行
+
+### 主菜单 + 联机大厅UI
+- 主菜单：开始游戏/设置/退出
+- 联机模式：创建房间/加入房间/连接专用服务器
+- 等待大厅：玩家列表（颜色标记+准备状态+主机皇冠）、聊天窗口、准备/开始按钮
+- 动态构建UI，暗色主题适配游戏氛围
+
+### 玩家同步
+- MultiplayerSpawner自动生成玩家，4个出生点分配
+- MultiplayerSynchronizer同步position/rotation/velocity/health/downed
+- 第一人称视角分离：本地玩家隐藏身体，远程玩家隐藏相机和手臂
+- 远程玩家不处理输入，只播放走路动画
+
+### 怪物主机权威
+- 怪物AI只在主机/服务器运行，客户端纯显示
+- BaseMonster/Sprinter/Berserker/Chaser/WallCrawler 全部添加MultiplayerSynchronizer
+- 同步position/rotation/health/alerted/dead
+- 客户端只更新血条显示
+
+### 验证
+- Godot 4.7.2 --check-only 0错误
+- 联机开发文档v1.0已交付（11章5381字）

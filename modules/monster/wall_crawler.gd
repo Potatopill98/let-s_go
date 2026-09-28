@@ -27,13 +27,26 @@ var _model_built: bool = false
 
 func _ready() -> void:
 	add_to_group("monster")
+	_setup_multiplayer_sync()
 	_build_model()
 	# 初始贴墙状态: 半透明, 不动
 	if mesh_instance != null:
 		mesh_instance.visible = false
 	set_physics_process(true)
 
+func _setup_multiplayer_sync() -> void:
+	var sync: MultiplayerSynchronizer = get_node_or_null("MultiplayerSynchronizer")
+	if sync != null:
+		var config: MultiplayerSynchronizerReplicationConfig = MultiplayerSynchronizerReplicationConfig.new()
+		config.add_property("position", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		config.add_property("rotation", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		config.add_property("current_health", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		config.add_property("is_dead", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		sync.replication_config = config
+
 func _physics_process(delta: float) -> void:
+	if not NetworkManager.is_host():
+		return
 	if is_dead:
 		return
 	if attack_timer > 0:

@@ -68,10 +68,13 @@ var walk_leg_amp: float = 0.5
 var walk_arm_amp: float = 0.35
 
 func _ready() -> void:
+	add_to_group("player")
+	_setup_multiplayer()
+	if not is_multiplayer_authority():
+		return
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	head.position.y = 1.6
 	current_move_speed = walk_speed
-	add_to_group("player")
 	# Initialize inventory
 	inventory = InventoryScript.new()
 	inventory.name = "Inventory"
@@ -87,7 +90,30 @@ func _ready() -> void:
 	if UIManager != null:
 		UIManager.update_equipment(equipment.get_equipment_list())
 
+func _setup_multiplayer() -> void:
+	var sync: MultiplayerSynchronizer = get_node_or_null("MultiplayerSynchronizer")
+	if sync != null:
+		var config: MultiplayerSynchronizerReplicationConfig = MultiplayerSynchronizerReplicationConfig.new()
+		config.add_property("position", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		config.add_property("rotation", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		config.add_property("velocity", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		config.add_property("current_health", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		config.add_property("is_downed", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		sync.replication_config = config
+	if not is_multiplayer_authority():
+		if has_node("Head/LeftArmPivot"):
+			$Head/LeftArmPivot.visible = false
+		if has_node("Head/RightArm"):
+			$Head/RightArm.visible = false
+		if has_node("Head/Camera3D"):
+			$Head/Camera3D.current = false
+	else:
+		if has_node("Body"):
+			$Body.visible = false
+
 func _input(event: InputEvent) -> void:
+	if not is_multiplayer_authority():
+		return
 	# Mouse look - highest priority, always works even when repairing
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * mouse_sensitivity)
@@ -95,6 +121,8 @@ func _input(event: InputEvent) -> void:
 		head.rotation.x = clamp(head.rotation.x, -PI / 2.0 + 0.01, PI / 2.0 - 0.01)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not is_multiplayer_authority():
+		return
 	# Skip most input when downed/dead
 	if is_downed or is_dead:
 		return
@@ -136,6 +164,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			place_held_item()
 
 func _physics_process(delta: float) -> void:
+	if not is_multiplayer_authority():
+		if has_method("_update_walk_animation"):
+			_update_walk_animation(delta)
+		return
 	# Timers
 	if dodge_cd_timer > 0.0:
 		dodge_cd_timer -= delta
@@ -369,7 +401,7 @@ func pick_up_item(item: Node) -> void:
 	if item.has_method("pick_up"):
 		item.pick_up(self)
 	if AudioManager != null:
-		AudioManager.play_sfx("item_pickup", 0.7)
+		AudioManager.play_sfx("mechanical_repair", 0.5)
 	# Attach to weapon mount
 	var mount: Node3D = get_node("Head/WeaponMount") as Node3D
 	if mount != null:
@@ -386,7 +418,7 @@ func drop_held_item() -> void:
 	if current_held_item == null:
 		return
 	if AudioManager != null:
-		AudioManager.play_sfx("item_pickup", 0.5, 0.8)
+		AudioManager.play_sfx("mechanical_repair", 0.4, 0.9)
 	var item: Node = current_held_item
 	var item_path: String = held_item_scene_path
 	# Get drop position in front of player, use player's Y so it lands on current floor

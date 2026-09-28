@@ -319,8 +319,12 @@ position = Vector3(5, 0.1, 0)
 mesh = SubResource("LabPodMesh")
 position = Vector3(-5, 0.1, 0)
 
-[node name="Player" parent="SpawnArea" instance=ExtResource("1_player")]
-position = Vector3(0, 1, 0)
+[node name="PlayerContainer" type="Node3D" parent="SpawnArea"]
+
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="SpawnArea/PlayerContainer"]
+spawn_path = NodePath("..")
+auto_spawn = true
+spawnable_scenes = Array[PackedScene]([ExtResource("1_player")])
 [node name="CellBlockA" type="Node3D" parent="."]
 position = Vector3(-25, 0, 0)
 

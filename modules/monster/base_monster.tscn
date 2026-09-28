@@ -26,6 +26,9 @@ position.y = 0.9
 shape = SubResource("MonsterCol")
 position.y = 0.9
 
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_interval = 0.1
+
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
 radius = 0.5
 height = 1.8

@@ -7,7 +7,7 @@ var broadcast_timer: Timer = null
 
 func _ready() -> void:
 	if AudioManager != null:
-		AudioManager.play_music("ambience_lab", 0.4, 2.0)
+		AudioManager.play_music("bass_hum", 0.35, 2.0)
 	# 延迟2秒后开始广播
 	broadcast_timer = Timer.new()
 	broadcast_timer.wait_time = 2.0
@@ -16,6 +16,7 @@ func _ready() -> void:
 	add_child(broadcast_timer)
 	broadcast_timer.start()
 	_build_level_exit()
+	_setup_player_spawner()
 
 func _start_broadcast() -> void:
 	if UIManager == null:
@@ -29,6 +30,26 @@ func _start_broadcast() -> void:
 	UIManager.show_announcement("皮特博士最后出现位置：收容区东侧", 4.0)
 	UIManager.show_announcement("目标：修复发电机 → 搜索研究员尸体 → 开启安全门", 6.0)
 	UIManager.show_announcement("操作：WASD移动 | 左键攻击 | E交互/维修 | Shift奔跑 | Q闪避 | G丢弃", 8.0)
+func _setup_player_spawner() -> void:
+	var spawner: MultiplayerSpawner = get_node_or_null("SpawnArea/PlayerContainer/MultiplayerSpawner")
+	if spawner == null:
+		return
+	spawner.spawn_function = _spawn_player
+
+func _spawn_player(peer_id: int) -> Node:
+	var player: CharacterBody3D = preload("res://modules/player/player.tscn").instantiate()
+	player.name = str(peer_id)
+	var spawn_points: Array = [
+		Vector3(0, 1, 0),
+		Vector3(3, 1, 0),
+		Vector3(-3, 1, 0),
+		Vector3(0, 1, 3),
+	]
+	var index: int = (peer_id - 1) % spawn_points.size()
+	player.position = spawn_points[index]
+	player.set_multiplayer_authority(peer_id)
+	return player
+
 func _build_level_exit() -> void:
 	# 大门后触发区域：玩家进入后切换到第二关（场景独立，不耦合）
 	var exit_area: Area3D = Area3D.new()

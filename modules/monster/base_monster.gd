@@ -42,10 +42,22 @@ var nav_agent: NavigationAgent3D = null
 func _ready() -> void:
 	current_health = max_health
 	add_to_group("monster")
+	_setup_multiplayer_sync()
 	last_pos = global_position
 	home_position = global_position
 	_build_hp_bar()
 	nav_agent = get_node_or_null("NavigationAgent3D") as NavigationAgent3D
+
+func _setup_multiplayer_sync() -> void:
+	var sync: MultiplayerSynchronizer = get_node_or_null("MultiplayerSynchronizer")
+	if sync != null:
+		var config: MultiplayerSynchronizerReplicationConfig = MultiplayerSynchronizerReplicationConfig.new()
+		config.add_property("position", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		config.add_property("rotation", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		config.add_property("current_health", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		config.add_property("is_alerted", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		config.add_property("is_dead", MultiplayerSynchronizerReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+		sync.replication_config = config
 
 ## 头顶血条（Label3D billboard，参考霓虹竞技场实现）
 func _build_hp_bar() -> void:
@@ -77,6 +89,12 @@ func _update_hp_bar() -> void:
 	hp_label.text = "%s  %d" % [bar, int(current_health)]
 
 func _physics_process(delta: float) -> void:
+	# Clients only update visuals (HP bar), AI runs on host/server
+	if not NetworkManager.is_host():
+		if hp_label != null and is_instance_valid(hp_label):
+			hp_label.visible = is_alerted and not is_dead
+			_update_hp_bar()
+		return
 	if is_dead:
 		velocity = Vector3.ZERO
 		move_and_slide()
