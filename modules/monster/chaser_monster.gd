@@ -31,13 +31,27 @@ func _physics_process(delta: float) -> void:
 	var target: Player = find_nearest_player()
 	if target == null:
 		return
-	var to_target: Vector3 = target.global_position - global_position
+	var target_pos: Vector3 = target.global_position
+	# 安全区判定：逃生走廊+中间层（x>4.0 且 z>445），Boss不进入、不攻击
+	if target_pos.x > 4.0 and target_pos.z > 445.0:
+		# 守在安全门外（x=0, z=451），玩家出来立即继续追
+		var door_pos: Vector3 = Vector3(0.0, 2.0, 451.0)
+		var to_door: Vector3 = door_pos - global_position
+		to_door.y = 0.0
+		if to_door.length() > 0.5:
+			var door_dir: Vector3 = to_door.normalized()
+			global_position.x += door_dir.x * move_speed * delta
+			global_position.z += door_dir.z * move_speed * delta
+		global_position.y = 2.0
+		return
+	# 非安全区：包括主走廊和所有侧面房间，Boss穿墙追击
+	var to_target: Vector3 = target_pos - global_position
 	var vertical_dist: float = abs(to_target.y)
 	to_target.y = 0.0
 	var dist: float = to_target.length()
 	if dist > 0.1:
 		rotation.y = atan2(-to_target.x, -to_target.z)
-	# 攻击：碰到直接秒杀
+	# 攻击：碰到直接秒杀（可穿墙攻击房间内玩家）
 	if dist <= attack_range and vertical_dist <= 4.0:
 		if attack_timer <= 0.0:
 			attack_timer = attack_cooldown
@@ -45,15 +59,8 @@ func _physics_process(delta: float) -> void:
 				target.current_health = 0.0
 				target.take_damage(999.0, to_target.normalized() * 5.0)
 	else:
-		# 直接朝玩家移动，穿过所有障碍物
+		# 直接朝玩家移动，穿过所有障碍物（包括侧面房间的墙）
 		var dir: Vector3 = to_target.normalized()
-		var new_x: float = global_position.x + dir.x * move_speed * delta
-		var new_z: float = global_position.z + dir.z * move_speed * delta
-		# 边界：不能进入逃生走廊（安全门x=3.5, z=449.5~452.5）
-		# 大怪物半径约3，中心x限制在0.5，停在安全门前
-		if abs(new_z - 451.0) < 3.5 and new_x > 0.5:
-			new_x = 0.5
-		global_position.x = new_x
-		global_position.z = new_z
-		# 保持在地面高度
+		global_position.x += dir.x * move_speed * delta
+		global_position.z += dir.z * move_speed * delta
 		global_position.y = 2.0
