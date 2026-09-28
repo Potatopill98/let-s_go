@@ -64,7 +64,6 @@ var equipment: Node = null
 @onready var right_arm: MeshInstance3D = $Head/RightArm
 var walk_cycle: float = 0.0
 var walk_anim_speed: float = 10.0
-var _last_step_cycle: float = 0.0
 var walk_leg_amp: float = 0.5
 var walk_arm_amp: float = 0.35
 
@@ -173,8 +172,6 @@ func _physics_process(delta: float) -> void:
 		# Jump
 		if Input.is_key_pressed(KEY_SPACE) and is_on_floor():
 			velocity.y = jump_velocity
-			if AudioManager != null:
-				AudioManager.play_sfx("jump", 0.5)
 		# Run
 		if Input.is_key_pressed(KEY_SHIFT):
 			current_move_speed = run_speed
@@ -191,11 +188,7 @@ func _update_walk_animation(delta: float) -> void:
 	if is_moving:
 		var speed_factor: float = clampf(horizontal_speed / walk_speed, 0.5, 2.0)
 		walk_cycle += delta * walk_anim_speed * speed_factor
-		# 每步播放脚步声 (walk_cycle每经过PI走一步)
-		if int(walk_cycle / PI) > int(_last_step_cycle / PI):
-			if AudioManager != null:
-				AudioManager.play_sfx("footstep", 0.4)
-		_last_step_cycle = walk_cycle
+
 		var leg_swing: float = sin(walk_cycle) * walk_leg_amp
 		var arm_swing: float = sin(walk_cycle + PI) * walk_arm_amp
 		left_leg_pivot.rotation.x = leg_swing
@@ -241,8 +234,6 @@ func start_dodge() -> void:
 
 func start_punch() -> void:
 	punch_cd_timer = punch_cooldown
-	if AudioManager != null:
-		AudioManager.play_sfx("punch_swing", 0.6)
 	var monsters: Array = get_tree().get_nodes_in_group("monster")
 	var hit_monster: Node = null
 	var min_dist: float = 3.0
