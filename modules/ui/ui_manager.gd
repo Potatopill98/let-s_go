@@ -649,12 +649,17 @@ func update_equipment(equip_list: Array) -> void:
 # Maze Map UI
 # ============================================================
 func _create_map_ui() -> void:
-	map_panel = Panel.new()
+	map_panel = Control.new()
 	map_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	map_panel.modulate = Color(0, 0, 0, 0.85)
 	map_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_panel.visible = false
 	add_child(map_panel)
+	# 半透明黑背景
+	var bg: ColorRect = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0, 0, 0, 0.85)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_panel.add_child(bg)
 	# 标题
 	var title: Label = Label.new()
 	title.text = "迷宫地图 (按M关闭)"
