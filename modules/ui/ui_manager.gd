@@ -53,7 +53,7 @@ var equipment_panel: Panel = null
 var equipment_labels: Array = []
 
 # Maze map UI
-var map_panel: Panel = null
+var map_panel: Control = null
 var map_texture_rect: TextureRect = null
 var map_visible: bool = false
 var map_has_data: bool = false
